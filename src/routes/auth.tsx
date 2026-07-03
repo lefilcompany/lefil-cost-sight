@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,83 +55,93 @@ function AuthPage() {
   };
 
   return (
-    <div className="grid min-h-screen w-full bg-background lg:grid-cols-[1.1fr_1fr]">
-      {/* Brand panel */}
-      <div className="relative hidden overflow-hidden lg:block">
+    <div className="grid min-h-screen w-full bg-background lg:grid-cols-2">
+      {/* Brand panel — clean finops */}
+      <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-14">
         <div className="absolute inset-0 gradient-emerald" />
-        <div className="absolute inset-0 opacity-40 [background:radial-gradient(700px_400px_at_20%_10%,var(--color-gold),transparent_55%),radial-gradient(600px_400px_at_100%_100%,oklch(0.4_0.12_195),transparent_60%)]" />
-        <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:32px_32px]" />
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            background:
+              "radial-gradient(900px 500px at 15% 20%, oklch(0.78 0.13 85 / 0.18), transparent 60%), radial-gradient(700px 500px at 90% 90%, oklch(0.52 0.13 165 / 0.35), transparent 65%)",
+          }}
+        />
 
-        <div className="relative flex h-full flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
-            <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/15 bg-white/5 backdrop-blur">
-              <span className="font-display text-lg font-bold text-[color:var(--color-gold)]">L</span>
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[color:var(--color-gold)] shadow-[0_0_12px_var(--color-gold)]" />
-            </div>
-            <div>
-              <div className="font-display text-base font-semibold">LeFil</div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-white/60">Cost Center</div>
-            </div>
+        <div className="relative flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 backdrop-blur-md">
+            <span className="font-display text-lg font-bold text-[color:var(--color-gold)]">L</span>
           </div>
+          <div className="leading-tight">
+            <div className="font-display text-base font-semibold text-white">LeFil</div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-white/60">Cost Center</div>
+          </div>
+        </div>
 
-          <div className="max-w-lg space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--color-gold)] backdrop-blur">
-              <Sparkles className="h-3 w-3" /> Inteligência de custos
+        <div className="relative space-y-10">
+          <div className="space-y-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--color-gold)]">
+              FinOps · IA · Infra
             </div>
-            <h1 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight text-white xl:text-5xl">
-              Uma sala de comando para o<br />
-              <span className="text-[color:var(--color-gold)]">consumo das suas plataformas.</span>
+            <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-white xl:text-6xl">
+              Cada dólar de<br />
+              nuvem no seu<br />
+              <span className="text-[color:var(--color-gold)]">radar.</span>
             </h1>
             <p className="max-w-md text-[15px] leading-relaxed text-white/70">
-              Consolide IA, infraestrutura e serviços em um único painel. Descubra onde cada real é
-              gasto — e onde ele pode render mais.
+              Consolide gastos de IA, APIs e infraestrutura em um só painel financeiro.
+              Simples, direto, sem ruído.
             </p>
+          </div>
 
-            <div className="grid gap-3 pt-4">
-              {[
-                { icon: Zap, text: "Sincronização automática de fornecedores" },
-                { icon: ShieldCheck, text: "Atribuição por plataforma e cliente" },
-                { icon: Sparkles, text: "Preparado para billing, créditos e assinaturas" },
-              ].map((f) => (
-                <div key={f.text} className="flex items-center gap-3 text-sm text-white/80">
-                  <div className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/5">
-                    <f.icon className="h-3.5 w-3.5 text-[color:var(--color-gold)]" />
-                  </div>
-                  {f.text}
-                </div>
-              ))}
+          {/* Money cards */}
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-white/[0.06] p-5 backdrop-blur-md">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">MRR economizado</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-white tabular-nums">R$ 42,8k</div>
+              <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--color-gold)]">
+                <TrendingDown className="h-3 w-3" /> −18%
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white/[0.06] p-5 backdrop-blur-md">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">Margem</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-white tabular-nums">67,4%</div>
+              <div className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-300">
+                <TrendingUp className="h-3 w-3" /> +4,2pp
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="text-[11px] text-white/40">
-            © {new Date().getFullYear()} LeFil · Sistema interno
-          </div>
+        <div className="relative text-[11px] text-white/40">
+          © {new Date().getFullYear()} LeFil · Sistema interno
         </div>
       </div>
 
-      {/* Form panel */}
-      <div className="flex items-center justify-center px-6 py-10 sm:px-10">
-        <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl gradient-emerald text-[color:var(--color-gold)]">
-                <span className="font-display text-base font-bold">L</span>
-              </div>
-              <div>
-                <div className="font-display text-sm font-semibold">LeFil</div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</div>
-              </div>
+      {/* Form panel — clean */}
+      <div className="flex items-center justify-center px-6 py-12 sm:px-12">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="flex items-center gap-3 lg:hidden">
+            <div className="grid h-10 w-10 place-items-center rounded-xl gradient-emerald">
+              <span className="font-display text-base font-bold text-[color:var(--color-gold)]">L</span>
+            </div>
+            <div className="leading-tight">
+              <div className="font-display text-sm font-semibold">LeFil</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</div>
             </div>
           </div>
 
-          <div>
-            <h2 className="font-display text-2xl font-semibold tracking-tight">Acesse o painel</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Entre com seu e-mail LeFil para continuar.
+          <div className="space-y-2">
+            <h2 className="font-display text-3xl font-semibold tracking-tight">Bem-vindo de volta</h2>
+            <p className="text-sm text-muted-foreground">
+              Entre para acompanhar seus custos em tempo real.
             </p>
           </div>
 
-          <Button variant="outline" className="w-full justify-center gap-2 border-border/70 bg-muted/30 py-5" onClick={handleGoogle}>
+          <Button
+            variant="outline"
+            className="h-11 w-full justify-center gap-2"
+            onClick={handleGoogle}
+          >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -141,25 +151,27 @@ function AuthPage() {
             Continuar com Google
           </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/70" /></div>
-            <div className="relative flex justify-center"><span className="bg-background px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">ou com e-mail</span></div>
+          <div className="text-center text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            ou com e-mail
           </div>
 
           <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2 bg-muted/40">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
-            <TabsContent value="signin" className="space-y-4 pt-5">
+            <TabsContent value="signin" className="space-y-4 pt-6">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">E-mail</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Label htmlFor="email" className="text-xs font-medium">E-mail</Label>
+                  <Input id="email" type="email" placeholder="voce@lefil.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Senha</Label>
-                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-xs font-medium">Senha</Label>
+                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground">Esqueci</button>
+                  </div>
+                  <Input id="password" type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
                 </div>
                 <Button type="submit" className="group h-11 w-full gap-2" disabled={loading}>
                   {loading ? "Entrando..." : "Entrar no painel"}
@@ -167,15 +179,15 @@ function AuthPage() {
                 </Button>
               </form>
             </TabsContent>
-            <TabsContent value="signup" className="space-y-4 pt-5">
+            <TabsContent value="signup" className="space-y-4 pt-6">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email2" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">E-mail</Label>
-                  <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Label htmlFor="email2" className="text-xs font-medium">E-mail</Label>
+                  <Input id="email2" type="email" placeholder="voce@lefil.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password2" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Senha</Label>
-                  <Input id="password2" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+                  <Label htmlFor="password2" className="text-xs font-medium">Senha</Label>
+                  <Input id="password2" type="password" placeholder="Mínimo 8 caracteres" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
                 </div>
                 <Button type="submit" className="h-11 w-full" disabled={loading}>
                   {loading ? "Criando..." : "Criar conta"}
