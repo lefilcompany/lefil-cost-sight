@@ -43,6 +43,143 @@ import { runProviderSync } from "@/lib/sync.functions";
 
 const STATUSES = ["active", "inactive", "error"] as const;
 
+type PresetField = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  default?: string;
+  required?: boolean;
+  wide?: boolean;
+  options?: string[];
+};
+type Preset = { label: string; description: string; fields: PresetField[]; extra?: Record<string, any> };
+
+const CONFIG_PRESETS: Record<string, Preset> = {
+  none: {
+    label: "Sem configuração",
+    description: "Nenhum metadado será salvo. Use quando o fornecedor não precisa de parâmetros extras.",
+    fields: [],
+  },
+  openai: {
+    label: "OpenAI — Uso por organização",
+    description: "Sincroniza custos da API OpenAI usando organização e versão.",
+    fields: [
+      { key: "org_id", label: "Organization ID", placeholder: "org-xxxxxxxxxxxxxxxx", required: true },
+      { key: "api_version", label: "API version", options: ["v1"], default: "v1" },
+      { key: "include_usage", label: "Incluir usage detalhado", options: ["true", "false"], default: "true" },
+    ],
+  },
+  anthropic: {
+    label: "Anthropic — Console billing",
+    description: "Sincroniza billing do Anthropic Console (workspaces).",
+    fields: [
+      { key: "workspace_id", label: "Workspace ID", placeholder: "wrkspc_xxx", required: true },
+      { key: "api_version", label: "API version", options: ["2023-06-01"], default: "2023-06-01" },
+    ],
+  },
+  aws: {
+    label: "AWS — Cost Explorer",
+    description: "Consulta AWS Cost Explorer por conta e serviços.",
+    fields: [
+      { key: "account_id", label: "Account ID", placeholder: "123456789012", required: true },
+      {
+        key: "region",
+        label: "Região",
+        options: ["us-east-1", "us-east-2", "us-west-2", "sa-east-1", "eu-west-1", "eu-central-1"],
+        default: "us-east-1",
+        required: true,
+      },
+      {
+        key: "granularity",
+        label: "Granularidade",
+        options: ["DAILY", "MONTHLY", "HOURLY"],
+        default: "DAILY",
+      },
+    ],
+  },
+  gcp: {
+    label: "Google Cloud — Billing",
+    description: "Consulta billing account do Google Cloud.",
+    fields: [
+      { key: "billing_account", label: "Billing account", placeholder: "XXXXXX-XXXXXX-XXXXXX", required: true },
+      { key: "project_id", label: "Project ID", placeholder: "meu-projeto-123", required: true },
+      { key: "dataset", label: "BigQuery dataset (opcional)", placeholder: "billing_export" },
+    ],
+  },
+  azure: {
+    label: "Azure — Cost Management",
+    description: "Consulta Azure Cost Management por subscription.",
+    fields: [
+      { key: "subscription_id", label: "Subscription ID", placeholder: "00000000-0000-0000-0000-000000000000", required: true },
+      { key: "tenant_id", label: "Tenant ID", placeholder: "00000000-0000-0000-0000-000000000000", required: true },
+      { key: "scope", label: "Escopo", options: ["Subscription", "ResourceGroup", "BillingAccount"], default: "Subscription" },
+    ],
+  },
+  meta_ads: {
+    label: "Meta Ads — Marketing API",
+    description: "Sincroniza gastos de campanhas do Meta Ads.",
+    fields: [
+      { key: "ad_account_id", label: "Ad Account ID", placeholder: "act_1234567890", required: true },
+      { key: "api_version", label: "API version", options: ["v19.0", "v20.0", "v21.0"], default: "v20.0" },
+    ],
+  },
+  google_ads: {
+    label: "Google Ads — API",
+    description: "Sincroniza gastos de campanhas do Google Ads.",
+    fields: [
+      { key: "customer_id", label: "Customer ID", placeholder: "123-456-7890", required: true },
+      { key: "login_customer_id", label: "Login customer ID (MCC)", placeholder: "opcional" },
+      { key: "api_version", label: "API version", options: ["v16", "v17"], default: "v17" },
+    ],
+  },
+  stripe: {
+    label: "Stripe — Billing",
+    description: "Sincroniza faturas e assinaturas do Stripe.",
+    fields: [
+      { key: "account_id", label: "Account ID", placeholder: "acct_xxx", required: true },
+      { key: "api_version", label: "API version", options: ["2024-06-20", "2024-11-20"], default: "2024-11-20" },
+    ],
+  },
+  webhook: {
+    label: "Webhook genérico",
+    description: "Recebe eventos via URL. Use quando o fornecedor entrega dados por push.",
+    fields: [
+      { key: "endpoint_url", label: "URL do endpoint", placeholder: "https://api.exemplo.com/hook", required: true, wide: true },
+      { key: "method", label: "Método", options: ["POST", "GET", "PUT"], default: "POST" },
+      { key: "auth_type", label: "Autenticação", options: ["none", "bearer", "basic", "hmac"], default: "bearer" },
+    ],
+  },
+};
+
+function buildConfig(preset: string, fields: Record<string, string>) {
+  const p = CONFIG_PRESETS[preset];
+  if (!p || preset === "none") return null;
+  const out: Record<string, any> = { _preset: preset };
+  for (const f of p.fields) {
+    const raw = fields[f.key];
+    if (raw === undefined || raw === "") continue;
+    if (raw === "true") out[f.key] = true;
+    else if (raw === "false") out[f.key] = false;
+    else if (/^-?\d+(\.\d+)?$/.test(raw)) out[f.key] = Number(raw);
+    else out[f.key] = raw;
+  }
+  return out;
+}
+
+function detectPreset(config: any): { preset: string; fields: Record<string, string> } {
+  if (!config || typeof config !== "object") return { preset: "none", fields: {} };
+  const preset = typeof config._preset === "string" && CONFIG_PRESETS[config._preset] ? config._preset : "none";
+  if (preset === "none") return { preset: "none", fields: {} };
+  const fields: Record<string, string> = {};
+  for (const f of CONFIG_PRESETS[preset].fields) {
+    const v = config[f.key];
+    if (v === undefined || v === null) fields[f.key] = "";
+    else fields[f.key] = String(v);
+  }
+  return { preset, fields };
+}
+
+
 const searchSchema = z.object({
   status: z.enum(STATUSES).optional().catch(undefined),
   provider: z.string().optional().catch(undefined),
@@ -158,7 +295,8 @@ function IntegrationsPage() {
     platform_id: "",
     status: "active",
     secret_ref: "",
-    config_json: "",
+    config_preset: "none",
+    config_fields: {} as Record<string, string>,
   });
 
   const openCreate = () => {
@@ -167,6 +305,7 @@ function IntegrationsPage() {
     setOpen(true);
   };
   const openEdit = (c: Connection) => {
+    const detected = detectPreset(c.config);
     setEditing(c);
     setForm({
       name: c.name,
@@ -174,7 +313,8 @@ function IntegrationsPage() {
       platform_id: c.platform_id ?? "",
       status: c.status,
       secret_ref: c.secret_ref ?? "",
-      config_json: c.config ? JSON.stringify(c.config, null, 2) : "",
+      config_preset: detected.preset,
+      config_fields: detected.fields,
     });
     setOpen(true);
   };
@@ -183,14 +323,7 @@ function IntegrationsPage() {
     mutationFn: async () => {
       if (!form.name?.trim()) throw new Error("Nome é obrigatório");
       if (!form.provider_id) throw new Error("Fornecedor é obrigatório");
-      let config: any = null;
-      if (form.config_json?.trim()) {
-        try {
-          config = JSON.parse(form.config_json);
-        } catch {
-          throw new Error("Config JSON inválido");
-        }
-      }
+      const config = buildConfig(form.config_preset, form.config_fields);
       const payload = {
         name: form.name.trim(),
         provider_id: form.provider_id,
@@ -583,18 +716,54 @@ function ConnectionDialog({
         </div>
 
         <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Config (JSON)</label>
-          <textarea
-            className={`${inputCls} font-numeric text-xs`}
-            rows={5}
-            value={form.config_json ?? ""}
-            onChange={(e) => setForm({ ...form, config_json: e.target.value })}
-            placeholder='{"org_id": "...", "region": "us-east-1"}'
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Metadados usados pelo job de sincronização. Deixe em branco se não precisar.
-          </p>
+          <label className="text-xs font-medium text-muted-foreground">Preset de configuração</label>
+          <Select
+            value={form.config_preset || "none"}
+            onValueChange={(v) => {
+              const preset = CONFIG_PRESETS[v];
+              const fields: Record<string, string> = {};
+              if (preset) for (const f of preset.fields) fields[f.key] = f.default ?? "";
+              setForm({ ...form, config_preset: v, config_fields: fields });
+            }}
+          >
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(CONFIG_PRESETS).map(([key, p]) => (
+                <SelectItem key={key} value={key}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">{CONFIG_PRESETS[form.config_preset ?? "none"]?.description}</p>
         </div>
+
+        {(CONFIG_PRESETS[form.config_preset ?? "none"]?.fields ?? []).map((f) => (
+          <div key={f.key} className={f.wide ? "col-span-2 space-y-1.5" : "space-y-1.5"}>
+            <label className="text-xs font-medium text-muted-foreground">
+              {f.label}
+              {f.required ? " *" : ""}
+            </label>
+            {f.options ? (
+              <Select
+                value={form.config_fields?.[f.key] ?? ""}
+                onValueChange={(v) => setForm({ ...form, config_fields: { ...form.config_fields, [f.key]: v } })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {f.options.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <input
+                className={inputCls}
+                value={form.config_fields?.[f.key] ?? ""}
+                onChange={(e) => setForm({ ...form, config_fields: { ...form.config_fields, [f.key]: e.target.value } })}
+                placeholder={f.placeholder}
+              />
+            )}
+          </div>
+        ))}
 
         <DialogFooter className="col-span-2 mt-2">
           <Button type="submit" disabled={pending} className="gap-1.5">
