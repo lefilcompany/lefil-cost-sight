@@ -216,6 +216,18 @@ function IntegrationsPage() {
   const search = Route.useSearch();
   const syncFn = useServerFn(runProviderSync);
 
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return false;
+      const { data, error } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+      if (error) return false;
+      return !!data;
+    },
+  });
+
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ["connections"],
     queryFn: async () => {
