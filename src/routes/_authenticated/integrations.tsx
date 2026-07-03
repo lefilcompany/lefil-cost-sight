@@ -676,6 +676,7 @@ function ConnectionDialog({
   setForm,
   providers,
   platforms,
+  isAdmin,
   onSubmit,
   pending,
 }: {
@@ -684,6 +685,7 @@ function ConnectionDialog({
   setForm: (v: any) => void;
   providers: Provider[];
   platforms: Platform[];
+  isAdmin: boolean;
   onSubmit: () => void;
   pending: boolean;
 }) {
