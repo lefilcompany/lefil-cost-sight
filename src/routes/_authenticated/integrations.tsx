@@ -752,14 +752,55 @@ function ConnectionDialog({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Secret ref</label>
+          <label className="text-xs font-medium text-muted-foreground">Rótulo da credencial</label>
           <input
             className={inputCls}
             value={form.secret_ref ?? ""}
             onChange={(e) => setForm({ ...form, secret_ref: e.target.value })}
-            placeholder="OPENAI_API_KEY"
+            placeholder="Ex.: OpenAI Produção"
           />
         </div>
+
+        {isAdmin && (
+          <div className="col-span-2 space-y-1.5 rounded-md border border-border/60 bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-semibold text-foreground">
+                API key
+                {editing?.api_key_secret_id ? (
+                  <span className="ml-2 rounded-full bg-emerald-600/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                    Configurada no cofre
+                  </span>
+                ) : (
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Não configurada
+                  </span>
+                )}
+              </label>
+              {editing?.api_key_secret_id && (
+                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={!!form.remove_api_key}
+                    onChange={(e) => setForm({ ...form, remove_api_key: e.target.checked, api_key: "" })}
+                  />
+                  Remover
+                </label>
+              )}
+            </div>
+            <input
+              type="password"
+              className={inputCls}
+              autoComplete="new-password"
+              value={form.api_key ?? ""}
+              onChange={(e) => setForm({ ...form, api_key: e.target.value, remove_api_key: false })}
+              placeholder={editing?.api_key_secret_id ? "Deixe em branco para manter a atual" : "sk-... / cole a chave"}
+              disabled={!!form.remove_api_key}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Guardada criptografada no Supabase Vault. Apenas admins podem gravar/ler. Nunca é retornada para o navegador.
+            </p>
+          </div>
+        )}
 
         <div className="col-span-2 space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Preset de configuração</label>
