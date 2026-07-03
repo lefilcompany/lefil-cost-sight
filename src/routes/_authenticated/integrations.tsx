@@ -158,7 +158,8 @@ function IntegrationsPage() {
     platform_id: "",
     status: "active",
     secret_ref: "",
-    config_json: "",
+    config_preset: "none",
+    config_fields: {} as Record<string, string>,
   });
 
   const openCreate = () => {
@@ -167,6 +168,7 @@ function IntegrationsPage() {
     setOpen(true);
   };
   const openEdit = (c: Connection) => {
+    const detected = detectPreset(c.config);
     setEditing(c);
     setForm({
       name: c.name,
@@ -174,7 +176,8 @@ function IntegrationsPage() {
       platform_id: c.platform_id ?? "",
       status: c.status,
       secret_ref: c.secret_ref ?? "",
-      config_json: c.config ? JSON.stringify(c.config, null, 2) : "",
+      config_preset: detected.preset,
+      config_fields: detected.fields,
     });
     setOpen(true);
   };
@@ -183,14 +186,7 @@ function IntegrationsPage() {
     mutationFn: async () => {
       if (!form.name?.trim()) throw new Error("Nome é obrigatório");
       if (!form.provider_id) throw new Error("Fornecedor é obrigatório");
-      let config: any = null;
-      if (form.config_json?.trim()) {
-        try {
-          config = JSON.parse(form.config_json);
-        } catch {
-          throw new Error("Config JSON inválido");
-        }
-      }
+      const config = buildConfig(form.config_preset, form.config_fields);
       const payload = {
         name: form.name.trim(),
         provider_id: form.provider_id,
