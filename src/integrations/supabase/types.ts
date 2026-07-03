@@ -158,6 +158,7 @@ export type Database = {
       }
       provider_connections: {
         Row: {
+          api_key_secret_id: string | null
           config: Json | null
           created_at: string
           id: string
@@ -170,6 +171,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          api_key_secret_id?: string | null
           config?: Json | null
           created_at?: string
           id?: string
@@ -182,6 +184,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          api_key_secret_id?: string | null
           config?: Json | null
           created_at?: string
           id?: string
@@ -408,6 +411,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_connection_api_key: {
+        Args: { _connection_id: string }
+        Returns: undefined
+      }
+      get_connection_api_key: {
+        Args: { _connection_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -416,6 +427,10 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      set_connection_api_key: {
+        Args: { _api_key: string; _connection_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "viewer"
