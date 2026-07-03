@@ -201,6 +201,7 @@ type Connection = {
   status: string;
   secret_ref: string | null;
   config: any;
+  api_key_secret_id: string | null;
   last_sync_at: string | null;
   created_at: string;
   updated_at: string;
