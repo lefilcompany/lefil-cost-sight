@@ -65,7 +65,7 @@ export function AppShell({
                 <kbd className="ml-2 rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggle} aria-label="Alternar tema">
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
               <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-muted/40 py-0.5 pl-0.5 pr-3 sm:flex">
                 <div className="grid h-6 w-6 place-items-center rounded-full gradient-emerald text-[10px] font-semibold text-[color:var(--color-gold)]">
