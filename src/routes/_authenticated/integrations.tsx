@@ -90,113 +90,111 @@ function IntegrationsPage() {
   const input = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 
   return (
-    <AppShell title="Integrações">
+    <AppShell
+      eyebrow="Sistema"
+      title="Integrações"
+      actions={
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-1.5">
+              <Plus className="h-4 w-4" /> Nova conexão
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display">Nova conexão</DialogTitle>
+            </DialogHeader>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                create.mutate();
+              }}
+            >
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Nome</label>
+                <input className={input} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor</label>
+                <select className={input} required value={form.provider_id} onChange={(e) => setForm({ ...form, provider_id: e.target.value })}>
+                  <option value="">— selecione —</option>
+                  {providers.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Plataforma (opcional)</label>
+                <select className={input} value={form.platform_id} onChange={(e) => setForm({ ...form, platform_id: e.target.value })}>
+                  <option value="">— nenhuma —</option>
+                  {platforms.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={create.isPending}>Salvar</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Integrações</h2>
-            <p className="text-sm text-muted-foreground">
-              Conexões com fornecedores. Credenciais ficam armazenadas com segurança no servidor — nunca no frontend.
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Nova conexão
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Nova conexão</DialogTitle>
-              </DialogHeader>
-              <form
-                className="space-y-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  create.mutate();
-                }}
-              >
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Nome</label>
-                  <input className={input} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Fornecedor</label>
-                  <select className={input} required value={form.provider_id} onChange={(e) => setForm({ ...form, provider_id: e.target.value })}>
-                    <option value="">— selecione —</option>
-                    {providers.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Plataforma (opcional)</label>
-                  <select className={input} value={form.platform_id} onChange={(e) => setForm({ ...form, platform_id: e.target.value })}>
-                    <option value="">— nenhuma —</option>
-                    {platforms.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={create.isPending}>
-                    Salvar
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Conecte fornecedores para sincronizar consumos automaticamente. Credenciais permanecem no servidor com segurança.
+        </p>
 
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle className="text-base">Conexões</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="surface-elevated overflow-hidden">
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Plataforma</TableHead>
-                  <TableHead>Conexão</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Última sincronização</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Plataforma</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Conexão</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Última sincronização</TableHead>
+                  <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {connections.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      Nenhuma conexão. Crie uma para começar a sincronizar.
+                    <TableCell colSpan={6} className="py-16 text-center">
+                      <div className="mx-auto max-w-sm space-y-2">
+                        <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-muted text-muted-foreground">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                        <p className="font-display text-sm font-medium">Nenhuma conexão</p>
+                        <p className="text-xs text-muted-foreground">Crie uma conexão para começar a sincronizar custos.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
                 {connections.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} className="border-border/50">
                     <TableCell className="font-medium">{c.providers?.name}</TableCell>
-                    <TableCell>{c.platforms?.name ?? "—"}</TableCell>
-                    <TableCell>{c.name}</TableCell>
+                    <TableCell className="text-sm">{c.platforms?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{c.name}</TableCell>
                     <TableCell>
-                      <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                      <Badge variant={c.status === "active" ? "default" : "secondary"} className="capitalize">{c.status}</Badge>
                     </TableCell>
-                    <TableCell>{fmtDateTime(c.last_sync_at)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{fmtDateTime(c.last_sync_at)}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"
                         variant="outline"
+                        className="h-8 gap-1.5"
                         onClick={() => doSync.mutate(c.id)}
                         disabled={doSync.isPending}
                       >
-                        <RefreshCw className={`mr-2 h-3.5 w-3.5 ${doSync.isPending ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`h-3.5 w-3.5 ${doSync.isPending ? "animate-spin" : ""}`} />
                         Sincronizar
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(c.id)}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={() => remove.mutate(c.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -209,3 +207,4 @@ function IntegrationsPage() {
     </AppShell>
   );
 }
+

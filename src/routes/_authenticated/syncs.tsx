@@ -48,49 +48,56 @@ function SyncsPage() {
     s === "success" ? "default" : s === "error" ? "destructive" : s === "running" ? "secondary" : "outline";
 
   return (
-    <AppShell title="Sincronizações">
+    <AppShell eyebrow="Análise" title="Sincronizações">
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Histórico de sincronizações</h2>
-          <p className="text-sm text-muted-foreground">Todas as execuções automáticas e manuais.</p>
-        </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Histórico completo de execuções automáticas e manuais. Re-execute qualquer conexão diretamente daqui.
+        </p>
 
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle className="text-base">Execuções ({logs.length})</CardTitle>
+        <Card className="surface-elevated overflow-hidden">
+          <CardHeader className="border-b border-border/60 py-4">
+            <CardTitle className="font-display text-base">Execuções ({logs.length})</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Início</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Duração</TableHead>
-                  <TableHead>Registros</TableHead>
-                  <TableHead>Mensagem</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Início</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Duração</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Registros</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mensagem</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
                 )}
                 {!isLoading && logs.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma sincronização ainda.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-16 text-center">
+                    <div className="mx-auto max-w-sm space-y-2">
+                      <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-muted text-muted-foreground">
+                        <RefreshCw className="h-4 w-4" />
+                      </div>
+                      <p className="font-display text-sm font-medium">Nenhuma sincronização ainda</p>
+                      <p className="text-xs text-muted-foreground">Execute uma conexão em Integrações para começar.</p>
+                    </div>
+                  </TableCell></TableRow>
                 )}
                 {logs.map((l) => (
-                  <TableRow key={l.id}>
+                  <TableRow key={l.id} className="border-border/50">
                     <TableCell className="font-medium">{l.providers?.name ?? "—"}</TableCell>
-                    <TableCell>{fmtDateTime(l.started_at)}</TableCell>
-                    <TableCell><Badge variant={statusVariant(l.status) as any}>{l.status}</Badge></TableCell>
-                    <TableCell>{l.duration_ms ? `${l.duration_ms} ms` : "—"}</TableCell>
-                    <TableCell>{l.records_imported ?? 0}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{fmtDateTime(l.started_at)}</TableCell>
+                    <TableCell><Badge variant={statusVariant(l.status) as any} className="capitalize">{l.status}</Badge></TableCell>
+                    <TableCell className="font-numeric text-sm">{l.duration_ms ? `${l.duration_ms} ms` : "—"}</TableCell>
+                    <TableCell className="font-numeric text-sm">{l.records_imported ?? 0}</TableCell>
                     <TableCell className="max-w-md truncate text-xs text-muted-foreground">{l.error_message ?? "—"}</TableCell>
                     <TableCell className="text-right">
                       {l.connection_id && (
-                        <Button size="sm" variant="outline" onClick={() => retry.mutate(l.connection_id)} disabled={retry.isPending}>
-                          <RefreshCw className={`mr-2 h-3.5 w-3.5 ${retry.isPending ? "animate-spin" : ""}`} />
+                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => retry.mutate(l.connection_id)} disabled={retry.isPending}>
+                          <RefreshCw className={`h-3.5 w-3.5 ${retry.isPending ? "animate-spin" : ""}`} />
                           Re-executar
                         </Button>
                       )}
@@ -105,3 +112,4 @@ function SyncsPage() {
     </AppShell>
   );
 }
+
