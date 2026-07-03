@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
 import { runProviderSync } from "@/lib/sync.functions";
 
@@ -312,8 +313,8 @@ function SyncsPage() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                        Carregando execuções...
+                      <TableCell colSpan={8} className="p-0">
+                        <LoadingState label="Carregando execuções..." />
                       </TableCell>
                     </TableRow>
                   )}
@@ -470,41 +471,3 @@ function ConnectionCard({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  sub,
-  icon,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon?: React.ReactNode;
-  tone?: "neutral" | "good" | "warn" | "bad";
-}) {
-  const toneCls =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "bad"
-      ? "text-destructive"
-      : tone === "warn"
-      ? "text-amber-600 dark:text-amber-400"
-      : "";
-  return (
-    <Card className="surface-elevated">
-      <CardContent className="flex items-center justify-between pt-6">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className={`mt-1 font-display text-2xl font-semibold tracking-tight ${toneCls}`}>{value}</p>
-          {sub && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{sub}</p>}
-        </div>
-        {icon && (
-          <div className="grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-muted/40 text-muted-foreground">
-            {icon}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}

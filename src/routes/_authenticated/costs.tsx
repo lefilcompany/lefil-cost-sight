@@ -33,6 +33,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtDate, fmtUSD, fmtNumber } from "@/lib/format";
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd", "all"] as const;
@@ -491,8 +492,8 @@ function CostsPage() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
-                        Carregando lançamentos...
+                      <TableCell colSpan={9} className="p-0">
+                        <LoadingState label="Carregando lançamentos..." />
                       </TableCell>
                     </TableRow>
                   )}
@@ -599,23 +600,6 @@ function CostsPage() {
   );
 }
 
-function Kpi({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
-  return (
-    <Card className="surface-elevated">
-      <CardContent className="flex items-center justify-between pt-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className="mt-1 font-display text-2xl font-semibold tracking-tight">{value}</p>
-        </div>
-        {icon && (
-          <div className="grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-muted/40 text-muted-foreground">
-            {icon}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

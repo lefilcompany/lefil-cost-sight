@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 
 const STATUSES = ["active", "inactive"] as const;
@@ -305,7 +306,7 @@ function ClientsPage() {
             </div>
 
             {isLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Carregando clientes...</div>
+              <LoadingState label="Carregando clientes..." />
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="mx-auto max-w-sm space-y-3">
@@ -557,32 +558,3 @@ function ClientDialog({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  icon,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  tone?: "neutral" | "good" | "warn";
-}) {
-  const toneCls =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "warn"
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-foreground";
-  return (
-    <Card className="surface-elevated">
-      <CardContent className="pt-5">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-          <span className="text-muted-foreground">{icon}</span>
-        </div>
-        <p className={`mt-2 font-numeric text-2xl font-semibold ${toneCls}`}>{value}</p>
-      </CardContent>
-    </Card>
-  );
-}

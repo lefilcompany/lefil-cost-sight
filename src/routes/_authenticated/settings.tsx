@@ -36,6 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import { getUsdRate } from "@/lib/sync.functions";
 
@@ -331,7 +332,7 @@ function SettingsPage() {
             </div>
 
             {isLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Carregando configurações...</div>
+              <LoadingState label="Carregando configurações..." />
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="mx-auto max-w-sm space-y-3">
