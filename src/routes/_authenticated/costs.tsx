@@ -491,8 +491,8 @@ function CostsPage() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
-                        Carregando lançamentos...
+                      <TableCell colSpan={9} className="p-0">
+                        <LoadingState label="Carregando lançamentos..." />
                       </TableCell>
                     </TableRow>
                   )}
