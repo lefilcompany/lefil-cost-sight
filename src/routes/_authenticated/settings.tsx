@@ -64,44 +64,48 @@ function SettingsPage() {
   const updatedAt = (setting?.value as any)?.updated_at;
 
   return (
-    <AppShell title="Configurações">
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Configurações</h2>
-          <p className="text-sm text-muted-foreground">Parâmetros globais do sistema.</p>
-        </div>
-
-        <Card className="max-w-xl border-border/60">
+    <AppShell eyebrow="Sistema" title="Configurações">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="surface-elevated">
           <CardHeader>
-            <CardTitle className="text-base">Cotação USD → BRL</CardTitle>
+            <CardTitle className="font-display text-base">Cotação USD → BRL</CardTitle>
+            <p className="text-xs text-muted-foreground">Usada para converter automaticamente lançamentos em dólar.</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-md bg-muted/50 p-3 text-sm">
-              <div className="font-mono text-lg">{rateValue ? `R$ ${Number(rateValue).toFixed(4)}` : "—"}</div>
-              <div className="text-xs text-muted-foreground">Atualizada em: {fmtDateTime(updatedAt)}</div>
+          <CardContent className="space-y-5">
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+              <div className="font-numeric text-3xl font-semibold tracking-tight text-[color:var(--color-gold)]">
+                {rateValue ? `R$ ${Number(rateValue).toFixed(4)}` : "—"}
+              </div>
+              <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                Atualizada em {fmtDateTime(updatedAt)}
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>Cotação manual</Label>
+              <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cotação manual</Label>
               <div className="flex gap-2">
-                <Input type="number" step="any" value={rate} onChange={(e) => setRate(e.target.value)} />
+                <Input type="number" step="any" value={rate} onChange={(e) => setRate(e.target.value)} className="h-10" />
                 <Button onClick={() => save.mutate()} disabled={save.isPending}>Salvar</Button>
               </div>
             </div>
-            <Button variant="outline" onClick={() => fetchAuto.mutate()} disabled={fetchAuto.isPending}>
+            <Button variant="outline" className="w-full" onClick={() => fetchAuto.mutate()} disabled={fetchAuto.isPending}>
               {fetchAuto.isPending ? "Buscando..." : "Buscar cotação automática"}
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="max-w-xl border-border/60">
+        <Card className="surface-elevated">
           <CardHeader>
-            <CardTitle className="text-base">Sobre</CardTitle>
+            <CardTitle className="font-display text-base">Sobre</CardTitle>
+            <p className="text-xs text-muted-foreground">LeFil Cost Center · versão MVP</p>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            <p>LeFil Cost Center — MVP de monitoramento de custos.</p>
-            <p className="mt-2">
-              A arquitetura está preparada para evoluir para um Billing Hub completo (assinaturas, cobrança automática,
-              integração com Stripe/Asaas, controle de créditos por cliente, etc.).
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Centro de inteligência de custos das plataformas LeFil. Consolida consumo de IA, infraestrutura
+              e serviços em um único painel executivo.
+            </p>
+            <p>
+              A arquitetura está preparada para evoluir para um Billing Hub completo:
+              assinaturas, cobrança automática, integração com Stripe/Asaas e controle de créditos por cliente.
             </p>
           </CardContent>
         </Card>
@@ -109,3 +113,4 @@ function SettingsPage() {
     </AppShell>
   );
 }
+

@@ -152,92 +152,90 @@ function CostsPage() {
   });
 
   return (
-    <AppShell title="Custos">
+    <AppShell
+      eyebrow="Financeiro"
+      title="Custos"
+      actions={
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openCreate} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Novo custo
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="font-display">{editing ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
+            </DialogHeader>
+            <form
+              className="grid grid-cols-2 gap-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate();
+              }}
+            >
+              <Field label="Data">
+                <input type="date" className={input} value={form.entry_date ?? ""} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} required />
+              </Field>
+              <Field label="Origem">
+                <select className={input} value={form.origin ?? "manual"} onChange={(e) => setForm({ ...form, origin: e.target.value })}>
+                  <option value="manual">Manual</option>
+                  <option value="api">API</option>
+                  <option value="import">Importação</option>
+                </select>
+              </Field>
+              <Field label="Plataforma">
+                <select className={input} value={form.platform_id ?? ""} onChange={(e) => setForm({ ...form, platform_id: e.target.value })}>
+                  <option value="">—</option>
+                  {platforms.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Fornecedor">
+                <select className={input} value={form.provider_id ?? ""} onChange={(e) => setForm({ ...form, provider_id: e.target.value })}>
+                  <option value="">—</option>
+                  {providers.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Cliente">
+                <select className={input} value={form.client_id ?? ""} onChange={(e) => setForm({ ...form, client_id: e.target.value })}>
+                  <option value="">—</option>
+                  {clients.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Quantidade">
+                <input type="number" step="any" className={input} value={form.usage_quantity ?? ""} onChange={(e) => setForm({ ...form, usage_quantity: e.target.value })} />
+              </Field>
+              <Field label="Unidade">
+                <input className={input} value={form.usage_unit ?? ""} onChange={(e) => setForm({ ...form, usage_unit: e.target.value })} placeholder="tokens, credits, GB..." />
+              </Field>
+              <Field label="Custo USD">
+                <input type="number" step="any" className={input} value={form.cost_usd ?? ""} onChange={(e) => setForm({ ...form, cost_usd: e.target.value })} />
+              </Field>
+              <Field label="Cotação USD→BRL">
+                <input type="number" step="any" className={input} value={form.exchange_rate ?? ""} onChange={(e) => setForm({ ...form, exchange_rate: e.target.value })} placeholder="ex.: 5.10" />
+              </Field>
+              <div className="col-span-2">
+                <Field label="Descrição">
+                  <input className={input} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                </Field>
+              </div>
+              <DialogFooter className="col-span-2">
+                <Button type="submit" disabled={save.isPending}>Salvar</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Custos</h2>
-            <p className="text-sm text-muted-foreground">
-              Lançamentos de custo (manuais, importados ou via API). Conversão USD→BRL aplicada automaticamente.
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreate}>
-                <Plus className="mr-2 h-4 w-4" /> Novo custo
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-xl">
-              <DialogHeader>
-                <DialogTitle>{editing ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
-              </DialogHeader>
-              <form
-                className="grid grid-cols-2 gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  save.mutate();
-                }}
-              >
-                <Field label="Data">
-                  <input type="date" className={input} value={form.entry_date ?? ""} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} required />
-                </Field>
-                <Field label="Origem">
-                  <select className={input} value={form.origin ?? "manual"} onChange={(e) => setForm({ ...form, origin: e.target.value })}>
-                    <option value="manual">Manual</option>
-                    <option value="api">API</option>
-                    <option value="import">Importação</option>
-                  </select>
-                </Field>
-                <Field label="Plataforma">
-                  <select className={input} value={form.platform_id ?? ""} onChange={(e) => setForm({ ...form, platform_id: e.target.value })}>
-                    <option value="">—</option>
-                    {platforms.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Fornecedor">
-                  <select className={input} value={form.provider_id ?? ""} onChange={(e) => setForm({ ...form, provider_id: e.target.value })}>
-                    <option value="">—</option>
-                    {providers.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Cliente">
-                  <select className={input} value={form.client_id ?? ""} onChange={(e) => setForm({ ...form, client_id: e.target.value })}>
-                    <option value="">—</option>
-                    {clients.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Quantidade">
-                  <input type="number" step="any" className={input} value={form.usage_quantity ?? ""} onChange={(e) => setForm({ ...form, usage_quantity: e.target.value })} />
-                </Field>
-                <Field label="Unidade">
-                  <input className={input} value={form.usage_unit ?? ""} onChange={(e) => setForm({ ...form, usage_unit: e.target.value })} placeholder="tokens, credits, GB..." />
-                </Field>
-                <Field label="Custo USD">
-                  <input type="number" step="any" className={input} value={form.cost_usd ?? ""} onChange={(e) => setForm({ ...form, cost_usd: e.target.value })} />
-                </Field>
-                <Field label="Cotação USD→BRL">
-                  <input type="number" step="any" className={input} value={form.exchange_rate ?? ""} onChange={(e) => setForm({ ...form, exchange_rate: e.target.value })} placeholder="ex.: 5.10" />
-                </Field>
-                <div className="col-span-2">
-                  <Field label="Descrição">
-                    <input className={input} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                  </Field>
-                </div>
-                <DialogFooter className="col-span-2">
-                  <Button type="submit" disabled={save.isPending}>Salvar</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
 
-        <Card className="border-border/60">
+
+        <Card className="surface-elevated">
           <CardContent className="pt-6">
             <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
               <select className={input} value={filter.platform} onChange={(e) => setFilter({ ...filter, platform: e.target.value })}>
@@ -261,38 +259,38 @@ function CostsPage() {
             </div>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Plataforma</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead className="text-right">USD</TableHead>
-                  <TableHead className="text-right">BRL</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Data</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Plataforma</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Descrição</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Origem</TableHead>
+                  <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">USD</TableHead>
+                  <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">BRL</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
                 )}
                 {!isLoading && filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum lançamento.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">Nenhum lançamento encontrado.</TableCell></TableRow>
                 )}
                 {filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{fmtDate(c.entry_date)}</TableCell>
-                    <TableCell>{c.platforms?.name ?? "—"}</TableCell>
-                    <TableCell>{c.providers?.name ?? "—"}</TableCell>
-                    <TableCell>{c.clients?.name ?? "—"}</TableCell>
-                    <TableCell className="max-w-xs truncate">{c.description ?? "—"}</TableCell>
-                    <TableCell><Badge variant="outline">{c.origin}</Badge></TableCell>
-                    <TableCell className="text-right font-mono">{fmtUSD(c.cost_usd)}</TableCell>
-                    <TableCell className="text-right font-mono">{fmtBRL(c.cost_brl)}</TableCell>
+                  <TableRow key={c.id} className="border-border/50">
+                    <TableCell className="text-sm text-muted-foreground">{fmtDate(c.entry_date)}</TableCell>
+                    <TableCell className="text-sm">{c.platforms?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{c.providers?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{c.clients?.name ?? "—"}</TableCell>
+                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{c.description ?? "—"}</TableCell>
+                    <TableCell><Badge variant="outline" className="border-border/60 font-normal">{c.origin}</Badge></TableCell>
+                    <TableCell className="text-right font-numeric text-sm">{fmtUSD(c.cost_usd)}</TableCell>
+                    <TableCell className="text-right font-numeric text-sm font-medium">{fmtBRL(c.cost_brl)}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir?")) remove.mutate(c.id); }}><Trash2 className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(c)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={() => { if (confirm("Excluir?")) remove.mutate(c.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -300,6 +298,7 @@ function CostsPage() {
             </Table>
           </CardContent>
         </Card>
+
       </div>
     </AppShell>
   );

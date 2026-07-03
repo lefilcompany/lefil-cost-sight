@@ -5,7 +5,7 @@ import { CrudPage } from "@/components/crud-page";
 export const Route = createFileRoute("/_authenticated/platforms")({
   head: () => ({ meta: [{ title: "Plataformas — LeFil Cost Center" }] }),
   component: () => (
-    <AppShell title="Plataformas">
+    <AppShell eyebrow="Cadastros">
       <CrudPage
         table="platforms"
         title="Plataformas"
