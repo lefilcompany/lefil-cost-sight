@@ -242,7 +242,7 @@ function IntegrationsPage() {
   });
 
   const sync = useMutation({
-    mutationFn: async (id: string) => syncFn({ data: { connectionId: id } }),
+    mutationFn: async (id: string) => syncFn({ data: { connection_id: id } }),
     onSuccess: () => {
       toast.success("Sincronização iniciada");
       qc.invalidateQueries({ queryKey: ["connections"] });
