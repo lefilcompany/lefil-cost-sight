@@ -346,7 +346,7 @@ function IntegrationsPage() {
             </div>
 
             {isLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Carregando integrações...</div>
+              <LoadingState label="Carregando integrações..." />
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="mx-auto max-w-sm space-y-3">

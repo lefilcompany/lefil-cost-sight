@@ -305,7 +305,7 @@ function ClientsPage() {
             </div>
 
             {isLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Carregando clientes...</div>
+              <LoadingState label="Carregando clientes..." />
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="mx-auto max-w-sm space-y-3">
