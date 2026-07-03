@@ -10,12 +10,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // O tema claro é o padrão; ignora preferência salva em dark.
-    const stored = (typeof window !== "undefined" && localStorage.getItem("theme")) as Theme | null;
-    const initial: Theme = stored === "dark" ? "light" : stored ?? "light";
-    setTheme(initial);
+    if (typeof document === "undefined") return;
+    // Tema claro é o padrão; remove classe dark e reseta o storage.
+    document.documentElement.classList.remove("dark");
     try {
-      localStorage.setItem("theme", initial);
+      localStorage.setItem("theme", "light");
     } catch {}
   }, []);
 
