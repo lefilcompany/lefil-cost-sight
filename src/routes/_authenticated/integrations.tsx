@@ -442,6 +442,7 @@ function IntegrationsPage() {
             setForm={setForm}
             providers={providers}
             platforms={platforms}
+            isAdmin={isAdmin}
             onSubmit={() => save.mutate()}
             pending={save.isPending}
           />
