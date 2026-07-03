@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 
 const STATUSES = ["active", "inactive"] as const;

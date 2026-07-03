@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
 import { runProviderSync } from "@/lib/sync.functions";
 

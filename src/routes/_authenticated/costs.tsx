@@ -33,6 +33,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtDate, fmtUSD, fmtNumber } from "@/lib/format";
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd", "all"] as const;
