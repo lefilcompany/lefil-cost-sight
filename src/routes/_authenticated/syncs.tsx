@@ -56,7 +56,7 @@ type Log = {
   duration_ms: number | null;
   records_imported: number | null;
   error_message: string | null;
-  providers?: { name: string; platform_id?: string | null } | null;
+  providers?: { name: string } | null;
   provider_connections?: { id: string; name: string; platform_id: string | null } | null;
 };
 
@@ -92,7 +92,7 @@ function SyncsPage() {
     queryFn: async () => {
       const [{ data: p }, { data: pr }] = await Promise.all([
         supabase.from("platforms").select("id,name,color").order("name"),
-        supabase.from("providers").select("id,name,platform_id").order("name"),
+        supabase.from("providers").select("id,name").order("name"),
       ]);
       return { platforms: p ?? [], providers: pr ?? [] };
     },
@@ -115,7 +115,7 @@ function SyncsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sync_logs")
-        .select("*, providers(name,platform_id), provider_connections(id,name,platform_id)")
+        .select("*, providers(name), provider_connections(id,name,platform_id)")
         .order("started_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -131,7 +131,7 @@ function SyncsPage() {
       if (search.status && l.status !== search.status) return false;
       if (search.provider && l.provider_id !== search.provider) return false;
       if (search.platform) {
-        const platId = l.provider_connections?.platform_id ?? l.providers?.platform_id ?? null;
+        const platId = l.provider_connections?.platform_id ?? null;
         if (platId !== search.platform) return false;
       }
       return true;
