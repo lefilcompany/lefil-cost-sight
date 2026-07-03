@@ -201,6 +201,7 @@ type Connection = {
   status: string;
   secret_ref: string | null;
   config: any;
+  api_key_secret_id: string | null;
   last_sync_at: string | null;
   created_at: string;
   updated_at: string;
@@ -214,6 +215,18 @@ function IntegrationsPage() {
   const navigate = useNavigate({ from: "/integrations" });
   const search = Route.useSearch();
   const syncFn = useServerFn(runProviderSync);
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return false;
+      const { data, error } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+      if (error) return false;
+      return !!data;
+    },
+  });
 
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ["connections"],
@@ -273,7 +286,7 @@ function IntegrationsPage() {
     const active = connections.filter((c) => c.status === "active").length;
     const errored = connections.filter((c) => c.status === "error").length;
     const inactive = connections.length - active - errored;
-    const withSecret = connections.filter((c) => c.secret_ref).length;
+    const withSecret = connections.filter((c) => c.api_key_secret_id).length;
     return { total: connections.length, active, inactive, errored, withSecret };
   }, [connections]);
 
@@ -297,6 +310,8 @@ function IntegrationsPage() {
     secret_ref: "",
     config_preset: "none",
     config_fields: {} as Record<string, string>,
+    api_key: "",
+    remove_api_key: false,
   });
 
   const openCreate = () => {
@@ -315,6 +330,8 @@ function IntegrationsPage() {
       secret_ref: c.secret_ref ?? "",
       config_preset: detected.preset,
       config_fields: detected.fields,
+      api_key: "",
+      remove_api_key: false,
     });
     setOpen(true);
   };
@@ -332,12 +349,35 @@ function IntegrationsPage() {
         secret_ref: form.secret_ref?.trim() || null,
         config,
       };
+      let connectionId: string;
       if (editing) {
         const { error } = await supabase.from("provider_connections").update(payload).eq("id", editing.id);
         if (error) throw error;
+        connectionId = editing.id;
       } else {
-        const { error } = await supabase.from("provider_connections").insert(payload);
+        const { data, error } = await supabase
+          .from("provider_connections")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        connectionId = data.id;
+      }
+      // Vault ops (admin only). Silently skip if not admin.
+      if (isAdmin) {
+        const key = (form.api_key ?? "").trim();
+        if (key) {
+          const { error } = await supabase.rpc("set_connection_api_key", {
+            _connection_id: connectionId,
+            _api_key: key,
+          });
+          if (error) throw new Error("Falha ao salvar API key: " + error.message);
+        } else if (form.remove_api_key && editing?.api_key_secret_id) {
+          const { error } = await supabase.rpc("clear_connection_api_key", {
+            _connection_id: connectionId,
+          });
+          if (error) throw new Error("Falha ao remover API key: " + error.message);
+        }
       }
     },
     onSuccess: () => {
@@ -402,6 +442,7 @@ function IntegrationsPage() {
             setForm={setForm}
             providers={providers}
             platforms={platforms}
+            isAdmin={isAdmin}
             onSubmit={() => save.mutate()}
             pending={save.isPending}
           />
@@ -570,7 +611,7 @@ function ConnectionCard({
   onDelete: () => void;
 }) {
   const active = conn.status === "active";
-  const hasSecret = !!conn.secret_ref;
+  const hasVault = !!conn.api_key_secret_id;
   const initials = (provider?.name ?? conn.name).slice(0, 2).toUpperCase();
   return (
     <Card className={`surface-elevated transition ${active ? "" : "opacity-80"}`}>
@@ -598,7 +639,10 @@ function ConnectionCard({
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <KeyRound className="h-3 w-3" />
-            <span className="truncate">{hasSecret ? conn.secret_ref : "Sem credencial"}</span>
+            <span className="truncate">
+              {hasVault ? "API key no cofre" : "Sem API key"}
+              {conn.secret_ref ? ` · ${conn.secret_ref}` : ""}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="h-3 w-3" />
@@ -632,6 +676,7 @@ function ConnectionDialog({
   setForm,
   providers,
   platforms,
+  isAdmin,
   onSubmit,
   pending,
 }: {
@@ -640,6 +685,7 @@ function ConnectionDialog({
   setForm: (v: any) => void;
   providers: Provider[];
   platforms: Platform[];
+  isAdmin: boolean;
   onSubmit: () => void;
   pending: boolean;
 }) {
@@ -706,14 +752,55 @@ function ConnectionDialog({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Secret ref</label>
+          <label className="text-xs font-medium text-muted-foreground">Rótulo da credencial</label>
           <input
             className={inputCls}
             value={form.secret_ref ?? ""}
             onChange={(e) => setForm({ ...form, secret_ref: e.target.value })}
-            placeholder="OPENAI_API_KEY"
+            placeholder="Ex.: OpenAI Produção"
           />
         </div>
+
+        {isAdmin && (
+          <div className="col-span-2 space-y-1.5 rounded-md border border-border/60 bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-semibold text-foreground">
+                API key
+                {editing?.api_key_secret_id ? (
+                  <span className="ml-2 rounded-full bg-emerald-600/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                    Configurada no cofre
+                  </span>
+                ) : (
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Não configurada
+                  </span>
+                )}
+              </label>
+              {editing?.api_key_secret_id && (
+                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={!!form.remove_api_key}
+                    onChange={(e) => setForm({ ...form, remove_api_key: e.target.checked, api_key: "" })}
+                  />
+                  Remover
+                </label>
+              )}
+            </div>
+            <input
+              type="password"
+              className={inputCls}
+              autoComplete="new-password"
+              value={form.api_key ?? ""}
+              onChange={(e) => setForm({ ...form, api_key: e.target.value, remove_api_key: false })}
+              placeholder={editing?.api_key_secret_id ? "Deixe em branco para manter a atual" : "sk-... / cole a chave"}
+              disabled={!!form.remove_api_key}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Guardada criptografada no Supabase Vault. Apenas admins podem gravar/ler. Nunca é retornada para o navegador.
+            </p>
+          </div>
+        )}
 
         <div className="col-span-2 space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Preset de configuração</label>
