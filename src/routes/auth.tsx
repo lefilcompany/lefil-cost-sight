@@ -80,10 +80,10 @@ function AuthPage() {
 
         <div className="relative space-y-10">
           <div className="space-y-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#052e16]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--emerald-deep)]">
               FinOps · IA · Infra
             </div>
-            <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-[#052e16] xl:text-6xl">
+            <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-[color:var(--emerald-deep)] xl:text-6xl">
               Cada real de<br />
               nuvem no seu<br />
               <span className="text-[color:var(--emerald-deep)]">radar.</span>
