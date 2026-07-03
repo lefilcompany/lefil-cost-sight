@@ -310,6 +310,8 @@ function IntegrationsPage() {
     secret_ref: "",
     config_preset: "none",
     config_fields: {} as Record<string, string>,
+    api_key: "",
+    remove_api_key: false,
   });
 
   const openCreate = () => {
@@ -328,6 +330,8 @@ function IntegrationsPage() {
       secret_ref: c.secret_ref ?? "",
       config_preset: detected.preset,
       config_fields: detected.fields,
+      api_key: "",
+      remove_api_key: false,
     });
     setOpen(true);
   };
@@ -345,12 +349,35 @@ function IntegrationsPage() {
         secret_ref: form.secret_ref?.trim() || null,
         config,
       };
+      let connectionId: string;
       if (editing) {
         const { error } = await supabase.from("provider_connections").update(payload).eq("id", editing.id);
         if (error) throw error;
+        connectionId = editing.id;
       } else {
-        const { error } = await supabase.from("provider_connections").insert(payload);
+        const { data, error } = await supabase
+          .from("provider_connections")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        connectionId = data.id;
+      }
+      // Vault ops (admin only). Silently skip if not admin.
+      if (isAdmin) {
+        const key = (form.api_key ?? "").trim();
+        if (key) {
+          const { error } = await supabase.rpc("set_connection_api_key", {
+            _connection_id: connectionId,
+            _api_key: key,
+          });
+          if (error) throw new Error("Falha ao salvar API key: " + error.message);
+        } else if (form.remove_api_key && editing?.api_key_secret_id) {
+          const { error } = await supabase.rpc("clear_connection_api_key", {
+            _connection_id: connectionId,
+          });
+          if (error) throw new Error("Falha ao remover API key: " + error.message);
+        }
       }
     },
     onSuccess: () => {
