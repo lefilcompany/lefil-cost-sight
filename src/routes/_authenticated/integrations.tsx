@@ -639,7 +639,10 @@ function ConnectionCard({
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <KeyRound className="h-3 w-3" />
-            <span className="truncate">{hasSecret ? conn.secret_ref : "Sem credencial"}</span>
+            <span className="truncate">
+              {hasVault ? "API key no cofre" : "Sem API key"}
+              {conn.secret_ref ? ` · ${conn.secret_ref}` : ""}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="h-3 w-3" />
