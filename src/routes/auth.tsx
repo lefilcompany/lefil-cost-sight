@@ -97,15 +97,15 @@ function AuthPage() {
           {/* Money cards */}
           <div className="grid max-w-md grid-cols-2 gap-3">
             <div className="rounded-2xl bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_30px_-15px_oklch(0.30_0.08_165/0.25)]">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#2f4638]">Economia mensal</div>
-              <div className="mt-2 font-display text-2xl font-semibold text-[#052e16] tabular-nums">R$ 42,8k</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--emerald-deep)]">Economia mensal</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-[color:var(--emerald-deep)] tabular-nums">R$ 42,8k</div>
               <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--emerald-deep)]">
                 <TrendingDown className="h-3 w-3" /> −18%
               </div>
             </div>
             <div className="rounded-2xl bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_30px_-15px_oklch(0.30_0.08_165/0.25)]">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#2f4638]">Margem</div>
-              <div className="mt-2 font-display text-2xl font-semibold text-[#052e16] tabular-nums">67,4%</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--emerald-deep)]">Margem</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-[color:var(--emerald-deep)] tabular-nums">67,4%</div>
               <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--emerald-deep)]">
                 <TrendingUp className="h-3 w-3" /> +4,2pp
               </div>
