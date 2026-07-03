@@ -579,18 +579,54 @@ function ConnectionDialog({
         </div>
 
         <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Config (JSON)</label>
-          <textarea
-            className={`${inputCls} font-numeric text-xs`}
-            rows={5}
-            value={form.config_json ?? ""}
-            onChange={(e) => setForm({ ...form, config_json: e.target.value })}
-            placeholder='{"org_id": "...", "region": "us-east-1"}'
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Metadados usados pelo job de sincronização. Deixe em branco se não precisar.
-          </p>
+          <label className="text-xs font-medium text-muted-foreground">Preset de configuração</label>
+          <Select
+            value={form.config_preset || "none"}
+            onValueChange={(v) => {
+              const preset = CONFIG_PRESETS[v];
+              const fields: Record<string, string> = {};
+              if (preset) for (const f of preset.fields) fields[f.key] = f.default ?? "";
+              setForm({ ...form, config_preset: v, config_fields: fields });
+            }}
+          >
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(CONFIG_PRESETS).map(([key, p]) => (
+                <SelectItem key={key} value={key}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">{CONFIG_PRESETS[form.config_preset ?? "none"]?.description}</p>
         </div>
+
+        {(CONFIG_PRESETS[form.config_preset ?? "none"]?.fields ?? []).map((f) => (
+          <div key={f.key} className={f.wide ? "col-span-2 space-y-1.5" : "space-y-1.5"}>
+            <label className="text-xs font-medium text-muted-foreground">
+              {f.label}
+              {f.required ? " *" : ""}
+            </label>
+            {f.options ? (
+              <Select
+                value={form.config_fields?.[f.key] ?? ""}
+                onValueChange={(v) => setForm({ ...form, config_fields: { ...form.config_fields, [f.key]: v } })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {f.options.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <input
+                className={inputCls}
+                value={form.config_fields?.[f.key] ?? ""}
+                onChange={(e) => setForm({ ...form, config_fields: { ...form.config_fields, [f.key]: e.target.value } })}
+                placeholder={f.placeholder}
+              />
+            )}
+          </div>
+        ))}
 
         <DialogFooter className="col-span-2 mt-2">
           <Button type="submit" disabled={pending} className="gap-1.5">
