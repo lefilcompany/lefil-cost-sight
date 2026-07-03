@@ -177,7 +177,7 @@ function CostsPage() {
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) => {
-    navigate({ search: (prev) => ({ ...prev, ...patch, page: patch.page ?? 1 }) });
+    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...patch, page: patch.page ?? 1 }) });
   };
 
   const activeFilters =
