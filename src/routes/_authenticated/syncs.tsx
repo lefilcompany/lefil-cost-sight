@@ -312,8 +312,8 @@ function SyncsPage() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                        Carregando execuções...
+                      <TableCell colSpan={8} className="p-0">
+                        <LoadingState label="Carregando execuções..." />
                       </TableCell>
                     </TableRow>
                   )}
