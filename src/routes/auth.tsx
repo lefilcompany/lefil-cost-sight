@@ -56,38 +56,39 @@ function AuthPage() {
 
   return (
     <div className="grid min-h-screen w-full bg-background lg:grid-cols-2">
-      {/* Brand panel — clean finops */}
-      <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <div className="absolute inset-0 gradient-emerald" />
+      {/* Brand panel — light finops */}
+      <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-14"
+        style={{ background: "linear-gradient(180deg, oklch(0.98 0.015 90) 0%, oklch(0.95 0.03 155) 100%)" }}
+      >
         <div
-          className="absolute inset-0 opacity-70"
+          className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(900px 500px at 15% 20%, oklch(0.78 0.13 85 / 0.18), transparent 60%), radial-gradient(700px 500px at 90% 90%, oklch(0.52 0.13 165 / 0.35), transparent 65%)",
+              "radial-gradient(700px 500px at 85% 15%, oklch(0.78 0.13 85 / 0.28), transparent 60%), radial-gradient(600px 500px at 10% 90%, oklch(0.52 0.13 165 / 0.18), transparent 65%)",
           }}
         />
 
         <div className="relative flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 backdrop-blur-md">
+          <div className="grid h-11 w-11 place-items-center rounded-xl gradient-emerald">
             <span className="font-display text-lg font-bold text-[color:var(--color-gold)]">L</span>
           </div>
           <div className="leading-tight">
-            <div className="font-display text-base font-semibold text-white">LeFil</div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-white/60">Cost Center</div>
+            <div className="font-display text-base font-semibold text-foreground">LeFil</div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Cost Center</div>
           </div>
         </div>
 
         <div className="relative space-y-10">
           <div className="space-y-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--color-gold)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--emerald-deep)]">
               FinOps · IA · Infra
             </div>
-            <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-white xl:text-6xl">
-              Cada dólar de<br />
+            <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-foreground xl:text-6xl">
+              Cada real de<br />
               nuvem no seu<br />
-              <span className="text-[color:var(--color-gold)]">radar.</span>
+              <span className="text-[color:var(--emerald-deep)]">radar.</span>
             </h1>
-            <p className="max-w-md text-[15px] leading-relaxed text-white/70">
+            <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">
               Consolide gastos de IA, APIs e infraestrutura em um só painel financeiro.
               Simples, direto, sem ruído.
             </p>
@@ -95,27 +96,28 @@ function AuthPage() {
 
           {/* Money cards */}
           <div className="grid max-w-md grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/[0.06] p-5 backdrop-blur-md">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">MRR economizado</div>
-              <div className="mt-2 font-display text-2xl font-semibold text-white tabular-nums">R$ 42,8k</div>
-              <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--color-gold)]">
+            <div className="rounded-2xl bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_30px_-15px_oklch(0.30_0.08_165/0.25)]">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Economia mensal</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-foreground tabular-nums">R$ 42,8k</div>
+              <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--emerald-deep)]">
                 <TrendingDown className="h-3 w-3" /> −18%
               </div>
             </div>
-            <div className="rounded-2xl bg-white/[0.06] p-5 backdrop-blur-md">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">Margem</div>
-              <div className="mt-2 font-display text-2xl font-semibold text-white tabular-nums">67,4%</div>
-              <div className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-300">
+            <div className="rounded-2xl bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_30px_-15px_oklch(0.30_0.08_165/0.25)]">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Margem</div>
+              <div className="mt-2 font-display text-2xl font-semibold text-foreground tabular-nums">67,4%</div>
+              <div className="mt-1 inline-flex items-center gap-1 text-xs text-[color:var(--emerald-deep)]">
                 <TrendingUp className="h-3 w-3" /> +4,2pp
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative text-[11px] text-white/40">
+        <div className="relative text-[11px] text-muted-foreground">
           © {new Date().getFullYear()} LeFil · Sistema interno
         </div>
       </div>
+
 
       {/* Form panel — clean */}
       <div className="flex items-center justify-center px-6 py-12 sm:px-12">
