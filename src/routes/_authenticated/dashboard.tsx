@@ -209,7 +209,7 @@ function Dashboard() {
   ];
 
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch }) as any });
+    navigate({ search: (prev: any) => ({ ...prev, ...patch }) });
 
   const hasFilters = !!(search.platform || search.client || search.provider);
 
