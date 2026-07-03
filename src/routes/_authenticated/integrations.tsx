@@ -286,7 +286,7 @@ function IntegrationsPage() {
     const active = connections.filter((c) => c.status === "active").length;
     const errored = connections.filter((c) => c.status === "error").length;
     const inactive = connections.length - active - errored;
-    const withSecret = connections.filter((c) => c.secret_ref).length;
+    const withSecret = connections.filter((c) => c.api_key_secret_id).length;
     return { total: connections.length, active, inactive, errored, withSecret };
   }, [connections]);
 
