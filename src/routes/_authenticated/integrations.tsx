@@ -611,7 +611,7 @@ function ConnectionCard({
   onDelete: () => void;
 }) {
   const active = conn.status === "active";
-  const hasSecret = !!conn.secret_ref;
+  const hasVault = !!conn.api_key_secret_id;
   const initials = (provider?.name ?? conn.name).slice(0, 2).toUpperCase();
   return (
     <Card className={`surface-elevated transition ${active ? "" : "opacity-80"}`}>
