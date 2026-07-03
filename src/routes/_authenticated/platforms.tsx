@@ -476,36 +476,3 @@ function PlatformDialog({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  icon,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  tone?: "neutral" | "good" | "warn";
-}) {
-  const toneCls =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "warn"
-      ? "text-amber-600 dark:text-amber-400"
-      : "";
-  return (
-    <Card className="surface-elevated">
-      <CardContent className="flex items-center justify-between pt-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className={`mt-1 font-display text-2xl font-semibold tracking-tight ${toneCls}`}>{value}</p>
-        </div>
-        {icon && (
-          <div className="grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-muted/40 text-muted-foreground">
-            {icon}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
