@@ -70,13 +70,11 @@ function AuthPage() {
         />
 
         <div className="relative flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl gradient-emerald">
-            <span className="font-display text-lg font-bold text-[#c9a84c]">L</span>
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-base font-semibold text-[#052e16]">LeFil</div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#2f4638]">Cost Center</div>
-          </div>
+          <img
+            src={quiuiLogo.url}
+            alt="Quiui"
+            className="h-12 w-auto rounded-lg bg-white/40 object-contain p-1"
+          />
         </div>
 
         <div className="relative space-y-10">
