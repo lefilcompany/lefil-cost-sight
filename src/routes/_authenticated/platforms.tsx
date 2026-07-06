@@ -63,6 +63,7 @@ type Platform = {
   status: string;
   color: string;
   icon: string;
+  image_url: string | null;
   summary: string | null;
   payment_method: string | null;
   card_last4: string | null;
