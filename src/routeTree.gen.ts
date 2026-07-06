@@ -113,11 +113,6 @@ const ApiPublicCronEvaluateAlertsRoute =
     path: '/api/public/cron/evaluate-alerts',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCronSyncBillingRoute = ApiPublicCronSyncBillingRouteImport.update({
-  id: '/api/public/cron/sync-billing',
-  path: '/api/public/cron/sync-billing',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
