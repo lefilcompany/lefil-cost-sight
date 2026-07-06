@@ -418,8 +418,19 @@ function IntegrationsPage() {
 
   const sync = useMutation({
     mutationFn: async (id: string) => syncFn({ data: { connection_id: id } }),
-    onSuccess: () => {
-      toast.success("Sincronização iniciada");
+    onSuccess: (res: any) => {
+      toast.success(res?.message ?? "Sincronização concluída");
+      qc.invalidateQueries({ queryKey: ["connections"] });
+      qc.invalidateQueries({ queryKey: ["sync-logs"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const syncAll = useMutation({
+    mutationFn: async () => syncAllFn(),
+    onSuccess: (res: any) => {
+      const ok = (res?.results ?? []).filter((r: any) => r.ok).length;
+      toast.success(`Sincronização em lote: ${ok}/${res?.total ?? 0} com sucesso`);
       qc.invalidateQueries({ queryKey: ["connections"] });
       qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
