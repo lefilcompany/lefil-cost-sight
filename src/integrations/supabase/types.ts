@@ -123,6 +123,36 @@ export type Database = {
           },
         ]
       }
+      dashboard_notes: {
+        Row: {
+          author_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platforms: {
         Row: {
           card_last4: string | null
