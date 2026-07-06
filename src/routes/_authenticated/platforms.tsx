@@ -15,6 +15,11 @@ import {
   Layers,
   Wallet,
   Inbox,
+  CreditCard,
+  UserRound,
+  AlertTriangle,
+  Factory,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,9 +42,11 @@ import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 
 const STATUSES = ["active", "inactive"] as const;
+const ENVIRONMENTS = ["production", "internal"] as const;
 
 const searchSchema = z.object({
   status: z.enum(STATUSES).optional().catch(undefined),
+  environment: z.enum(ENVIRONMENTS).optional().catch(undefined),
   q: z.string().optional().catch(undefined),
 });
 
@@ -56,9 +63,16 @@ type Platform = {
   status: string;
   color: string;
   icon: string;
+  summary: string | null;
+  payment_method: string | null;
+  card_last4: string | null;
+  environment: string;
+  owner_contact_id: string | null;
   created_at: string;
   updated_at: string;
 };
+
+type Contact = { id: string; name: string; company: string | null };
 
 function PlatformsPage() {
   const qc = useQueryClient();
@@ -87,6 +101,21 @@ function PlatformsPage() {
     },
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["platforms-contacts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id,name,company").order("name");
+      if (error) throw error;
+      return (data ?? []) as Contact[];
+    },
+  });
+
+  const contactById = useMemo(() => {
+    const m = new Map<string, Contact>();
+    for (const c of contacts) m.set(c.id, c);
+    return m;
+  }, [contacts]);
+
   const costByPlatform = useMemo(() => {
     const m = new Map<string, { total: number; count: number }>();
     for (const c of costs) {
@@ -102,22 +131,36 @@ function PlatformsPage() {
     const q = (search.q ?? "").toLowerCase().trim();
     return platforms.filter((p) => {
       if (search.status && p.status !== search.status) return false;
-      if (q && !`${p.name} ${p.description ?? ""}`.toLowerCase().includes(q)) return false;
+      if (search.environment && p.environment !== search.environment) return false;
+      if (q && !`${p.name} ${p.description ?? ""} ${p.summary ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [platforms, search]);
 
   const stats = useMemo(() => {
     const active = platforms.filter((p) => p.status === "active").length;
-    const inactive = platforms.length - active;
+    const production = platforms.filter((p) => p.environment === "production").length;
+    const internal = platforms.filter((p) => p.environment === "internal").length;
     const totalBrl = costs.reduce((a, c) => a + Number(c.cost_brl ?? 0), 0);
-    return { total: platforms.length, active, inactive, totalBrl };
+    return { total: platforms.length, active, production, internal, totalBrl };
   }, [platforms, costs]);
+
+  const incompleteCount = useMemo(
+    () =>
+      platforms.filter(
+        (p) =>
+          !p.summary?.trim() ||
+          !p.payment_method?.trim() ||
+          !p.owner_contact_id,
+      ).length,
+    [platforms],
+  );
 
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...patch }) });
 
-  const activeFilters = Number(!!search.status) + Number(!!search.q);
+  const activeFilters =
+    Number(!!search.status) + Number(!!search.environment) + Number(!!search.q);
   const clearFilters = () => navigate({ search: {} as any });
 
   // form
@@ -128,9 +171,14 @@ function PlatformsPage() {
   const emptyForm = () => ({
     name: "",
     description: "",
+    summary: "",
     icon: "Box",
     color: "#3b82f6",
     status: "active",
+    environment: "production",
+    payment_method: "",
+    card_last4: "",
+    owner_contact_id: "",
   });
 
   const openCreate = () => {
@@ -143,21 +191,33 @@ function PlatformsPage() {
     setForm({
       name: p.name,
       description: p.description ?? "",
+      summary: p.summary ?? "",
       icon: p.icon,
       color: p.color,
       status: p.status,
+      environment: p.environment ?? "production",
+      payment_method: p.payment_method ?? "",
+      card_last4: p.card_last4 ?? "",
+      owner_contact_id: p.owner_contact_id ?? "",
     });
     setOpen(true);
   };
 
   const save = useMutation({
     mutationFn: async () => {
+      const last4 = (form.card_last4 ?? "").trim();
+      if (last4 && !/^\d{4}$/.test(last4)) throw new Error("Final do cartão deve ter 4 dígitos");
       const payload = {
         name: form.name?.trim(),
         description: form.description?.trim() || null,
+        summary: form.summary?.trim() || null,
         icon: form.icon?.trim() || "Box",
         color: form.color || "#3b82f6",
         status: form.status || "active",
+        environment: form.environment || "production",
+        payment_method: form.payment_method?.trim() || null,
+        card_last4: last4 || null,
+        owner_contact_id: form.owner_contact_id || null,
       };
       if (!payload.name) throw new Error("Nome é obrigatório");
       if (editing) {
@@ -213,7 +273,14 @@ function PlatformsPage() {
               <Plus className="h-4 w-4" /> Nova plataforma
             </Button>
           </DialogTrigger>
-          <PlatformDialog editing={editing} form={form} setForm={setForm} onSubmit={() => save.mutate()} pending={save.isPending} />
+          <PlatformDialog
+            editing={editing}
+            form={form}
+            setForm={setForm}
+            contacts={contacts}
+            onSubmit={() => save.mutate()}
+            pending={save.isPending}
+          />
         </Dialog>
       }
     >
@@ -221,10 +288,29 @@ function PlatformsPage() {
         {/* KPIs */}
         <div className="grid gap-3 md:grid-cols-4">
           <Kpi label="Total" value={fmtNumber(stats.total)} icon={<Layers className="h-4 w-4" />} />
-          <Kpi label="Ativas" value={fmtNumber(stats.active)} tone="good" icon={<Power className="h-4 w-4" />} />
-          <Kpi label="Inativas" value={fmtNumber(stats.inactive)} tone={stats.inactive ? "warn" : "neutral"} icon={<PowerOff className="h-4 w-4" />} />
+          <Kpi label="Produção" value={fmtNumber(stats.production)} tone="good" icon={<Factory className="h-4 w-4" />} />
+          <Kpi label="Uso interno" value={fmtNumber(stats.internal)} icon={<Home className="h-4 w-4" />} />
           <Kpi label="Custo total (BRL)" value={fmtBRL(stats.totalBrl)} icon={<Wallet className="h-4 w-4" />} />
         </div>
+
+        {/* Incompletas banner */}
+        {incompleteCount > 0 && (
+          <Card className="border-amber-500/40 bg-amber-500/5">
+            <CardContent className="flex items-center gap-3 py-3">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-sm font-medium">
+                  {incompleteCount} {incompleteCount === 1 ? "plataforma com cadastro incompleto" : "plataformas com cadastro incompleto"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Falta resumo, forma de pagamento ou responsável. Complete para manter o financeiro rastreável.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card className="surface-elevated">
@@ -236,6 +322,15 @@ function PlatformsPage() {
                   <Badge variant="outline" className="border-border/60 font-normal">{activeFilters}</Badge>
                 )}
               </div>
+
+              <Select value={search.environment ?? "__all"} onValueChange={(v) => setSearch({ environment: v === "__all" ? undefined : (v as any) })}>
+                <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Ambiente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos ambientes</SelectItem>
+                  <SelectItem value="production">Produção</SelectItem>
+                  <SelectItem value="internal">Uso interno</SelectItem>
+                </SelectContent>
+              </Select>
 
               <Select value={search.status ?? "__all"} onValueChange={(v) => setSearch({ status: v === "__all" ? undefined : (v as any) })}>
                 <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -304,6 +399,7 @@ function PlatformsPage() {
                       platform={p}
                       totalBrl={agg.total}
                       entriesCount={agg.count}
+                      contact={p.owner_contact_id ? contactById.get(p.owner_contact_id) : undefined}
                       onEdit={() => openEdit(p)}
                       onToggle={() => toggleStatus.mutate(p)}
                       onDelete={() => {
@@ -325,6 +421,7 @@ function PlatformCard({
   platform,
   totalBrl,
   entriesCount,
+  contact,
   onEdit,
   onToggle,
   onDelete,
@@ -332,12 +429,16 @@ function PlatformCard({
   platform: Platform;
   totalBrl: number;
   entriesCount: number;
+  contact?: Contact;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
   const Icon = (LucideIcons as any)[platform.icon] ?? LucideIcons.Box;
   const active = platform.status === "active";
+  const isInternal = platform.environment === "internal";
+  const incomplete =
+    !platform.summary?.trim() || !platform.payment_method?.trim() || !platform.owner_contact_id;
   return (
     <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
       <CardContent className="space-y-3 pt-5">
@@ -352,17 +453,50 @@ function PlatformCard({
             <div className="min-w-0">
               <p className="truncate font-display text-sm font-semibold">{platform.name}</p>
               <p className="line-clamp-2 text-xs text-muted-foreground">
-                {platform.description || "Sem descrição"}
+                {platform.summary || platform.description || "Sem resumo"}
               </p>
             </div>
           </div>
-          {active ? (
-            <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
-              Ativa
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="border-border/60 text-muted-foreground">Inativa</Badge>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {isInternal ? (
+              <Badge variant="secondary" className="gap-1 bg-sky-600/15 text-sky-700 dark:text-sky-300">
+                <Home className="h-3 w-3" /> Interno
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="gap-1 bg-violet-600/15 text-violet-700 dark:text-violet-300">
+                <Factory className="h-3 w-3" /> Produção
+              </Badge>
+            )}
+            {active ? (
+              <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
+                Ativa
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-border/60 text-muted-foreground">Inativa</Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">
+            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="truncate">
+              {platform.payment_method ? (
+                <>
+                  {platform.payment_method}
+                  {platform.card_last4 && <span className="ml-1 font-numeric text-muted-foreground">•••• {platform.card_last4}</span>}
+                </>
+              ) : (
+                <span className="text-muted-foreground">Sem pagamento</span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">
+            <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="truncate">
+              {contact ? contact.name : <span className="text-muted-foreground">Sem responsável</span>}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
@@ -375,6 +509,12 @@ function PlatformCard({
             <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(entriesCount)}</p>
           </div>
         </div>
+
+        {incomplete && (
+          <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-3 w-3" /> Cadastro incompleto
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5">
           <Button size="sm" variant="outline" className="h-8 flex-1 gap-1.5" onClick={onEdit}>
@@ -403,19 +543,21 @@ function PlatformDialog({
   editing,
   form,
   setForm,
+  contacts,
   onSubmit,
   pending,
 }: {
   editing: Platform | null;
   form: any;
   setForm: (v: any) => void;
+  contacts: Contact[];
   onSubmit: () => void;
   pending: boolean;
 }) {
   const Icon = (LucideIcons as any)[form.icon || "Box"] ?? LucideIcons.Box;
   const inputCls = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-w-2xl">
       <DialogHeader>
         <DialogTitle className="font-display">{editing ? "Editar plataforma" : "Nova plataforma"}</DialogTitle>
       </DialogHeader>
@@ -429,12 +571,12 @@ function PlatformDialog({
         </div>
         <div className="min-w-0">
           <p className="truncate font-display text-sm font-semibold">{form.name || "Nome da plataforma"}</p>
-          <p className="truncate text-xs text-muted-foreground">{form.description || "Prévia"}</p>
+          <p className="truncate text-xs text-muted-foreground">{form.summary || form.description || "Prévia"}</p>
         </div>
       </div>
 
       <form
-        className="grid grid-cols-2 gap-3"
+        className="grid max-h-[70vh] grid-cols-2 gap-3 overflow-y-auto pr-1"
         onSubmit={(e) => {
           e.preventDefault();
           onSubmit();
@@ -444,10 +586,83 @@ function PlatformDialog({
           <label className="text-xs font-medium text-muted-foreground">Nome *</label>
           <input className={inputCls} value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
+
         <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Descrição</label>
+          <label className="text-xs font-medium text-muted-foreground">Resumo do funcionamento</label>
+          <textarea
+            className={inputCls}
+            rows={3}
+            placeholder="O que a plataforma faz, como é usada, integrações principais..."
+            value={form.summary ?? ""}
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Ambiente</label>
+          <Select value={form.environment || "production"} onValueChange={(v) => setForm({ ...form, environment: v })}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="production">Produção</SelectItem>
+              <SelectItem value="internal">Uso interno</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Status</label>
+          <Select value={form.status || "active"} onValueChange={(v) => setForm({ ...form, status: v })}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Ativa</SelectItem>
+              <SelectItem value="inactive">Inativa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
+          <input
+            className={inputCls}
+            placeholder="Ex: Cartão Corporativo"
+            value={form.payment_method ?? ""}
+            onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Final do cartão (4 dígitos)</label>
+          <input
+            className={inputCls}
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="1234"
+            value={form.card_last4 ?? ""}
+            onChange={(e) => setForm({ ...form, card_last4: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+          />
+        </div>
+
+        <div className="col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Contato responsável</label>
+          <Select
+            value={form.owner_contact_id || "__none"}
+            onValueChange={(v) => setForm({ ...form, owner_contact_id: v === "__none" ? "" : v })}
+          >
+            <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um responsável" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Sem responsável</SelectItem>
+              {contacts.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}{c.company ? ` — ${c.company}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Descrição curta</label>
           <textarea className={inputCls} rows={2} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
+
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Ícone (lucide)</label>
           <input className={inputCls} value={form.icon ?? ""} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="Box, Sparkles, Layers..." />
@@ -459,20 +674,13 @@ function PlatformDialog({
             <input className={inputCls} value={form.color ?? ""} onChange={(e) => setForm({ ...form, color: e.target.value })} />
           </div>
         </div>
-        <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Status</label>
-          <select className={inputCls} value={form.status ?? "active"} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option value="active">Ativa</option>
-            <option value="inactive">Inativa</option>
-          </select>
-        </div>
-        <DialogFooter className="col-span-2">
+
+        <DialogFooter className="col-span-2 mt-2">
           <Button type="submit" disabled={pending}>
-            {pending ? "Salvando..." : "Salvar"}
+            {pending ? "Salvando..." : editing ? "Salvar alterações" : "Criar plataforma"}
           </Button>
         </DialogFooter>
       </form>
     </DialogContent>
   );
 }
-

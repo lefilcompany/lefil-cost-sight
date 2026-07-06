@@ -125,36 +125,59 @@ export type Database = {
       }
       platforms: {
         Row: {
+          card_last4: string | null
           color: string
           created_at: string
           description: string | null
+          environment: string
           icon: string
           id: string
           name: string
+          owner_contact_id: string | null
+          payment_method: string | null
           status: string
+          summary: string | null
           updated_at: string
         }
         Insert: {
+          card_last4?: string | null
           color?: string
           created_at?: string
           description?: string | null
+          environment?: string
           icon?: string
           id?: string
           name: string
+          owner_contact_id?: string | null
+          payment_method?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
         }
         Update: {
+          card_last4?: string | null
           color?: string
           created_at?: string
           description?: string | null
+          environment?: string
           icon?: string
           id?: string
           name?: string
+          owner_contact_id?: string | null
+          payment_method?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "platforms_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_connections: {
         Row: {
