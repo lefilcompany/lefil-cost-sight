@@ -113,7 +113,7 @@ function AuthPage() {
         </div>
 
         <div className="relative text-[11px] text-[#2f4638]">
-          © {new Date().getFullYear()} LeFil · Sistema interno
+          © {new Date().getFullYear()} Quiui · Sistema interno
         </div>
       </div>
 
