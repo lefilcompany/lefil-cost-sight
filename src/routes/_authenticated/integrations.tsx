@@ -39,7 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
-import { runProviderSync } from "@/lib/sync.functions";
+import { runProviderSync, runSyncAllFn } from "@/lib/sync.functions";
 
 const STATUSES = ["active", "inactive", "error"] as const;
 
