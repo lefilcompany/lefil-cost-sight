@@ -714,7 +714,7 @@ function ConnectionDialog({
 }) {
   const inputCls = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="font-display">{editing ? "Editar integração" : "Nova integração"}</DialogTitle>
       </DialogHeader>
@@ -825,26 +825,43 @@ function ConnectionDialog({
           </div>
         )}
 
-        <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Preset de configuração</label>
-          <Select
-            value={form.config_preset || "none"}
-            onValueChange={(v) => {
-              const preset = CONFIG_PRESETS[v];
-              const fields: Record<string, string> = {};
-              if (preset) for (const f of preset.fields) fields[f.key] = f.default ?? "";
-              setForm({ ...form, config_preset: v, config_fields: fields });
-            }}
-          >
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(CONFIG_PRESETS).map(([key, p]) => (
-                <SelectItem key={key} value={key}>{p.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-[11px] text-muted-foreground">{CONFIG_PRESETS[form.config_preset ?? "none"]?.description}</p>
+        <div className="col-span-2 space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">Ferramenta / preset</label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {Object.entries(CONFIG_PRESETS).map(([key, p]) => {
+              const selected = (form.config_preset ?? "none") === key;
+              const initials = p.label.replace(/^[^A-Za-z0-9]+/, "").slice(0, 2).toUpperCase();
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    const fields: Record<string, string> = {};
+                    for (const f of p.fields) fields[f.key] = f.default ?? "";
+                    setForm({ ...form, config_preset: key, config_fields: fields });
+                  }}
+                  className={`group flex h-full flex-col items-start gap-2 rounded-lg border p-3 text-left transition ${
+                    selected
+                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/40"
+                      : "border-border/60 bg-muted/20 hover:border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="flex w-full items-center gap-2">
+                    <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-md font-display text-[10px] font-semibold ${
+                      selected ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                    }`}>
+                      {initials || "—"}
+                    </div>
+                    <span className="truncate font-display text-xs font-semibold">{p.label}</span>
+                    {selected && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-primary" />}
+                  </div>
+                  <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{p.description}</p>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
 
         {(CONFIG_PRESETS[form.config_preset ?? "none"]?.fields ?? []).map((f) => (
           <div key={f.key} className={f.wide ? "col-span-2 space-y-1.5" : "space-y-1.5"}>
