@@ -74,6 +74,18 @@ type Platform = {
 
 type Contact = { id: string; name: string; company: string | null };
 
+type Preset = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string | null;
+  environment: string | null;
+  icon: string | null;
+  color: string | null;
+  default_provider_id: string | null;
+};
+
 function PlatformsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/platforms" });
