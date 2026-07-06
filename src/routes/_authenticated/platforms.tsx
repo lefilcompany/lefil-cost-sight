@@ -235,6 +235,7 @@ function PlatformsPage() {
       payment_method: p.payment_method ?? "",
       card_last4: p.card_last4 ?? "",
       owner_contact_id: p.owner_contact_id ?? "",
+      image_url: p.image_url ?? "",
     });
     setOpen(true);
   };
