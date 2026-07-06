@@ -124,14 +124,10 @@ function AuthPage() {
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
             <img
-              src={quiuiIcon.url}
+              src={quiuiLogo.url}
               alt="Quiui"
-              className="h-10 w-10 shrink-0 object-contain"
+              className="h-10 w-auto object-contain"
             />
-            <div className="leading-tight">
-              <div className="font-display text-sm font-semibold text-foreground">Quiui</div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</div>
-            </div>
           </div>
 
           <div className="space-y-2">
