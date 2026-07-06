@@ -12,7 +12,7 @@ import { lovable } from "@/integrations/lovable";
 import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Quiui Cost Center" }] }),
   component: AuthPage,
 });
 
