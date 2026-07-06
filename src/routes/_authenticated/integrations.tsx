@@ -442,23 +442,34 @@ function IntegrationsPage() {
       eyebrow="Cadastros"
       title="Integrações"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5" disabled={providers.length === 0}>
-              <Plus className="h-4 w-4" /> Nova integração
-            </Button>
-          </DialogTrigger>
-          <ConnectionDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            providers={providers}
-            platforms={platforms}
-            isAdmin={isAdmin}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
-          />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={syncAll.isPending || stats.active === 0}
+            onClick={() => syncAll.mutate()}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`} />
+            Sincronizar todas
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="gap-1.5" disabled={providers.length === 0}>
+                <Plus className="h-4 w-4" /> Nova integração
+              </Button>
+            </DialogTrigger>
+            <ConnectionDialog
+              editing={editing}
+              form={form}
+              setForm={setForm}
+              providers={providers}
+              platforms={platforms}
+              isAdmin={isAdmin}
+              onSubmit={() => save.mutate()}
+              pending={save.isPending}
+            />
+          </Dialog>
+        </div>
       }
     >
       <div className="space-y-6">
