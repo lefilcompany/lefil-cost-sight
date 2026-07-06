@@ -1,0 +1,1 @@
+ALTER TABLE public.platforms ADD COLUMN IF NOT EXISTS image_url text;
