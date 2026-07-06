@@ -73,7 +73,7 @@ function AuthPage() {
           <img
             src={quiuiLogo.url}
             alt="Quiui"
-            className="h-12 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
         </div>
 
