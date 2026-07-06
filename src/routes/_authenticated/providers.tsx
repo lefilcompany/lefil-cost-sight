@@ -281,6 +281,7 @@ function ProvidersPage() {
         config: {} as any,
       }).select("id").single();
       if (error) throw error;
+      if (!insertedConnection) throw new Error("Não foi possível criar a conexão");
 
       const { error: keyError } = await supabase.rpc("set_connection_api_key", {
         _connection_id: insertedConnection.id,
