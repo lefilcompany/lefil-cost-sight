@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import quiuiIcon from "@/assets/quiui-icon.png.asset.json";
+import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
 
 const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
@@ -76,16 +77,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 px-2 py-3">
+        <div className="flex h-10 items-center gap-3 px-2 py-3">
           <img
             src={quiuiIcon.url}
             alt="Quiui"
-            className="h-9 w-9 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)]"
+            className="hidden h-9 w-9 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
           />
-          <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="font-display text-[13px] font-semibold tracking-tight">Quiui</span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</span>
-          </div>
+          <img
+            src={quiuiLogo.url}
+            alt="Quiui"
+            className="block h-9 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
+          />
         </div>
       </SidebarHeader>
 
