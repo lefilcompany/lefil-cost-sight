@@ -327,6 +327,46 @@ function PlatformsPage() {
           <Kpi label="Custo total (BRL)" value={fmtBRL(stats.totalBrl)} icon={<Wallet className="h-4 w-4" />} />
         </div>
 
+        {/* Presets */}
+        {presets.length > 0 && (
+          <Card className="surface-elevated">
+            <CardContent className="pt-5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-display text-sm font-semibold">Criar a partir de preset</p>
+                  <p className="text-xs text-muted-foreground">Modelos prontos com ícone, ambiente e cor sugeridos.</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((preset) => {
+                  const Icon = (LucideIcons as any)[preset.icon || "Box"] ?? LucideIcons.Box;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => openFromPreset(preset)}
+                      className="group flex items-center gap-2 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-left transition hover:border-border hover:bg-muted"
+                    >
+                      <span
+                        className="grid h-8 w-8 place-items-center rounded-md text-white"
+                        style={{ background: preset.color || "#3b82f6" }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-semibold">{preset.name}</span>
+                        <span className="block truncate text-[10px] text-muted-foreground">
+                          {preset.category ?? ""}{preset.environment ? ` · ${preset.environment === "internal" ? "interno" : "produção"}` : ""}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Incompletas banner */}
         {incompleteCount > 0 && (
           <Card className="border-amber-500/40 bg-amber-500/5">
