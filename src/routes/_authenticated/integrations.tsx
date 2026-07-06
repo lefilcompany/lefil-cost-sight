@@ -215,6 +215,7 @@ function IntegrationsPage() {
   const navigate = useNavigate({ from: "/integrations" });
   const search = Route.useSearch();
   const syncFn = useServerFn(runProviderSync);
+  const syncAllFn = useServerFn(runSyncAllFn);
 
   const { data: isAdmin = false } = useQuery({
     queryKey: ["is-admin"],
