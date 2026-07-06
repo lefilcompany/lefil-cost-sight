@@ -77,16 +77,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex h-10 items-center gap-3 px-2 py-3">
+        <div className="flex h-12 items-center gap-3 px-2 py-2.5">
           <img
             src={quiuiIcon.url}
             alt="Quiui"
-            className="hidden h-9 w-9 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
+            className="hidden h-10 w-10 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
           />
           <img
             src={quiuiLogo.url}
             alt="Quiui"
-            className="block h-9 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
+            className="block h-10 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
           />
         </div>
       </SidebarHeader>
