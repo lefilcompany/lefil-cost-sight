@@ -34,9 +34,30 @@ export function AppShell({
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [email, setEmail] = useState<string>("");
+  const [openAlerts, setOpenAlerts] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { count } = await supabase
+        .from("alert_events")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "open");
+      if (!cancelled) setOpenAlerts(count ?? 0);
+    };
+    load();
+    const ch = supabase
+      .channel("app-shell-alerts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "alert_events" }, () => load())
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
   }, []);
 
   const segments = pathname.split("/").filter(Boolean);
