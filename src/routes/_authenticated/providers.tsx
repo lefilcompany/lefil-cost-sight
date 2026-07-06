@@ -430,6 +430,7 @@ function ProvidersPage() {
                       entriesCount={agg.count}
                       connectionsCount={connByProvider.get(p.id) ?? 0}
                       onEdit={() => openEdit(p)}
+                      onConnect={() => openConnect(p)}
                       onToggle={() => toggleStatus.mutate({ p, connections: connByProvider.get(p.id) ?? 0 })}
                       onDelete={() => {
                         if (confirm(`Excluir "${p.name}"? Custos e conexões associadas perderão o vínculo.`)) remove.mutate(p.id);
