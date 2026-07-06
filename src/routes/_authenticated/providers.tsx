@@ -265,6 +265,38 @@ function ProvidersPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const connect = useMutation({
+    mutationFn: async () => {
+      if (!connectProvider) throw new Error("Fornecedor inválido");
+      const name = connectForm.name.trim();
+      const apiKey = connectForm.api_key.trim();
+      if (!name) throw new Error("Nome da conexão é obrigatório");
+      if (!apiKey) throw new Error("API key é obrigatória");
+      const { error } = await supabase.from("provider_connections").insert({
+        provider_id: connectProvider.id,
+        platform_id: connectForm.platform_id || null,
+        name,
+        status: "active",
+        config: { api_key: apiKey } as any,
+      });
+      if (error) throw error;
+      if (connectProvider.status !== "active") {
+        const { error: upErr } = await supabase
+          .from("providers")
+          .update({ status: "active" })
+          .eq("id", connectProvider.id);
+        if (upErr) throw upErr;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Conexão criada e fornecedor ativado");
+      qc.invalidateQueries({ queryKey: ["providers"] });
+      qc.invalidateQueries({ queryKey: ["providers-connections"] });
+      setConnectOpen(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
