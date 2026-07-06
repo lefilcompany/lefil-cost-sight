@@ -565,7 +565,7 @@ function IntegrationsPage() {
                   )}
                 </div>
                 {activeFilters === 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {Object.entries(CONFIG_PRESETS).map(([key, p]) => {
                       const initials = p.label.replace(/^[^A-Za-z0-9]+/, "").slice(0, 2).toUpperCase();
                       return (
@@ -585,16 +585,19 @@ function IntegrationsPage() {
                             });
                             setOpen(true);
                           }}
-                          className="group flex h-full flex-col items-start gap-2 rounded-lg border border-border/60 bg-muted/20 p-3 text-left transition hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                          className="group relative flex h-full items-center gap-4 rounded-xl border border-border/70 bg-card p-4 text-left shadow-[0_2px_6px_-2px_oklch(0.30_0.08_165/0.08)] transition-all duration-300 hover:border-gold/50 hover:bg-[oklch(0.99_0.01_90)] hover:shadow-gold disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <div className="flex w-full items-center gap-2">
-                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background font-display text-[10px] font-semibold text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground">
-                              {initials || "—"}
-                            </div>
-                            <span className="truncate font-display text-xs font-semibold">{p.label}</span>
-                            <Plus className="ml-auto h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-deep to-emerald font-display text-sm font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.15)] ring-1 ring-emerald-deep/20 group-hover:ring-gold/40">
+                            {initials || "—"}
                           </div>
-                          <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{p.description}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-display text-sm font-semibold text-card-foreground">{p.label}</p>
+                            <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{p.description}</p>
+                          </div>
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/80 bg-muted/40 text-muted-foreground transition-all duration-300 group-hover:border-gold/40 group-hover:bg-gold group-hover:text-gold-foreground group-hover:shadow-[0_0_12px_-2px_oklch(0.78_0.13_85/0.5)]">
+                            <Plus className="h-4 w-4" />
+                          </div>
+                          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                         </button>
                       );
                     })}
