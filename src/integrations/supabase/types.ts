@@ -334,6 +334,7 @@ export type Database = {
           environment: string
           icon: string
           id: string
+          image_url: string | null
           name: string
           owner_contact_id: string | null
           payment_method: string | null
@@ -349,6 +350,7 @@ export type Database = {
           environment?: string
           icon?: string
           id?: string
+          image_url?: string | null
           name: string
           owner_contact_id?: string | null
           payment_method?: string | null
@@ -364,6 +366,7 @@ export type Database = {
           environment?: string
           icon?: string
           id?: string
+          image_url?: string | null
           name?: string
           owner_contact_id?: string | null
           payment_method?: string | null
