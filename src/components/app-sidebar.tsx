@@ -4,7 +4,6 @@ import {
   Layers,
   Truck,
   Users,
-  Plug,
   Receipt,
   RefreshCw,
   Settings,
