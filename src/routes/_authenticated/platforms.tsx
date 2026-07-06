@@ -255,6 +255,7 @@ function PlatformsPage() {
         payment_method: form.payment_method?.trim() || null,
         card_last4: last4 || null,
         owner_contact_id: form.owner_contact_id || null,
+        image_url: form.image_url?.trim() || null,
       };
       if (!payload.name) throw new Error("Nome é obrigatório");
       if (editing) {
