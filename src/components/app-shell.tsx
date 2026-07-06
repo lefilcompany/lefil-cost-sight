@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CRUMBS: Record<string, string> = {
   dashboard: "Painel geral",
+  financial: "Financeiro",
   platforms: "Plataformas",
   providers: "Fornecedores",
   clients: "Clientes",

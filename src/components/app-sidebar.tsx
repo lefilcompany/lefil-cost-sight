@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
+  LineChart,
 } from "lucide-react";
 
 import {
@@ -27,6 +28,7 @@ import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
 
 const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Financeiro", url: "/financial", icon: LineChart },
   { title: "Custos", url: "/costs", icon: Receipt },
   { title: "Sincronizações", url: "/syncs", icon: RefreshCw },
 ];
