@@ -225,8 +225,11 @@ function ProvidersPage() {
   });
 
   const toggleStatus = useMutation({
-    mutationFn: async (p: Provider) => {
+    mutationFn: async ({ p, connections }: { p: Provider; connections: number }) => {
       const next = p.status === "active" ? "inactive" : "active";
+      if (next === "active" && connections === 0) {
+        throw new Error("Conecte uma API deste fornecedor antes de ativá-lo.");
+      }
       const { error } = await supabase.from("providers").update({ status: next }).eq("id", p.id);
       if (error) throw error;
       return next;
@@ -237,6 +240,7 @@ function ProvidersPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
