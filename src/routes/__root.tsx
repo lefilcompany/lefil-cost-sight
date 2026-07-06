@@ -66,15 +66,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "LeFil Cost Center — Inteligência de custos das plataformas" },
-      { name: "description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas LeFil em um único painel." },
-      { property: "og:title", content: "LeFil Cost Center" },
-      { property: "og:description", content: "Inteligência de custos para o portfólio de plataformas LeFil." },
+      { title: "Quiui Cost Center — Inteligência de custos das plataformas" },
+      { name: "description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiui em um único painel." },
+      { property: "og:title", content: "Quiui Cost Center" },
+      { property: "og:description", content: "Inteligência de custos para o portfólio de plataformas Quiui." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

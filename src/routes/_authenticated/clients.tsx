@@ -46,7 +46,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/clients")({
-  head: () => ({ meta: [{ title: "Clientes — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Clientes — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: ClientsPage,
 });

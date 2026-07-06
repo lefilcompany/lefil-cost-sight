@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
+import quiuiIcon from "@/assets/quiui-icon.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Quiui Cost Center" }] }),
   component: AuthPage,
 });
 
@@ -69,13 +71,11 @@ function AuthPage() {
         />
 
         <div className="relative flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl gradient-emerald">
-            <span className="font-display text-lg font-bold text-[#c9a84c]">L</span>
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-base font-semibold text-[#052e16]">LeFil</div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#2f4638]">Cost Center</div>
-          </div>
+          <img
+            src={quiuiLogo.url}
+            alt="Quiui"
+            className="h-12 w-auto rounded-lg bg-white/40 object-contain p-1"
+          />
         </div>
 
         <div className="relative space-y-10">
@@ -114,7 +114,7 @@ function AuthPage() {
         </div>
 
         <div className="relative text-[11px] text-[#2f4638]">
-          © {new Date().getFullYear()} LeFil · Sistema interno
+          © {new Date().getFullYear()} Quiui · Sistema interno
         </div>
       </div>
 
@@ -123,12 +123,14 @@ function AuthPage() {
       <div className="flex items-center justify-center px-6 py-12 sm:px-12">
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-xl gradient-emerald">
-              <span className="font-display text-base font-bold text-[#c9a84c]">L</span>
-            </div>
+            <img
+              src={quiuiIcon.url}
+              alt="Quiui"
+              className="h-10 w-10 shrink-0 object-contain"
+            />
             <div className="leading-tight">
-              <div className="font-display text-sm font-semibold text-[#052e16]">LeFil</div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#2f4638]">Cost Center</div>
+              <div className="font-display text-sm font-semibold text-foreground">Quiui</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</div>
             </div>
           </div>
 
@@ -166,7 +168,7 @@ function AuthPage() {
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email" type="email" placeholder="voce@lefil.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email" type="email" placeholder="voce@quiui.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -185,7 +187,7 @@ function AuthPage() {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email2" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email2" type="email" placeholder="voce@lefil.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email2" type="email" placeholder="voce@quiui.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2" className="text-xs font-medium">Senha</Label>
@@ -199,7 +201,7 @@ function AuthPage() {
           </Tabs>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Ao continuar você concorda com as políticas internas da LeFil.
+            Ao continuar você concorda com as políticas internas da Quiui.
           </p>
         </div>
       </div>

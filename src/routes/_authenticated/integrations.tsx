@@ -188,7 +188,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/integrations")({
-  head: () => ({ meta: [{ title: "Integrações — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Integrações — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: IntegrationsPage,
 });

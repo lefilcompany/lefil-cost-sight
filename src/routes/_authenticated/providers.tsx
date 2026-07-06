@@ -53,7 +53,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/providers")({
-  head: () => ({ meta: [{ title: "Fornecedores — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Fornecedores — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: ProvidersPage,
 });
