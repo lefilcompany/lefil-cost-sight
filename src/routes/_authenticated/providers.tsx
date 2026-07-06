@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -272,14 +273,24 @@ function ProvidersPage() {
       const apiKey = connectForm.api_key.trim();
       if (!name) throw new Error("Nome da conexão é obrigatório");
       if (!apiKey) throw new Error("API key é obrigatória");
-      const { error } = await supabase.from("provider_connections").insert({
+      const { data: insertedConnection, error } = await supabase.from("provider_connections").insert({
         provider_id: connectProvider.id,
         platform_id: connectForm.platform_id || null,
         name,
         status: "active",
-        config: { api_key: apiKey } as any,
-      });
+        config: {} as any,
+      }).select("id").single();
       if (error) throw error;
+
+      const { error: keyError } = await supabase.rpc("set_connection_api_key", {
+        _connection_id: insertedConnection.id,
+        _api_key: apiKey,
+      });
+      if (keyError) {
+        await supabase.from("provider_connections").delete().eq("id", insertedConnection.id);
+        throw keyError;
+      }
+
       if (connectProvider.status !== "active") {
         const { error: upErr } = await supabase
           .from("providers")
@@ -450,6 +461,9 @@ function ProvidersPage() {
             <DialogTitle className="font-display">
               Conectar {connectProvider?.name ?? "fornecedor"}
             </DialogTitle>
+            <DialogDescription>
+              Crie uma conexão segura para sincronizar custos deste fornecedor.
+            </DialogDescription>
           </DialogHeader>
           <form
             className="space-y-3"
@@ -663,6 +677,9 @@ function ProviderDialog({
     <DialogContent className="max-w-lg">
       <DialogHeader>
         <DialogTitle className="font-display">{editing ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle>
+        <DialogDescription>
+          Informe os dados básicos do fornecedor usado pelas plataformas.
+        </DialogDescription>
       </DialogHeader>
 
       <div className="mb-2 flex items-center gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
