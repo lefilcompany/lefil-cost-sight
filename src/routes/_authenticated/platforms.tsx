@@ -201,6 +201,7 @@ function PlatformsPage() {
     payment_method: "",
     card_last4: "",
     owner_contact_id: "",
+    image_url: "",
   });
 
   const openCreate = () => {
