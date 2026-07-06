@@ -74,6 +74,18 @@ type Platform = {
 
 type Contact = { id: string; name: string; company: string | null };
 
+type Preset = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string | null;
+  environment: string | null;
+  icon: string | null;
+  color: string | null;
+  default_provider_id: string | null;
+};
+
 function PlatformsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/platforms" });
@@ -107,6 +119,15 @@ function PlatformsPage() {
       const { data, error } = await supabase.from("clients").select("id,name,company").order("name");
       if (error) throw error;
       return (data ?? []) as Contact[];
+    },
+  });
+
+  const { data: presets = [] } = useQuery({
+    queryKey: ["platform-presets"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("platform_presets").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []) as Preset[];
     },
   });
 
@@ -184,6 +205,19 @@ function PlatformsPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm());
+    setOpen(true);
+  };
+  const openFromPreset = (preset: Preset) => {
+    setEditing(null);
+    setForm({
+      ...emptyForm(),
+      name: preset.name,
+      description: preset.description ?? "",
+      summary: preset.description ?? "",
+      icon: preset.icon || "Box",
+      color: preset.color || "#3b82f6",
+      environment: preset.environment || "production",
+    });
     setOpen(true);
   };
   const openEdit = (p: Platform) => {
@@ -292,6 +326,46 @@ function PlatformsPage() {
           <Kpi label="Uso interno" value={fmtNumber(stats.internal)} icon={<Home className="h-4 w-4" />} />
           <Kpi label="Custo total (BRL)" value={fmtBRL(stats.totalBrl)} icon={<Wallet className="h-4 w-4" />} />
         </div>
+
+        {/* Presets */}
+        {presets.length > 0 && (
+          <Card className="surface-elevated">
+            <CardContent className="pt-5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-display text-sm font-semibold">Criar a partir de preset</p>
+                  <p className="text-xs text-muted-foreground">Modelos prontos com ícone, ambiente e cor sugeridos.</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((preset) => {
+                  const Icon = (LucideIcons as any)[preset.icon || "Box"] ?? LucideIcons.Box;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => openFromPreset(preset)}
+                      className="group flex items-center gap-2 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-left transition hover:border-border hover:bg-muted"
+                    >
+                      <span
+                        className="grid h-8 w-8 place-items-center rounded-md text-white"
+                        style={{ background: preset.color || "#3b82f6" }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-semibold">{preset.name}</span>
+                        <span className="block truncate text-[10px] text-muted-foreground">
+                          {preset.category ?? ""}{preset.environment ? ` · ${preset.environment === "internal" ? "interno" : "produção"}` : ""}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Incompletas banner */}
         {incompleteCount > 0 && (

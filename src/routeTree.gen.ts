@@ -20,8 +20,10 @@ import { Route as AuthenticatedFinancialRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/costs'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
+import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -77,6 +79,11 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -87,10 +94,17 @@ const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
   path: '/api/public/cron/sync-all',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronEvaluateAlertsRoute =
+  ApiPublicCronEvaluateAlertsRouteImport.update({
+    id: '/api/public/cron/evaluate-alerts',
+    path: '/api/public/cron/evaluate-alerts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alerts': typeof AuthenticatedAlertsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -100,11 +114,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alerts': typeof AuthenticatedAlertsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -114,6 +130,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesById {
@@ -121,6 +138,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/costs': typeof AuthenticatedCostsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -130,6 +148,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRouteTypes {
@@ -137,6 +156,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/alerts'
     | '/clients'
     | '/costs'
     | '/dashboard'
@@ -146,11 +166,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/syncs'
     | '/clients/$id'
+    | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/alerts'
     | '/clients'
     | '/costs'
     | '/dashboard'
@@ -160,12 +182,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/syncs'
     | '/clients/$id'
+    | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/alerts'
     | '/_authenticated/clients'
     | '/_authenticated/costs'
     | '/_authenticated/dashboard'
@@ -175,6 +199,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
     | '/_authenticated/clients/$id'
+    | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
   fileRoutesById: FileRoutesById
 }
@@ -182,6 +207,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
 }
 
@@ -264,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/alerts': {
+      id: '/_authenticated/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AuthenticatedAlertsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
       path: '/$id'
@@ -276,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/sync-all'
       fullPath: '/api/public/cron/sync-all'
       preLoaderRoute: typeof ApiPublicCronSyncAllRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/evaluate-alerts': {
+      id: '/api/public/cron/evaluate-alerts'
+      path: '/api/public/cron/evaluate-alerts'
+      fullPath: '/api/public/cron/evaluate-alerts'
+      preLoaderRoute: typeof ApiPublicCronEvaluateAlertsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -293,6 +333,7 @@ const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedCostsRoute: typeof AuthenticatedCostsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -304,6 +345,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedCostsRoute: AuthenticatedCostsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -321,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
 }
 export const routeTree = rootRouteImport

@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_events: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          metric_value: number | null
+          resolved_at: string | null
+          scope: string | null
+          scope_id: string | null
+          scope_label: string | null
+          severity: string
+          status: string
+          threshold: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          metric_value?: number | null
+          resolved_at?: string | null
+          scope?: string | null
+          scope_id?: string | null
+          scope_label?: string | null
+          severity?: string
+          status?: string
+          threshold?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          metric_value?: number | null
+          resolved_at?: string | null
+          scope?: string | null
+          scope_id?: string | null
+          scope_label?: string | null
+          severity?: string
+          status?: string
+          threshold?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "cost_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           cnpj: string | null
@@ -43,6 +111,54 @@ export type Database = {
           name?: string
           responsible?: string | null
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cost_alerts: {
+        Row: {
+          channel: string
+          comparison: string
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          last_evaluated_at: string | null
+          metric: string
+          name: string
+          scope: string
+          scope_id: string | null
+          threshold: number
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          comparison?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_evaluated_at?: string | null
+          metric: string
+          name: string
+          scope: string
+          scope_id?: string | null
+          threshold: number
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          comparison?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_evaluated_at?: string | null
+          metric?: string
+          name?: string
+          scope?: string
+          scope_id?: string | null
+          threshold?: number
           updated_at?: string
         }
         Relationships: []
@@ -152,6 +268,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      platform_presets: {
+        Row: {
+          category: string | null
+          color: string | null
+          created_at: string
+          default_alert_monthly_brl: number | null
+          default_alert_variance_pct: number | null
+          default_provider_id: string | null
+          description: string | null
+          environment: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          default_alert_monthly_brl?: number | null
+          default_alert_variance_pct?: number | null
+          default_provider_id?: string | null
+          description?: string | null
+          environment?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          default_alert_monthly_brl?: number | null
+          default_alert_variance_pct?: number | null
+          default_provider_id?: string | null
+          description?: string | null
+          environment?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_presets_default_provider_id_fkey"
+            columns: ["default_provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platforms: {
         Row: {
