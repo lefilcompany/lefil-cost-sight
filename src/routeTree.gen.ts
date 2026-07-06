@@ -23,8 +23,10 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
+import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -95,6 +97,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any)
+const ApiPublicCronSyncBillingRoute =
+  ApiPublicCronSyncBillingRouteImport.update({
+    id: '/api/public/cron/sync-billing',
+    path: '/api/public/cron/sync-billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
   id: '/api/public/cron/sync-all',
   path: '/api/public/cron/sync-all',
@@ -123,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
+  '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,6 +149,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
+  '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
+  '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
+    | '/api/public/cron/sync-billing'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -195,6 +207,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
+    | '/api/public/cron/sync-billing'
   id:
     | '__root__'
     | '/'
@@ -213,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
+    | '/api/public/cron/sync-billing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -221,6 +235,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
+  ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedClientsRoute
     }
+    '/api/public/cron/sync-billing': {
+      id: '/api/public/cron/sync-billing'
+      path: '/api/public/cron/sync-billing'
+      fullPath: '/api/public/cron/sync-billing'
+      preLoaderRoute: typeof ApiPublicCronSyncBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/sync-all': {
       id: '/api/public/cron/sync-all'
       path: '/api/public/cron/sync-all'
@@ -386,6 +408,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
+  ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
