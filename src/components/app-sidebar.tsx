@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import quiuiIcon from "@/assets/quiui-icon.png.asset.json";
+import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
 
 const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
