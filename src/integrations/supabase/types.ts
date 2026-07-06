@@ -419,6 +419,10 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: string
       }
+      get_connection_api_key_internal: {
+        Args: { _connection_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
