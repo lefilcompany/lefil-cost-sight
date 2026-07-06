@@ -43,6 +43,7 @@ const STATUSES = ["active", "inactive"] as const;
 const searchSchema = z.object({
   status: z.enum(STATUSES).optional().catch(undefined),
   q: z.string().optional().catch(undefined),
+  usage: z.enum(["in_use", "all"]).catch("in_use"),
 });
 
 export const Route = createFileRoute("/_authenticated/clients")({
@@ -111,6 +112,25 @@ function ClientsPage() {
     },
   });
 
+  const { data: ownerLinks = [] } = useQuery({
+    queryKey: ["clients-platform-owners"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("platforms")
+        .select("id, owner_contact_id")
+        .not("owner_contact_id", "is", null);
+      if (error) throw error;
+      return (data ?? []) as { id: string; owner_contact_id: string }[];
+    },
+  });
+
+  const linkedIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of costs) if (c.client_id) s.add(c.client_id);
+    for (const p of ownerLinks) if (p.owner_contact_id) s.add(p.owner_contact_id);
+    return s;
+  }, [costs, ownerLinks]);
+
   const costByClient = useMemo(() => {
     const m = new Map<string, { total: number; count: number }>();
     for (const c of costs) {
@@ -122,9 +142,19 @@ function ClientsPage() {
     return m;
   }, [costs]);
 
+  const platformCountByClient = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of ownerLinks) {
+      if (!p.owner_contact_id) continue;
+      m.set(p.owner_contact_id, (m.get(p.owner_contact_id) ?? 0) + 1);
+    }
+    return m;
+  }, [ownerLinks]);
+
   const filtered = useMemo(() => {
     const q = (search.q ?? "").toLowerCase().trim();
     return clients.filter((c) => {
+      if (search.usage === "in_use" && !linkedIds.has(c.id)) return false;
       if (search.status && c.status !== search.status) return false;
       if (
         q &&
@@ -135,7 +165,7 @@ function ClientsPage() {
         return false;
       return true;
     });
-  }, [clients, search]);
+  }, [clients, search, linkedIds]);
 
   const stats = useMemo(() => {
     const active = clients.filter((c) => c.status === "active").length;
