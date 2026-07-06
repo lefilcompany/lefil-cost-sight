@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate, fmtDateTime, fmtNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
-  head: () => ({ meta: [{ title: "Contato — Quiui Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Contato — Quiwi Cost Center" }] }),
   component: ClientDetail,
 });
 
