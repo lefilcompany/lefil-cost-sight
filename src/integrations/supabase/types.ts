@@ -656,6 +656,10 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      run_evaluate_alerts_job: {
+        Args: { _apikey: string; _url: string }
+        Returns: number
+      }
       set_connection_api_key: {
         Args: { _api_key: string; _connection_id: string }
         Returns: undefined
