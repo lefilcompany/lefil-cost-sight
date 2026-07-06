@@ -403,6 +403,7 @@ function ClientCard({
   client,
   totalBrl,
   entriesCount,
+  platformCount,
   onEdit,
   onToggle,
   onDelete,
@@ -410,6 +411,7 @@ function ClientCard({
   client: Client;
   totalBrl: number;
   entriesCount: number;
+  platformCount: number;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -420,7 +422,11 @@ function ClientCard({
     <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
+          <Link
+            to="/clients/$id"
+            params={{ id: client.id }}
+            className="flex min-w-0 items-start gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <div
               className="grid h-10 w-10 shrink-0 place-items-center rounded-lg font-display text-sm font-semibold text-white shadow-sm"
               style={{ background: color }}
@@ -428,7 +434,7 @@ function ClientCard({
               {initialsOf(client.name)}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-display text-sm font-semibold">{client.name}</p>
+              <p className="truncate font-display text-sm font-semibold hover:underline">{client.name}</p>
               <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 {client.company ? (
                   <>
@@ -440,7 +446,7 @@ function ClientCard({
                 )}
               </p>
             </div>
-          </div>
+          </Link>
           {active ? (
             <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
               Ativo
@@ -461,7 +467,7 @@ function ClientCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
+        <div className="grid grid-cols-3 gap-2 rounded-md border border-border/60 bg-muted/30 p-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
             <p className="mt-0.5 font-numeric text-sm font-semibold">{fmtBRL(totalBrl)}</p>
@@ -469,6 +475,10 @@ function ClientCard({
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lançamentos</p>
             <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(entriesCount)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Plataformas</p>
+            <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(platformCount)}</p>
           </div>
         </div>
 
