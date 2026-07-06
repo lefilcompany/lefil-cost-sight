@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Moon, Sun, LogOut, Search, ChevronRight } from "lucide-react";
+import { Moon, Sun, LogOut, Search, ChevronRight, Bell } from "lucide-react";
 import { useRouterState, Link } from "@tanstack/react-router";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
