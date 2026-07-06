@@ -20,6 +20,7 @@ import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authent
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/costs'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -76,6 +77,11 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
+  id: '/api/public/cron/sync-all',
+  path: '/api/public/cron/sync-all',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/providers': typeof AuthenticatedProvidersRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/providers': typeof AuthenticatedProvidersRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/_authenticated/providers': typeof AuthenticatedProvidersRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
+  '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/api/public/cron/sync-all'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/api/public/cron/sync-all'
   id:
     | '__root__'
     | '/'
@@ -153,12 +164,14 @@ export interface FileRouteTypes {
     | '/_authenticated/providers'
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
+    | '/api/public/cron/sync-all'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/cron/sync-all': {
+      id: '/api/public/cron/sync-all'
+      path: '/api/public/cron/sync-all'
+      fullPath: '/api/public/cron/sync-all'
+      preLoaderRoute: typeof ApiPublicCronSyncAllRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

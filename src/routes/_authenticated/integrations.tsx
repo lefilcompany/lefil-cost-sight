@@ -39,7 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
-import { runProviderSync } from "@/lib/sync.functions";
+import { runProviderSync, runSyncAllFn } from "@/lib/sync.functions";
 
 const STATUSES = ["active", "inactive", "error"] as const;
 
@@ -215,6 +215,7 @@ function IntegrationsPage() {
   const navigate = useNavigate({ from: "/integrations" });
   const search = Route.useSearch();
   const syncFn = useServerFn(runProviderSync);
+  const syncAllFn = useServerFn(runSyncAllFn);
 
   const { data: isAdmin = false } = useQuery({
     queryKey: ["is-admin"],
@@ -417,8 +418,19 @@ function IntegrationsPage() {
 
   const sync = useMutation({
     mutationFn: async (id: string) => syncFn({ data: { connection_id: id } }),
-    onSuccess: () => {
-      toast.success("Sincronização iniciada");
+    onSuccess: (res: any) => {
+      toast.success(res?.message ?? "Sincronização concluída");
+      qc.invalidateQueries({ queryKey: ["connections"] });
+      qc.invalidateQueries({ queryKey: ["sync-logs"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const syncAll = useMutation({
+    mutationFn: async () => syncAllFn(),
+    onSuccess: (res: any) => {
+      const ok = (res?.results ?? []).filter((r: any) => r.ok).length;
+      toast.success(`Sincronização em lote: ${ok}/${res?.total ?? 0} com sucesso`);
       qc.invalidateQueries({ queryKey: ["connections"] });
       qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
@@ -430,23 +442,34 @@ function IntegrationsPage() {
       eyebrow="Cadastros"
       title="Integrações"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5" disabled={providers.length === 0}>
-              <Plus className="h-4 w-4" /> Nova integração
-            </Button>
-          </DialogTrigger>
-          <ConnectionDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            providers={providers}
-            platforms={platforms}
-            isAdmin={isAdmin}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
-          />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={syncAll.isPending || stats.active === 0}
+            onClick={() => syncAll.mutate()}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`} />
+            Sincronizar todas
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="gap-1.5" disabled={providers.length === 0}>
+                <Plus className="h-4 w-4" /> Nova integração
+              </Button>
+            </DialogTrigger>
+            <ConnectionDialog
+              editing={editing}
+              form={form}
+              setForm={setForm}
+              providers={providers}
+              platforms={platforms}
+              isAdmin={isAdmin}
+              onSubmit={() => save.mutate()}
+              pending={save.isPending}
+            />
+          </Dialog>
+        </div>
       }
     >
       <div className="space-y-6">
