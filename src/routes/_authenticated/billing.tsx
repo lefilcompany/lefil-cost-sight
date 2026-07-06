@@ -178,10 +178,13 @@ function BillingPage() {
       eyebrow="Financeiro"
       title="Billing"
       actions={
-        <Button onClick={() => syncAllM.mutate()} disabled={syncAllM.isPending} className="gap-2">
-          {syncAllM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Sincronizar todos
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <GcpConfigDialog />
+          <Button onClick={() => syncAllM.mutate()} disabled={syncAllM.isPending} className="gap-2">
+            {syncAllM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sincronizar todos
+          </Button>
+        </div>
       }
     >
       <Tabs defaultValue="plans" className="space-y-6">
