@@ -26,7 +26,6 @@ import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authentica
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
-import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -114,6 +113,11 @@ const ApiPublicCronEvaluateAlertsRoute =
     path: '/api/public/cron/evaluate-alerts',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronSyncBillingRoute = ApiPublicCronSyncBillingRouteImport.update({
+  id: '/api/public/cron/sync-billing',
+  path: '/api/public/cron/sync-billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
