@@ -754,9 +754,20 @@ function PlatformDialog({
         </div>
 
         <div className="col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Imagem da plataforma (URL)</label>
+          <input
+            className={inputCls}
+            placeholder="https://... (usada como capa do card)"
+            value={form.image_url ?? ""}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+          />
+        </div>
+
+        <div className="col-span-2 space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Descrição curta</label>
           <textarea className={inputCls} rows={2} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
+
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Ícone (lucide)</label>
