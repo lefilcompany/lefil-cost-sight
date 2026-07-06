@@ -55,7 +55,7 @@ async function upsertUsageDaily(row: {
   output_tokens?: number;
   requests?: number;
   quantity?: number;
-  unit?: string;
+  unit?: string | null;
   cost_usd?: number;
   exchange_rate: number;
   raw?: any;
