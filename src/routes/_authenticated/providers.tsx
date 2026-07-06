@@ -171,10 +171,34 @@ function ProvidersPage() {
     Number(!!search.status) + Number(!!search.category) + Number(!!search.q);
   const clearFilters = () => navigate({ search: {} as any });
 
+  const { data: platforms = [] } = useQuery({
+    queryKey: ["providers-platforms"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("platforms").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
   // form
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Provider | null>(null);
   const [form, setForm] = useState<any>({});
+
+  // connect dialog
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectProvider, setConnectProvider] = useState<Provider | null>(null);
+  const [connectForm, setConnectForm] = useState<{ name: string; platform_id: string; api_key: string }>({
+    name: "",
+    platform_id: "",
+    api_key: "",
+  });
+
+  const openConnect = (p: Provider) => {
+    setConnectProvider(p);
+    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "" });
+    setConnectOpen(true);
+  };
 
   const emptyForm = () => ({
     name: "",
@@ -237,6 +261,38 @@ function ProvidersPage() {
     onSuccess: (next) => {
       toast.success(next === "active" ? "Fornecedor ativado" : "Fornecedor desativado");
       qc.invalidateQueries({ queryKey: ["providers"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const connect = useMutation({
+    mutationFn: async () => {
+      if (!connectProvider) throw new Error("Fornecedor inválido");
+      const name = connectForm.name.trim();
+      const apiKey = connectForm.api_key.trim();
+      if (!name) throw new Error("Nome da conexão é obrigatório");
+      if (!apiKey) throw new Error("API key é obrigatória");
+      const { error } = await supabase.from("provider_connections").insert({
+        provider_id: connectProvider.id,
+        platform_id: connectForm.platform_id || null,
+        name,
+        status: "active",
+        config: { api_key: apiKey } as any,
+      });
+      if (error) throw error;
+      if (connectProvider.status !== "active") {
+        const { error: upErr } = await supabase
+          .from("providers")
+          .update({ status: "active" })
+          .eq("id", connectProvider.id);
+        if (upErr) throw upErr;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Conexão criada e fornecedor ativado");
+      qc.invalidateQueries({ queryKey: ["providers"] });
+      qc.invalidateQueries({ queryKey: ["providers-connections"] });
+      setConnectOpen(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -374,6 +430,7 @@ function ProvidersPage() {
                       entriesCount={agg.count}
                       connectionsCount={connByProvider.get(p.id) ?? 0}
                       onEdit={() => openEdit(p)}
+                      onConnect={() => openConnect(p)}
                       onToggle={() => toggleStatus.mutate({ p, connections: connByProvider.get(p.id) ?? 0 })}
                       onDelete={() => {
                         if (confirm(`Excluir "${p.name}"? Custos e conexões associadas perderão o vínculo.`)) remove.mutate(p.id);
@@ -386,9 +443,73 @@ function ProvidersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Conectar {connectProvider?.name ?? "fornecedor"}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              connect.mutate();
+            }}
+          >
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Nome da conexão *</label>
+              <Input
+                value={connectForm.name}
+                onChange={(e) => setConnectForm({ ...connectForm, name: e.target.value })}
+                placeholder="Ex: Produção"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Plataforma (opcional)</label>
+              <Select
+                value={connectForm.platform_id || "__none"}
+                onValueChange={(v) => setConnectForm({ ...connectForm, platform_id: v === "__none" ? "" : v })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Nenhuma</SelectItem>
+                  {platforms.map((pl) => (
+                    <SelectItem key={pl.id} value={pl.id}>{pl.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">API Key *</label>
+              <Input
+                type="password"
+                value={connectForm.api_key}
+                onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
+                placeholder="sk-..."
+                autoComplete="off"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                A chave é armazenada com segurança no backend e usada para sincronizar custos.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={connect.isPending} className="gap-1.5">
+                <Plug className="h-4 w-4" />
+                {connect.isPending ? "Conectando..." : "Conectar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
+
 
 function ProviderCard({
   provider,
@@ -396,6 +517,7 @@ function ProviderCard({
   entriesCount,
   connectionsCount,
   onEdit,
+  onConnect,
   onToggle,
   onDelete,
 }: {
@@ -404,14 +526,27 @@ function ProviderCard({
   entriesCount: number;
   connectionsCount: number;
   onEdit: () => void;
+  onConnect: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
   const meta = metaFor(provider.category);
   const Icon = meta.icon;
   const active = provider.status === "active";
+  const hasConnections = connectionsCount > 0;
   return (
-    <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onConnect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onConnect();
+        }
+      }}
+      className={`surface-elevated cursor-pointer transition hover:border-primary/50 hover:shadow-md ${active ? "" : "opacity-80"}`}
+    >
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
@@ -436,6 +571,7 @@ function ProviderCard({
                     href={provider.website}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center gap-0.5 truncate hover:text-foreground"
                   >
                     <ExternalLink className="h-3 w-3" />
@@ -447,10 +583,10 @@ function ProviderCard({
           </div>
           {active ? (
             <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
-              Ativo
+              Conectado
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-border/60 text-muted-foreground">Inativo</Badge>
+            <Badge variant="outline" className="border-border/60 text-muted-foreground">Desconectado</Badge>
           )}
         </div>
 
@@ -472,21 +608,32 @@ function ProviderCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="outline" className="h-8 flex-1 gap-1.5" onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" /> Editar
-          </Button>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            variant="outline"
-            className="h-8 gap-1.5"
-            onClick={onToggle}
-            title={active ? "Desativar" : "Ativar"}
+            className="h-8 flex-1 gap-1.5"
+            variant={hasConnections ? "outline" : "default"}
+            onClick={onConnect}
           >
-            {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-            {active ? "Desativar" : "Ativar"}
+            <Plug className="h-3.5 w-3.5" />
+            {hasConnections ? "Nova conexão" : "Conectar"}
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete}>
+          {hasConnections && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              onClick={onToggle}
+              title={active ? "Desativar" : "Ativar"}
+            >
+              {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+              {active ? "Desativar" : "Ativar"}
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} title="Editar">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete} title="Excluir">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -494,6 +641,7 @@ function ProviderCard({
     </Card>
   );
 }
+
 
 function ProviderDialog({
   editing,
