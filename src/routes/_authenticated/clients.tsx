@@ -314,6 +314,14 @@ function ClientsPage() {
                 </SelectContent>
               </Select>
 
+              <Select value={search.usage} onValueChange={(v) => setSearch({ usage: v as any })}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_use">Somente em uso</SelectItem>
+                  <SelectItem value="all">Mostrar todos</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -366,12 +374,14 @@ function ClientsPage() {
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((c) => {
                   const agg = costByClient.get(c.id) ?? { total: 0, count: 0 };
+                  const platformCount = platformCountByClient.get(c.id) ?? 0;
                   return (
                     <ClientCard
                       key={c.id}
                       client={c}
                       totalBrl={agg.total}
                       entriesCount={agg.count}
+                      platformCount={platformCount}
                       onEdit={() => openEdit(c)}
                       onToggle={() => toggleStatus.mutate(c)}
                       onDelete={() => {
