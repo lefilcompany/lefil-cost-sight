@@ -10,6 +10,7 @@ import {
   Sparkles,
   LineChart,
   Bell,
+  Wallet,
 } from "lucide-react";
 
 import {
