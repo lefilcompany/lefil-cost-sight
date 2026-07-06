@@ -42,7 +42,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/syncs")({
-  head: () => ({ meta: [{ title: "Sincronizações — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Sincronizações — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: SyncsPage,
 });

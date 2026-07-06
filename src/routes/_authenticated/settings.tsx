@@ -45,7 +45,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Configurações — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Configurações — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: SettingsPage,
 });
@@ -278,11 +278,11 @@ function SettingsPage() {
                 <Info className="h-4 w-4" />
                 Sobre
               </CardTitle>
-              <p className="text-xs text-muted-foreground">LeFil Cost Center · versão MVP</p>
+              <p className="text-xs text-muted-foreground">Quiui Cost Center · versão MVP</p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Centro de inteligência de custos das plataformas LeFil. Consolida consumo de IA, infraestrutura
+                Centro de inteligência de custos das plataformas Quiui. Consolida consumo de IA, infraestrutura
                 e serviços em um único painel executivo.
               </p>
               <p>

@@ -52,7 +52,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/costs")({
-  head: () => ({ meta: [{ title: "Custos — LeFil Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Custos — Quiui Cost Center" }] }),
   validateSearch: searchSchema,
   component: CostsPage,
 });
