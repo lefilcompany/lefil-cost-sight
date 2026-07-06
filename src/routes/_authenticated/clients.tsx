@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { z } from "zod";
@@ -43,6 +43,7 @@ const STATUSES = ["active", "inactive"] as const;
 const searchSchema = z.object({
   status: z.enum(STATUSES).optional().catch(undefined),
   q: z.string().optional().catch(undefined),
+  usage: z.enum(["in_use", "all"]).catch("in_use"),
 });
 
 export const Route = createFileRoute("/_authenticated/clients")({
@@ -111,6 +112,25 @@ function ClientsPage() {
     },
   });
 
+  const { data: ownerLinks = [] } = useQuery({
+    queryKey: ["clients-platform-owners"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("platforms")
+        .select("id, owner_contact_id")
+        .not("owner_contact_id", "is", null);
+      if (error) throw error;
+      return (data ?? []) as { id: string; owner_contact_id: string }[];
+    },
+  });
+
+  const linkedIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of costs) if (c.client_id) s.add(c.client_id);
+    for (const p of ownerLinks) if (p.owner_contact_id) s.add(p.owner_contact_id);
+    return s;
+  }, [costs, ownerLinks]);
+
   const costByClient = useMemo(() => {
     const m = new Map<string, { total: number; count: number }>();
     for (const c of costs) {
@@ -122,9 +142,19 @@ function ClientsPage() {
     return m;
   }, [costs]);
 
+  const platformCountByClient = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of ownerLinks) {
+      if (!p.owner_contact_id) continue;
+      m.set(p.owner_contact_id, (m.get(p.owner_contact_id) ?? 0) + 1);
+    }
+    return m;
+  }, [ownerLinks]);
+
   const filtered = useMemo(() => {
     const q = (search.q ?? "").toLowerCase().trim();
     return clients.filter((c) => {
+      if (search.usage === "in_use" && !linkedIds.has(c.id)) return false;
       if (search.status && c.status !== search.status) return false;
       if (
         q &&
@@ -135,7 +165,7 @@ function ClientsPage() {
         return false;
       return true;
     });
-  }, [clients, search]);
+  }, [clients, search, linkedIds]);
 
   const stats = useMemo(() => {
     const active = clients.filter((c) => c.status === "active").length;
@@ -147,8 +177,8 @@ function ClientsPage() {
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...patch }) });
 
-  const activeFilters = Number(!!search.status) + Number(!!search.q);
-  const clearFilters = () => navigate({ search: {} as any });
+  const activeFilters = Number(!!search.status) + Number(!!search.q) + Number(search.usage !== "in_use");
+  const clearFilters = () => navigate({ search: { usage: "in_use" } as any });
 
   // form
   const [open, setOpen] = useState(false);
@@ -284,6 +314,14 @@ function ClientsPage() {
                 </SelectContent>
               </Select>
 
+              <Select value={search.usage} onValueChange={(v) => setSearch({ usage: v as any })}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_use">Somente em uso</SelectItem>
+                  <SelectItem value="all">Mostrar todos</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -336,12 +374,14 @@ function ClientsPage() {
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((c) => {
                   const agg = costByClient.get(c.id) ?? { total: 0, count: 0 };
+                  const platformCount = platformCountByClient.get(c.id) ?? 0;
                   return (
                     <ClientCard
                       key={c.id}
                       client={c}
                       totalBrl={agg.total}
                       entriesCount={agg.count}
+                      platformCount={platformCount}
                       onEdit={() => openEdit(c)}
                       onToggle={() => toggleStatus.mutate(c)}
                       onDelete={() => {
@@ -363,6 +403,7 @@ function ClientCard({
   client,
   totalBrl,
   entriesCount,
+  platformCount,
   onEdit,
   onToggle,
   onDelete,
@@ -370,6 +411,7 @@ function ClientCard({
   client: Client;
   totalBrl: number;
   entriesCount: number;
+  platformCount: number;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -380,7 +422,11 @@ function ClientCard({
     <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
+          <Link
+            to="/clients/$id"
+            params={{ id: client.id }}
+            className="flex min-w-0 items-start gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <div
               className="grid h-10 w-10 shrink-0 place-items-center rounded-lg font-display text-sm font-semibold text-white shadow-sm"
               style={{ background: color }}
@@ -388,7 +434,7 @@ function ClientCard({
               {initialsOf(client.name)}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-display text-sm font-semibold">{client.name}</p>
+              <p className="truncate font-display text-sm font-semibold hover:underline">{client.name}</p>
               <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 {client.company ? (
                   <>
@@ -400,7 +446,7 @@ function ClientCard({
                 )}
               </p>
             </div>
-          </div>
+          </Link>
           {active ? (
             <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
               Ativo
@@ -421,7 +467,7 @@ function ClientCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
+        <div className="grid grid-cols-3 gap-2 rounded-md border border-border/60 bg-muted/30 p-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
             <p className="mt-0.5 font-numeric text-sm font-semibold">{fmtBRL(totalBrl)}</p>
@@ -429,6 +475,10 @@ function ClientCard({
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lançamentos</p>
             <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(entriesCount)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Plataformas</p>
+            <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(platformCount)}</p>
           </div>
         </div>
 

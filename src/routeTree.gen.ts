@@ -20,6 +20,7 @@ import { Route as AuthenticatedFinancialRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/costs'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 
 const AuthRoute = AuthRouteImport.update({
@@ -76,6 +77,11 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedClientsRoute,
+} as any)
 const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
   id: '/api/public/cron/sync-all',
   path: '/api/public/cron/sync-all',
@@ -85,7 +91,7 @@ const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/clients': typeof AuthenticatedClientsRoute
+  '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
@@ -93,12 +99,13 @@ export interface FileRoutesByFullPath {
   '/providers': typeof AuthenticatedProvidersRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/clients': typeof AuthenticatedClientsRoute
+  '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/providers': typeof AuthenticatedProvidersRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRoutesById {
@@ -113,7 +121,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/clients': typeof AuthenticatedClientsRoute
+  '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/costs': typeof AuthenticatedCostsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/financial': typeof AuthenticatedFinancialRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/providers': typeof AuthenticatedProvidersRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
+  '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
 }
 export interface FileRouteTypes {
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/clients/$id'
     | '/api/public/cron/sync-all'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/clients/$id'
     | '/api/public/cron/sync-all'
   id:
     | '__root__'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/providers'
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
+    | '/_authenticated/clients/$id'
     | '/api/public/cron/sync-all'
   fileRoutesById: FileRoutesById
 }
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clients/$id': {
+      id: '/_authenticated/clients/$id'
+      path: '/$id'
+      fullPath: '/clients/$id'
+      preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
+      parentRoute: typeof AuthenticatedClientsRoute
+    }
     '/api/public/cron/sync-all': {
       id: '/api/public/cron/sync-all'
       path: '/api/public/cron/sync-all'
@@ -262,8 +281,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedClientsRouteChildren {
+  AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
+}
+
+const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
+  AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
+}
+
+const AuthenticatedClientsRouteWithChildren =
+  AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
+  AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedCostsRoute: typeof AuthenticatedCostsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinancialRoute: typeof AuthenticatedFinancialRoute
@@ -274,7 +304,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedClientsRoute: AuthenticatedClientsRoute,
+  AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedCostsRoute: AuthenticatedCostsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinancialRoute: AuthenticatedFinancialRoute,
