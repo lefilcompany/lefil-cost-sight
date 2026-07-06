@@ -23,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import quiuiIcon from "@/assets/quiui-icon.png.asset.json";
 
 const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
@@ -76,12 +77,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-emerald text-[color:var(--color-gold)] shadow-[inset_0_0_0_1px_var(--color-sidebar-border)]">
-            <span className="font-display text-[15px] font-bold leading-none">L</span>
-            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-[color:var(--color-gold)] shadow-[0_0_8px_var(--color-gold)]" />
-          </div>
+          <img
+            src={quiuiIcon.url}
+            alt="Quiui"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)]"
+          />
           <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="font-display text-[13px] font-semibold tracking-tight">LeFil</span>
+            <span className="font-display text-[13px] font-semibold tracking-tight">Quiui</span>
             <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cost Center</span>
           </div>
         </div>
