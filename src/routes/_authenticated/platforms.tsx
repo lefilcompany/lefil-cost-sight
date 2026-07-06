@@ -649,12 +649,21 @@ function PlatformDialog({
       </DialogHeader>
 
       <div className="mb-2 flex items-center gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
-        <div
-          className="grid h-11 w-11 place-items-center rounded-lg text-white shadow-sm"
-          style={{ background: form.color || "#3b82f6" }}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
+        {form.image_url ? (
+          <img
+            src={form.image_url}
+            alt="Prévia"
+            className="h-11 w-11 shrink-0 rounded-lg object-cover shadow-sm"
+            onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+          />
+        ) : (
+          <div
+            className="grid h-11 w-11 place-items-center rounded-lg text-white shadow-sm"
+            style={{ background: form.color || "#3b82f6" }}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
         <div className="min-w-0">
           <p className="truncate font-display text-sm font-semibold">{form.name || "Nome da plataforma"}</p>
           <p className="truncate text-xs text-muted-foreground">{form.summary || form.description || "Prévia"}</p>
