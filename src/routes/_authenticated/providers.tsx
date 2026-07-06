@@ -453,6 +453,7 @@ function ProviderCard({
   entriesCount,
   connectionsCount,
   onEdit,
+  onConnect,
   onToggle,
   onDelete,
 }: {
@@ -461,14 +462,27 @@ function ProviderCard({
   entriesCount: number;
   connectionsCount: number;
   onEdit: () => void;
+  onConnect: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
   const meta = metaFor(provider.category);
   const Icon = meta.icon;
   const active = provider.status === "active";
+  const hasConnections = connectionsCount > 0;
   return (
-    <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onConnect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onConnect();
+        }
+      }}
+      className={`surface-elevated cursor-pointer transition hover:border-primary/50 hover:shadow-md ${active ? "" : "opacity-80"}`}
+    >
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
@@ -493,6 +507,7 @@ function ProviderCard({
                     href={provider.website}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center gap-0.5 truncate hover:text-foreground"
                   >
                     <ExternalLink className="h-3 w-3" />
@@ -504,10 +519,10 @@ function ProviderCard({
           </div>
           {active ? (
             <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
-              Ativo
+              Conectado
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-border/60 text-muted-foreground">Inativo</Badge>
+            <Badge variant="outline" className="border-border/60 text-muted-foreground">Desconectado</Badge>
           )}
         </div>
 
@@ -529,21 +544,32 @@ function ProviderCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="outline" className="h-8 flex-1 gap-1.5" onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" /> Editar
-          </Button>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            variant="outline"
-            className="h-8 gap-1.5"
-            onClick={onToggle}
-            title={active ? "Desativar" : "Ativar"}
+            className="h-8 flex-1 gap-1.5"
+            variant={hasConnections ? "outline" : "default"}
+            onClick={onConnect}
           >
-            {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-            {active ? "Desativar" : "Ativar"}
+            <Plug className="h-3.5 w-3.5" />
+            {hasConnections ? "Nova conexão" : "Conectar"}
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete}>
+          {hasConnections && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              onClick={onToggle}
+              title={active ? "Desativar" : "Ativar"}
+            >
+              {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+              {active ? "Desativar" : "Ativar"}
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} title="Editar">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete} title="Excluir">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -551,6 +577,7 @@ function ProviderCard({
     </Card>
   );
 }
+
 
 function ProviderDialog({
   editing,
