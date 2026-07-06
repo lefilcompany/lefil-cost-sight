@@ -122,6 +122,15 @@ function PlatformsPage() {
     },
   });
 
+  const { data: presets = [] } = useQuery({
+    queryKey: ["platform-presets"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("platform_presets").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []) as Preset[];
+    },
+  });
+
   const contactById = useMemo(() => {
     const m = new Map<string, Contact>();
     for (const c of contacts) m.set(c.id, c);
