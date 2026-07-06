@@ -10,6 +10,7 @@ import {
   Sparkles,
   LineChart,
   Bell,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -31,6 +32,7 @@ const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
   { title: "Financeiro", url: "/financial", icon: LineChart },
   { title: "Custos", url: "/costs", icon: Receipt },
+  { title: "Billing", url: "/billing", icon: Wallet },
   { title: "Sincronizações", url: "/syncs", icon: RefreshCw },
 ];
 
