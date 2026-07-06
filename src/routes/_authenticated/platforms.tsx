@@ -515,42 +515,53 @@ function PlatformCard({
   const incomplete =
     !platform.summary?.trim() || !platform.payment_method?.trim() || !platform.owner_contact_id;
   return (
-    <Card className={`surface-elevated transition ${active ? "" : "opacity-70"}`}>
-      <CardContent className="space-y-3 pt-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <div
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm"
-              style={{ background: platform.color }}
-            >
-              <Icon className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-display text-sm font-semibold">{platform.name}</p>
-              <p className="line-clamp-2 text-xs text-muted-foreground">
-                {platform.summary || platform.description || "Sem resumo"}
-              </p>
-            </div>
+    <Card className={`surface-elevated overflow-hidden transition ${active ? "" : "opacity-70"}`}>
+      <div
+        className="relative aspect-[16/9] w-full overflow-hidden bg-muted"
+        style={platform.image_url ? undefined : { background: platform.color }}
+      >
+        {platform.image_url ? (
+          <img
+            src={platform.image_url}
+            alt={platform.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-white/80">
+            <Icon className="h-10 w-10" />
           </div>
-          <div className="flex flex-col items-end gap-1">
-            {isInternal ? (
-              <Badge variant="secondary" className="gap-1 bg-sky-600/15 text-sky-700 dark:text-sky-300">
-                <Home className="h-3 w-3" /> Interno
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="gap-1 bg-violet-600/15 text-violet-700 dark:text-violet-300">
-                <Factory className="h-3 w-3" /> Produção
-              </Badge>
-            )}
-            {active ? (
-              <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
-                Ativa
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="border-border/60 text-muted-foreground">Inativa</Badge>
-            )}
-          </div>
+        )}
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+          {isInternal ? (
+            <Badge variant="secondary" className="gap-1 bg-sky-600/90 text-white backdrop-blur">
+              <Home className="h-3 w-3" /> Interno
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1 bg-violet-600/90 text-white backdrop-blur">
+              <Factory className="h-3 w-3" /> Produção
+            </Badge>
+          )}
+          {active ? (
+            <Badge className="gap-1 bg-emerald-600/90 text-white backdrop-blur hover:bg-emerald-600" variant="secondary">
+              Ativa
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-background/80 text-muted-foreground backdrop-blur">Inativa</Badge>
+          )}
         </div>
+      </div>
+      <CardContent className="space-y-3 pt-4">
+        <div className="min-w-0">
+          <p className="truncate font-display text-sm font-semibold">{platform.name}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground">
+            {platform.summary || platform.description || "Sem resumo"}
+          </p>
+        </div>
+
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">
