@@ -443,9 +443,73 @@ function ProvidersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Conectar {connectProvider?.name ?? "fornecedor"}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              connect.mutate();
+            }}
+          >
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Nome da conexão *</label>
+              <Input
+                value={connectForm.name}
+                onChange={(e) => setConnectForm({ ...connectForm, name: e.target.value })}
+                placeholder="Ex: Produção"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Plataforma (opcional)</label>
+              <Select
+                value={connectForm.platform_id || "__none"}
+                onValueChange={(v) => setConnectForm({ ...connectForm, platform_id: v === "__none" ? "" : v })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Nenhuma</SelectItem>
+                  {platforms.map((pl) => (
+                    <SelectItem key={pl.id} value={pl.id}>{pl.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">API Key *</label>
+              <Input
+                type="password"
+                value={connectForm.api_key}
+                onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
+                placeholder="sk-..."
+                autoComplete="off"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                A chave é armazenada com segurança no backend e usada para sincronizar custos.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={connect.isPending} className="gap-1.5">
+                <Plug className="h-4 w-4" />
+                {connect.isPending ? "Conectando..." : "Conectar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
+
 
 function ProviderCard({
   provider,
