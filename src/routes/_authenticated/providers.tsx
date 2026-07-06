@@ -171,10 +171,34 @@ function ProvidersPage() {
     Number(!!search.status) + Number(!!search.category) + Number(!!search.q);
   const clearFilters = () => navigate({ search: {} as any });
 
+  const { data: platforms = [] } = useQuery({
+    queryKey: ["providers-platforms"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("platforms").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
   // form
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Provider | null>(null);
   const [form, setForm] = useState<any>({});
+
+  // connect dialog
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectProvider, setConnectProvider] = useState<Provider | null>(null);
+  const [connectForm, setConnectForm] = useState<{ name: string; platform_id: string; api_key: string }>({
+    name: "",
+    platform_id: "",
+    api_key: "",
+  });
+
+  const openConnect = (p: Provider) => {
+    setConnectProvider(p);
+    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "" });
+    setConnectOpen(true);
+  };
 
   const emptyForm = () => ({
     name: "",
