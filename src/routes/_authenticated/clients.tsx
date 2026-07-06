@@ -177,8 +177,8 @@ function ClientsPage() {
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...patch }) });
 
-  const activeFilters = Number(!!search.status) + Number(!!search.q);
-  const clearFilters = () => navigate({ search: {} as any });
+  const activeFilters = Number(!!search.status) + Number(!!search.q) + Number(search.usage !== "in_use");
+  const clearFilters = () => navigate({ search: { usage: "in_use" } as any });
 
   // form
   const [open, setOpen] = useState(false);
