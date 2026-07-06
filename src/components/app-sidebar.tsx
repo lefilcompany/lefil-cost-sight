@@ -25,8 +25,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import quiuiIcon from "@/assets/quiui-icon.png.asset.json";
-import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
+import quiwiIcon from "@/assets/quiwi-icon.png.asset.json";
+import quiwiLogo from "@/assets/quiwi-logo.png.asset.json";
 
 const analytics = [
   { title: "Painel geral", url: "/dashboard", icon: LayoutDashboard },
@@ -83,13 +83,13 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex h-12 items-center gap-3 px-2 py-2.5">
           <img
-            src={quiuiIcon.url}
-            alt="Quiui"
+            src={quiwiIcon.url}
+            alt="Quiwi"
             className="hidden h-10 w-10 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
           />
           <img
-            src={quiuiLogo.url}
-            alt="Quiui"
+            src={quiwiLogo.url}
+            alt="Quiwi"
             className="block h-10 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
           />
         </div>

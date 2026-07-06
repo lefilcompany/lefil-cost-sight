@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import quiuiLogo from "@/assets/quiui-logo.png.asset.json";
+import quiwiLogo from "@/assets/quiwi-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Quiui Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Quiwi Cost Center" }] }),
   component: AuthPage,
 });
 
@@ -71,8 +71,8 @@ function AuthPage() {
 
         <div className="relative flex items-center gap-3">
           <img
-            src={quiuiLogo.url}
-            alt="Quiui"
+            src={quiwiLogo.url}
+            alt="Quiwi"
             className="h-14 w-auto object-contain"
           />
         </div>
@@ -113,7 +113,7 @@ function AuthPage() {
         </div>
 
         <div className="relative text-[11px] text-[#2f4638]">
-          © {new Date().getFullYear()} Quiui · Sistema interno
+          © {new Date().getFullYear()} Quiwi · Sistema interno
         </div>
       </div>
 
@@ -123,8 +123,8 @@ function AuthPage() {
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
             <img
-              src={quiuiLogo.url}
-              alt="Quiui"
+              src={quiwiLogo.url}
+              alt="Quiwi"
               className="h-12 w-auto object-contain"
             />
           </div>
@@ -163,7 +163,7 @@ function AuthPage() {
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email" type="email" placeholder="voce@quiui.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email" type="email" placeholder="voce@quiwi.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -182,7 +182,7 @@ function AuthPage() {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email2" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email2" type="email" placeholder="voce@quiui.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email2" type="email" placeholder="voce@quiwi.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2" className="text-xs font-medium">Senha</Label>
@@ -196,7 +196,7 @@ function AuthPage() {
           </Tabs>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Ao continuar você concorda com as políticas internas da Quiui.
+            Ao continuar você concorda com as políticas internas da Quiwi.
           </p>
         </div>
       </div>
