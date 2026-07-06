@@ -4,7 +4,6 @@ import {
   Layers,
   Truck,
   Users,
-  Plug,
   Receipt,
   RefreshCw,
   Settings,
@@ -39,7 +38,6 @@ const registry = [
 ];
 
 const system = [
-  { title: "Integrações", url: "/integrations", icon: Plug },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
