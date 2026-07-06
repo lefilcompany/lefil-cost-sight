@@ -24,6 +24,7 @@ export type Database = {
           message: string | null
           metadata: Json | null
           metric_value: number | null
+          owner_user_id: string | null
           resolved_at: string | null
           scope: string | null
           scope_id: string | null
@@ -43,6 +44,7 @@ export type Database = {
           message?: string | null
           metadata?: Json | null
           metric_value?: number | null
+          owner_user_id?: string | null
           resolved_at?: string | null
           scope?: string | null
           scope_id?: string | null
@@ -62,6 +64,7 @@ export type Database = {
           message?: string | null
           metadata?: Json | null
           metric_value?: number | null
+          owner_user_id?: string | null
           resolved_at?: string | null
           scope?: string | null
           scope_id?: string | null
@@ -89,6 +92,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          owner_user_id: string | null
           responsible: string | null
           status: string
           updated_at: string
@@ -99,6 +103,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          owner_user_id?: string | null
           responsible?: string | null
           status?: string
           updated_at?: string
@@ -109,6 +114,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          owner_user_id?: string | null
           responsible?: string | null
           status?: string
           updated_at?: string
@@ -126,6 +132,7 @@ export type Database = {
           last_evaluated_at: string | null
           metric: string
           name: string
+          owner_user_id: string | null
           scope: string
           scope_id: string | null
           threshold: number
@@ -141,6 +148,7 @@ export type Database = {
           last_evaluated_at?: string | null
           metric: string
           name: string
+          owner_user_id?: string | null
           scope: string
           scope_id?: string | null
           threshold: number
@@ -156,6 +164,7 @@ export type Database = {
           last_evaluated_at?: string | null
           metric?: string
           name?: string
+          owner_user_id?: string | null
           scope?: string
           scope_id?: string | null
           threshold?: number
@@ -175,6 +184,7 @@ export type Database = {
           id: string
           metadata: Json | null
           origin: string
+          owner_user_id: string | null
           platform_id: string | null
           provider_id: string | null
           updated_at: string
@@ -192,6 +202,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           origin?: string
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string | null
           updated_at?: string
@@ -209,6 +220,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           origin?: string
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string | null
           updated_at?: string
@@ -245,6 +257,7 @@ export type Database = {
           body: string | null
           created_at: string
           id: string
+          owner_user_id: string | null
           pinned: boolean
           title: string
           updated_at: string
@@ -254,6 +267,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           id?: string
+          owner_user_id?: string | null
           pinned?: boolean
           title: string
           updated_at?: string
@@ -263,6 +277,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           id?: string
+          owner_user_id?: string | null
           pinned?: boolean
           title?: string
           updated_at?: string
@@ -337,6 +352,7 @@ export type Database = {
           image_url: string | null
           name: string
           owner_contact_id: string | null
+          owner_user_id: string | null
           payment_method: string | null
           status: string
           summary: string | null
@@ -353,6 +369,7 @@ export type Database = {
           image_url?: string | null
           name: string
           owner_contact_id?: string | null
+          owner_user_id?: string | null
           payment_method?: string | null
           status?: string
           summary?: string | null
@@ -369,6 +386,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           owner_contact_id?: string | null
+          owner_user_id?: string | null
           payment_method?: string | null
           status?: string
           summary?: string | null
@@ -398,6 +416,7 @@ export type Database = {
           id: string
           included_quantity: number | null
           included_unit: string | null
+          owner_user_id: string | null
           plan_name: string | null
           plan_tier: string | null
           platform_id: string | null
@@ -421,6 +440,7 @@ export type Database = {
           id?: string
           included_quantity?: number | null
           included_unit?: string | null
+          owner_user_id?: string | null
           plan_name?: string | null
           plan_tier?: string | null
           platform_id?: string | null
@@ -444,6 +464,7 @@ export type Database = {
           id?: string
           included_quantity?: number | null
           included_unit?: string | null
+          owner_user_id?: string | null
           plan_name?: string | null
           plan_tier?: string | null
           platform_id?: string | null
@@ -486,6 +507,7 @@ export type Database = {
           id: string
           last_sync_at: string | null
           name: string
+          owner_user_id: string | null
           platform_id: string | null
           provider_id: string
           secret_ref: string | null
@@ -499,6 +521,7 @@ export type Database = {
           id?: string
           last_sync_at?: string | null
           name: string
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id: string
           secret_ref?: string | null
@@ -512,6 +535,7 @@ export type Database = {
           id?: string
           last_sync_at?: string | null
           name?: string
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string
           secret_ref?: string | null
@@ -546,6 +570,7 @@ export type Database = {
           invoice_number: string | null
           issued_at: string | null
           notes: string | null
+          owner_user_id: string | null
           pdf_url: string | null
           period_end: string | null
           period_start: string | null
@@ -566,6 +591,7 @@ export type Database = {
           invoice_number?: string | null
           issued_at?: string | null
           notes?: string | null
+          owner_user_id?: string | null
           pdf_url?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -586,6 +612,7 @@ export type Database = {
           invoice_number?: string | null
           issued_at?: string | null
           notes?: string | null
+          owner_user_id?: string | null
           pdf_url?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -632,6 +659,7 @@ export type Database = {
           input_tokens: number
           model: string
           output_tokens: number
+          owner_user_id: string | null
           platform_id: string | null
           provider_id: string
           quantity: number
@@ -652,6 +680,7 @@ export type Database = {
           input_tokens?: number
           model?: string
           output_tokens?: number
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id: string
           quantity?: number
@@ -672,6 +701,7 @@ export type Database = {
           input_tokens?: number
           model?: string
           output_tokens?: number
+          owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string
           quantity?: number
@@ -713,6 +743,7 @@ export type Database = {
           created_at: string
           exchange_rate: number | null
           id: string
+          owner_user_id: string | null
           period_end: string | null
           period_start: string | null
           platform_id: string | null
@@ -728,6 +759,7 @@ export type Database = {
           created_at?: string
           exchange_rate?: number | null
           id?: string
+          owner_user_id?: string | null
           period_end?: string | null
           period_start?: string | null
           platform_id?: string | null
@@ -743,6 +775,7 @@ export type Database = {
           created_at?: string
           exchange_rate?: number | null
           id?: string
+          owner_user_id?: string | null
           period_end?: string | null
           period_start?: string | null
           platform_id?: string | null
@@ -781,6 +814,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          owner_user_id: string | null
           status: string
           updated_at: string
           website: string | null
@@ -790,6 +824,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          owner_user_id?: string | null
           status?: string
           updated_at?: string
           website?: string | null
@@ -799,6 +834,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          owner_user_id?: string | null
           status?: string
           updated_at?: string
           website?: string | null
@@ -813,6 +849,7 @@ export type Database = {
           finished_at: string | null
           id: string
           metadata: Json | null
+          owner_user_id: string | null
           provider_id: string | null
           records_imported: number | null
           started_at: string
@@ -825,6 +862,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           metadata?: Json | null
+          owner_user_id?: string | null
           provider_id?: string | null
           records_imported?: number | null
           started_at?: string
@@ -837,6 +875,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           metadata?: Json | null
+          owner_user_id?: string | null
           provider_id?: string | null
           records_imported?: number | null
           started_at?: string
