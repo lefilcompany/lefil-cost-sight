@@ -924,6 +924,10 @@ export type Database = {
         Args: { _apikey: string; _url: string }
         Returns: number
       }
+      run_sync_billing_job: {
+        Args: { _apikey: string; _url: string }
+        Returns: number
+      }
       set_connection_api_key: {
         Args: { _api_key: string; _connection_id: string }
         Returns: undefined
