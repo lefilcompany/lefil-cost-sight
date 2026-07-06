@@ -9,6 +9,7 @@ import {
   Settings,
   Sparkles,
   LineChart,
+  Bell,
 } from "lucide-react";
 
 import {
@@ -40,6 +41,7 @@ const registry = [
 ];
 
 const system = [
+  { title: "Alertas", url: "/alerts", icon: Bell },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 

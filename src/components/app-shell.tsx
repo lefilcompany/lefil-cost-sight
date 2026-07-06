@@ -16,6 +16,7 @@ const CRUMBS: Record<string, string> = {
   clients: "Clientes",
   costs: "Custos",
   syncs: "Sincronizações",
+  alerts: "Alertas",
   settings: "Configurações",
 };
 
