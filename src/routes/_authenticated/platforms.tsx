@@ -207,6 +207,19 @@ function PlatformsPage() {
     setForm(emptyForm());
     setOpen(true);
   };
+  const openFromPreset = (preset: Preset) => {
+    setEditing(null);
+    setForm({
+      ...emptyForm(),
+      name: preset.name,
+      description: preset.description ?? "",
+      summary: preset.description ?? "",
+      icon: preset.icon || "Box",
+      color: preset.color || "#3b82f6",
+      environment: preset.environment || "production",
+    });
+    setOpen(true);
+  };
   const openEdit = (p: Platform) => {
     setEditing(p);
     setForm({
