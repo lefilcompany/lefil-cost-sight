@@ -381,6 +381,100 @@ export type Database = {
           },
         ]
       }
+      provider_billing_snapshots: {
+        Row: {
+          billing_cycle: string | null
+          captured_at: string
+          connection_id: string
+          cost_period_usd: number | null
+          created_at: string
+          currency: string
+          cycle_end: string | null
+          cycle_start: string | null
+          hard_limit_usd: number | null
+          id: string
+          included_quantity: number | null
+          included_unit: string | null
+          plan_name: string | null
+          plan_tier: string | null
+          platform_id: string | null
+          projected_cost_usd: number | null
+          provider_id: string
+          raw: Json | null
+          remaining_quantity: number | null
+          soft_limit_usd: number | null
+          used_quantity: number | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          captured_at?: string
+          connection_id: string
+          cost_period_usd?: number | null
+          created_at?: string
+          currency?: string
+          cycle_end?: string | null
+          cycle_start?: string | null
+          hard_limit_usd?: number | null
+          id?: string
+          included_quantity?: number | null
+          included_unit?: string | null
+          plan_name?: string | null
+          plan_tier?: string | null
+          platform_id?: string | null
+          projected_cost_usd?: number | null
+          provider_id: string
+          raw?: Json | null
+          remaining_quantity?: number | null
+          soft_limit_usd?: number | null
+          used_quantity?: number | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          captured_at?: string
+          connection_id?: string
+          cost_period_usd?: number | null
+          created_at?: string
+          currency?: string
+          cycle_end?: string | null
+          cycle_start?: string | null
+          hard_limit_usd?: number | null
+          id?: string
+          included_quantity?: number | null
+          included_unit?: string | null
+          plan_name?: string | null
+          plan_tier?: string | null
+          platform_id?: string | null
+          projected_cost_usd?: number | null
+          provider_id?: string
+          raw?: Json | null
+          remaining_quantity?: number | null
+          soft_limit_usd?: number | null
+          used_quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_billing_snapshots_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_billing_snapshots_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_billing_snapshots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_connections: {
         Row: {
           api_key_secret_id: string | null
@@ -431,6 +525,176 @@ export type Database = {
           },
           {
             foreignKeyName: "provider_connections_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_invoices: {
+        Row: {
+          amount_brl: number
+          amount_usd: number
+          connection_id: string | null
+          created_at: string
+          exchange_rate: number
+          id: string
+          invoice_number: string | null
+          issued_at: string | null
+          notes: string | null
+          pdf_url: string | null
+          period_end: string | null
+          period_start: string | null
+          platform_id: string | null
+          provider_id: string
+          raw: Json | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_brl?: number
+          amount_usd?: number
+          connection_id?: string | null
+          created_at?: string
+          exchange_rate?: number
+          id?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          notes?: string | null
+          pdf_url?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          platform_id?: string | null
+          provider_id: string
+          raw?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_brl?: number
+          amount_usd?: number
+          connection_id?: string | null
+          created_at?: string
+          exchange_rate?: number
+          id?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          notes?: string | null
+          pdf_url?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          platform_id?: string | null
+          provider_id?: string
+          raw?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_invoices_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_invoices_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_invoices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_usage_daily: {
+        Row: {
+          connection_id: string
+          cost_brl: number
+          cost_usd: number
+          created_at: string
+          endpoint: string
+          exchange_rate: number
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          platform_id: string | null
+          provider_id: string
+          quantity: number
+          raw: Json | null
+          requests: number
+          synced_at: string
+          unit: string | null
+          usage_date: string
+        }
+        Insert: {
+          connection_id: string
+          cost_brl?: number
+          cost_usd?: number
+          created_at?: string
+          endpoint?: string
+          exchange_rate?: number
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          platform_id?: string | null
+          provider_id: string
+          quantity?: number
+          raw?: Json | null
+          requests?: number
+          synced_at?: string
+          unit?: string | null
+          usage_date: string
+        }
+        Update: {
+          connection_id?: string
+          cost_brl?: number
+          cost_usd?: number
+          created_at?: string
+          endpoint?: string
+          exchange_rate?: number
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          platform_id?: string | null
+          provider_id?: string
+          quantity?: number
+          raw?: Json | null
+          requests?: number
+          synced_at?: string
+          unit?: string | null
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_usage_daily_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_usage_daily_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_usage_daily_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "providers"
