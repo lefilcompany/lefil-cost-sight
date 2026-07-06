@@ -106,19 +106,18 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         title = `Variação mensal acima de ${a.threshold}%`;
         message = `Mês atual R$ ${cur.toFixed(2)} vs. anterior R$ ${prev.toFixed(2)} → ${value.toFixed(1)}%.`;
       } else if (a.metric === "no_sync_days") {
-        // Global: qualquer plataforma sem sincronização há X dias.
+        // Última sincronização por plataforma (proxy: created_at do provider_usage_syncs).
         let syncQ = supabaseAdmin
           .from("provider_usage_syncs")
-          .select("platform_id, finished_at, status")
-          .eq("status", "success")
+          .select("platform_id, created_at")
           .not("platform_id", "is", null);
         if (a.scope === "platform" && a.scope_id) syncQ = syncQ.eq("platform_id", a.scope_id);
-        const { data: syncs } = await syncQ.order("finished_at", { ascending: false }).limit(2000);
+        const { data: syncs } = await syncQ.order("created_at", { ascending: false }).limit(2000);
 
         const { data: pfs } = await supabaseAdmin.from("platforms").select("id,name").eq("status", "active");
         const lastByPf = new Map<string, string>();
         for (const s of (syncs ?? []) as any[]) {
-          if (!lastByPf.has(s.platform_id)) lastByPf.set(s.platform_id, s.finished_at);
+          if (s.platform_id && !lastByPf.has(s.platform_id)) lastByPf.set(s.platform_id, s.created_at);
         }
         const stale: { id: string; name: string; days: number }[] = [];
         for (const p of (pfs ?? []) as any[]) {
