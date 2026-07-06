@@ -280,14 +280,282 @@ async function syncOpenAIBilling(conn: any, rate: number): Promise<BillingOutcom
 }
 
 // ---------- GCP (Gemini) via BigQuery billing export ----------
-async function syncGCPBilling(_conn: any, _rate: number): Promise<BillingOutcome> {
+function b64urlEncode(bytes: ArrayBuffer | Uint8Array): string {
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let str = "";
+  for (let i = 0; i < arr.byteLength; i++) str += String.fromCharCode(arr[i]);
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function pemToArrayBuffer(pem: string): ArrayBuffer {
+  const b64 = pem
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/\s+/g, "");
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+async function signGcpJwt(
+  sa: { client_email: string; private_key: string; token_uri?: string },
+  scope: string,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: sa.client_email,
+    scope,
+    aud: sa.token_uri || "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  };
+  const enc = new TextEncoder();
+  const headerB64 = b64urlEncode(enc.encode(JSON.stringify(header)));
+  const payloadB64 = b64urlEncode(enc.encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  const keyBuf = pemToArrayBuffer(sa.private_key);
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    keyBuf,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, enc.encode(signingInput));
+  return `${signingInput}.${b64urlEncode(sig)}`;
+}
+
+async function getGcpAccessToken(sa: any): Promise<string> {
+  const jwt = await signGcpJwt(sa, "https://www.googleapis.com/auth/bigquery.readonly");
+  const res = await fetch(sa.token_uri || "https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+  if (!res.ok) throw new Error(`GCP OAuth ${res.status}: ${await res.text()}`);
+  const json: any = await res.json();
+  if (!json.access_token) throw new Error("GCP OAuth: sem access_token");
+  return json.access_token as string;
+}
+
+async function runBigQuery(
+  accessToken: string,
+  projectId: string,
+  query: string,
+  params: { name: string; type: string; value: string }[] = [],
+): Promise<any[]> {
+  const res = await fetch(
+    `https://bigquery.googleapis.com/bigquery/v2/projects/${projectId}/queries`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        useLegacySql: false,
+        timeoutMs: 30000,
+        maximumBytesBilled: "10737418240",
+        parameterMode: "NAMED",
+        queryParameters: params.map((p) => ({
+          name: p.name,
+          parameterType: { type: p.type },
+          parameterValue: { value: p.value },
+        })),
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`BigQuery ${res.status}: ${await res.text()}`);
+  const json: any = await res.json();
+  if (!json.jobComplete) throw new Error("BigQuery: job não completou no timeout");
+  const schema: any[] = json.schema?.fields ?? [];
+  const rows: any[] = json.rows ?? [];
+  return rows.map((r) => {
+    const obj: Record<string, any> = {};
+    r.f.forEach((cell: any, i: number) => (obj[schema[i].name] = cell.v));
+    return obj;
+  });
+}
+
+async function syncGCPBilling(conn: any, rate: number): Promise<BillingOutcome> {
+  const cfg = (conn.config ?? {}) as any;
+  let sa = cfg.service_account_json;
+  const dataset = cfg.billing_export_dataset as string | undefined;
+  if (!sa || !dataset) {
+    return {
+      status: "skipped",
+      message:
+        "Configure service_account_json e billing_export_dataset (ex: 'meu-projeto.billing_export') em 'Configurar GCP' na conexão.",
+      snapshots: 0,
+      usage_rows: 0,
+      invoices: 0,
+    };
+  }
+  if (typeof sa === "string") {
+    try {
+      sa = JSON.parse(sa);
+    } catch {
+      throw new Error("service_account_json inválido (JSON não parseável).");
+    }
+  }
+  if (!sa.client_email || !sa.private_key || !sa.project_id) {
+    throw new Error("service_account_json faltando client_email/private_key/project_id.");
+  }
+
+  const cycle = monthCycle();
+  const startIso = isoDate(cycle.start);
+  const runProject = cfg.billing_run_project || sa.project_id;
+  const token = await getGcpAccessToken(sa);
+
+  const [dsProject, dsName] = dataset.includes(".")
+    ? dataset.split(".")
+    : [sa.project_id, dataset];
+  const table = `\`${dsProject}.${dsName}.gcp_billing_export_v1_*\``;
+  const filter = `(
+      LOWER(service.description) LIKE '%gemini%'
+      OR LOWER(service.description) LIKE '%generative language%'
+      OR LOWER(service.description) LIKE '%vertex ai%'
+      OR LOWER(sku.description) LIKE '%gemini%'
+    )`;
+
+  // 1) Uso diário por SKU (modelo)
+  const usageSql = `
+    SELECT
+      FORMAT_DATE('%Y-%m-%d', DATE(usage_start_time)) AS day,
+      sku.description AS sku,
+      service.description AS service,
+      SUM(cost) AS cost_usd,
+      SUM(IFNULL(usage.amount, 0)) AS usage_amount,
+      ANY_VALUE(usage.unit) AS usage_unit
+    FROM ${table}
+    WHERE DATE(_PARTITIONTIME) >= DATE_SUB(@start, INTERVAL 2 DAY)
+      AND DATE(usage_start_time) >= @start
+      AND ${filter}
+    GROUP BY day, sku, service
+    ORDER BY day
+  `;
+  const usageRowsRaw = await runBigQuery(token, runProject, usageSql, [
+    { name: "start", type: "DATE", value: startIso },
+  ]);
+
+  let usageRows = 0;
+  for (const r of usageRowsRaw) {
+    const cost = Number(r.cost_usd ?? 0);
+    const amount = Number(r.usage_amount ?? 0);
+    if (cost <= 0 && amount <= 0) continue;
+    await upsertUsageDaily({
+      connection_id: conn.id,
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      usage_date: String(r.day),
+      model: String(r.sku ?? ""),
+      endpoint: String(r.service ?? ""),
+      quantity: amount,
+      unit: r.usage_unit ? String(r.usage_unit) : null,
+      cost_usd: cost,
+      exchange_rate: rate,
+      raw: r,
+    });
+    usageRows += 1;
+  }
+
+  // 2) Snapshot
+  const totalUsd = usageRowsRaw.reduce((s, r) => s + Number(r.cost_usd ?? 0), 0);
+  const projected =
+    cycle.daysElapsed > 0 ? (totalUsd / cycle.daysElapsed) * cycle.daysInCycle : totalUsd;
+
+  await supabaseAdmin.from("provider_billing_snapshots").insert({
+    connection_id: conn.id,
+    provider_id: conn.provider_id,
+    platform_id: conn.platform_id,
+    plan_name: "Google Cloud (pay-as-you-go)",
+    plan_tier: cfg.plan_tier ?? null,
+    billing_cycle: "monthly",
+    cycle_start: isoDate(cycle.start),
+    cycle_end: isoDate(cycle.end),
+    hard_limit_usd: cfg.hard_limit_usd ?? null,
+    soft_limit_usd: cfg.soft_limit_usd ?? null,
+    cost_period_usd: totalUsd,
+    projected_cost_usd: projected,
+    currency: "USD",
+    raw: { source: "bigquery", dataset, rows: usageRowsRaw.length },
+  });
+
+  // 3) Faturas mensais (últimos 6 meses fechados)
+  let invoicesCount = 0;
+  try {
+    const invSql = `
+      SELECT
+        invoice.month AS invoice_month,
+        SUM(cost) AS gross_usd,
+        SUM(cost) + SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) c), 0)) AS net_usd
+      FROM ${table}
+      WHERE invoice.month IS NOT NULL
+        AND PARSE_DATE('%Y%m', invoice.month) >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+        AND ${filter}
+      GROUP BY invoice_month
+      ORDER BY invoice_month
+    `;
+    const invRows = await runBigQuery(token, runProject, invSql);
+    for (const r of invRows) {
+      const month = String(r.invoice_month);
+      const y = Number(month.slice(0, 4));
+      const m = Number(month.slice(4, 6));
+      if (!y || !m) continue;
+      const periodStart = new Date(y, m - 1, 1);
+      const periodEnd = new Date(y, m, 0);
+      const net = Number(r.net_usd ?? 0);
+      const gross = Number(r.gross_usd ?? 0);
+      const amount = net > 0 ? net : gross;
+      if (amount <= 0) continue;
+
+      const { data: existing } = await supabaseAdmin
+        .from("provider_invoices")
+        .select("id")
+        .eq("connection_id", conn.id)
+        .eq("period_start", isoDate(periodStart))
+        .eq("source", "api")
+        .maybeSingle();
+
+      const payload = {
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        invoice_number: `GCP-${month}`,
+        issued_at: isoDate(periodEnd),
+        period_start: isoDate(periodStart),
+        period_end: isoDate(periodEnd),
+        amount_usd: amount,
+        exchange_rate: rate,
+        amount_brl: amount * rate,
+        status: "paid",
+        pdf_url: null,
+        source: "api",
+        notes: `Agregado BigQuery (bruto US$ ${gross.toFixed(2)})`,
+        raw: r,
+      };
+      if (existing) {
+        await supabaseAdmin.from("provider_invoices").update(payload).eq("id", existing.id);
+      } else {
+        await supabaseAdmin.from("provider_invoices").insert(payload);
+      }
+      invoicesCount += 1;
+    }
+  } catch (err: any) {
+    console.warn("[GCP billing] invoices skipped:", err?.message);
+  }
+
   return {
-    status: "skipped",
-    message:
-      "Gemini/GCP requer exportação de billing para BigQuery + service account. Adicione service_account_json, billing_export_dataset e billing_account_id no config da conexão para habilitar.",
-    snapshots: 0,
-    usage_rows: 0,
-    invoices: 0,
+    status: "success",
+    message: `US$ ${totalUsd.toFixed(2)} no ciclo · proj. US$ ${projected.toFixed(2)} · ${usageRows} linhas de uso`,
+    snapshots: 1,
+    usage_rows: usageRows,
+    invoices: invoicesCount,
+    meta: { total_usd: totalUsd, projected_usd: projected, dataset, run_project: runProject },
   };
 }
 
