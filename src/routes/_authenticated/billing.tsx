@@ -533,3 +533,143 @@ function ManualInvoiceDialog({
     </Dialog>
   );
 }
+
+function GcpConfigDialog() {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [conns, setConns] = useState<{ id: string; name: string; config: any; providers: { name: string } | null }[]>([]);
+  const [connectionId, setConnectionId] = useState<string>("");
+  const [saJson, setSaJson] = useState("");
+  const [dataset, setDataset] = useState("");
+  const [runProject, setRunProject] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("provider_connections")
+      .select("id, name, config, providers(name)")
+      .order("name");
+    const list = (data ?? []).filter(
+      (c: any) => c.providers?.name && /gemini|gcp|google/i.test(c.providers.name),
+    ) as any;
+    setConns(list);
+    setLoading(false);
+  };
+
+  const selectConn = (id: string) => {
+    setConnectionId(id);
+    const c = conns.find((x) => x.id === id);
+    const cfg = (c?.config ?? {}) as any;
+    setSaJson(cfg.service_account_json ? JSON.stringify(cfg.service_account_json, null, 2) : "");
+    setDataset(cfg.billing_export_dataset ?? "");
+    setRunProject(cfg.billing_run_project ?? "");
+  };
+
+  const save = async () => {
+    if (!connectionId) return toast.error("Selecione uma conexão");
+    let parsed: any = null;
+    if (saJson.trim()) {
+      try {
+        parsed = JSON.parse(saJson);
+      } catch {
+        return toast.error("Service Account JSON inválido");
+      }
+      if (!parsed.client_email || !parsed.private_key || !parsed.project_id) {
+        return toast.error("JSON precisa ter client_email, private_key e project_id");
+      }
+    }
+    setSaving(true);
+    const current = conns.find((c) => c.id === connectionId)?.config ?? {};
+    const nextConfig = {
+      ...(current as any),
+      ...(parsed ? { service_account_json: parsed } : {}),
+      billing_export_dataset: dataset || null,
+      billing_run_project: runProject || null,
+    };
+    const { error } = await supabase
+      .from("provider_connections")
+      .update({ config: nextConfig })
+      .eq("id", connectionId);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Configuração GCP salva. Sincronize para importar os dados.");
+    setOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (v) load();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <FileText className="h-3.5 w-3.5" /> Configurar GCP
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configurar GCP / BigQuery billing export</DialogTitle>
+          <DialogDescription>
+            Cole o JSON da service account com permissão BigQuery Data Viewer + Job User no dataset do billing export.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="grid gap-1.5">
+            <Label>Conexão</Label>
+            <Select value={connectionId} onValueChange={selectConn} disabled={loading}>
+              <SelectTrigger><SelectValue placeholder={loading ? "Carregando..." : "Selecione a conexão Gemini/GCP"} /></SelectTrigger>
+              <SelectContent>
+                {conns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.providers?.name} — {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Dataset do billing export *</Label>
+            <Input
+              value={dataset}
+              onChange={(e) => setDataset(e.target.value)}
+              placeholder="meu-projeto.billing_export"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Formato: <code>projeto.dataset</code> (ou só <code>dataset</code> se estiver no mesmo projeto da SA).
+            </p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Projeto de execução (opcional)</Label>
+            <Input
+              value={runProject}
+              onChange={(e) => setRunProject(e.target.value)}
+              placeholder="projeto onde as queries rodam (padrão: project_id da SA)"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Service Account JSON *</Label>
+            <Textarea
+              value={saJson}
+              onChange={(e) => setSaJson(e.target.value)}
+              placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  "client_email": "...",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n..."\n}'}
+              className="min-h-[180px] font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Armazenado em <code>provider_connections.config</code> (acesso admin apenas via RLS).
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={save} disabled={saving || !connectionId}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
