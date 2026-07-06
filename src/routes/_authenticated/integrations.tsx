@@ -546,31 +546,60 @@ function IntegrationsPage() {
             {isLoading ? (
               <LoadingState label="Carregando integrações..." />
             ) : filtered.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="mx-auto max-w-sm space-y-3">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-                    <Inbox className="h-5 w-5" />
-                  </div>
+              <div className="space-y-4">
+                <div className="text-center">
                   <p className="font-display text-sm font-medium">
-                    {activeFilters > 0 || connections.length > 0 ? "Nenhuma integração nesse filtro" : "Conecte seu primeiro fornecedor"}
+                    {activeFilters > 0 ? "Nenhuma integração nesse filtro" : "Escolha uma ferramenta para conectar"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {activeFilters > 0 || connections.length > 0
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {activeFilters > 0
                       ? "Ajuste os filtros ou limpe a busca."
                       : providers.length === 0
                       ? "Cadastre fornecedores antes de criar integrações."
-                      : "Integrações mantêm credenciais e configuração para sincronizar custos automaticamente."}
+                      : "Selecione um preset abaixo — abrimos o formulário já configurado."}
                   </p>
-                  {activeFilters > 0 ? (
-                    <Button variant="outline" size="sm" onClick={clearFilters} className="gap-1.5">
+                  {activeFilters > 0 && (
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="mt-3 gap-1.5">
                       <X className="h-3.5 w-3.5" /> Limpar filtros
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={openCreate} className="gap-1.5" disabled={providers.length === 0}>
-                      <Plus className="h-3.5 w-3.5" /> Nova integração
                     </Button>
                   )}
                 </div>
+                {activeFilters === 0 && (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Object.entries(CONFIG_PRESETS).map(([key, p]) => {
+                      const initials = p.label.replace(/^[^A-Za-z0-9]+/, "").slice(0, 2).toUpperCase();
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={providers.length === 0}
+                          onClick={() => {
+                            const fields: Record<string, string> = {};
+                            for (const f of p.fields) fields[f.key] = f.default ?? "";
+                            setEditing(null);
+                            setForm({
+                              ...emptyForm(),
+                              config_preset: key,
+                              config_fields: fields,
+                              name: key === "none" ? "" : p.label.split("—")[0].trim(),
+                            });
+                            setOpen(true);
+                          }}
+                          className="group flex h-full flex-col items-start gap-2 rounded-lg border border-border/60 bg-muted/20 p-3 text-left transition hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <div className="flex w-full items-center gap-2">
+                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background font-display text-[10px] font-semibold text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground">
+                              {initials || "—"}
+                            </div>
+                            <span className="truncate font-display text-xs font-semibold">{p.label}</span>
+                            <Plus className="ml-auto h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                          </div>
+                          <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{p.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -591,6 +620,7 @@ function IntegrationsPage() {
                 ))}
               </div>
             )}
+
           </CardContent>
         </Card>
       </div>
