@@ -260,7 +260,7 @@ function BillingPage() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-right font-numeric text-sm">
-                          {u.cost_usd > 0 ? `US$ ${u.cost_usd.toFixed(4)}` : "—"}
+                          {u.cost_usd > 0 ? `US$ ${u.cost_usd.toFixed(2)}` : "—"}
                         </TableCell>
                         <TableCell className="text-right font-numeric text-sm">
                           {u.cost_brl > 0 ? `R$ ${u.cost_brl.toFixed(2)}` : "—"}
