@@ -154,9 +154,10 @@ async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
 const HANDLERS: Record<string, (c: any, r: number) => Promise<SyncOutcome>> = {
   Firecrawl: syncFirecrawl,
   OpenAI: syncOpenAI,
-  Gemini: syncGCPBilling,
-  "Google Gemini": syncGCPBilling,
+  Gemini: syncGemini,
+  "Google Gemini": syncGemini,
 };
+
 
 export async function runSyncForConnection(connectionId: string) {
   const { data: conn, error: connErr } = await supabaseAdmin
