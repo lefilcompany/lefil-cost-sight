@@ -189,17 +189,22 @@ function ProvidersPage() {
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectProvider, setConnectProvider] = useState<Provider | null>(null);
-  const [connectForm, setConnectForm] = useState<{ name: string; platform_id: string; api_key: string }>({
-    name: "",
-    platform_id: "",
-    api_key: "",
-  });
+  const [connectForm, setConnectForm] = useState<{
+    name: string;
+    platform_id: string;
+    api_key: string;
+    config: Record<string, string>;
+  }>({ name: "", platform_id: "", api_key: "", config: {} });
 
   const openConnect = (p: Provider) => {
     setConnectProvider(p);
-    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "" });
+    const schema = getConnectionSchema(p.name);
+    const config: Record<string, string> = {};
+    schema.configFields.forEach((f) => (config[f.key] = f.defaultValue ?? ""));
+    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "", config });
     setConnectOpen(true);
   };
+
 
   const emptyForm = () => ({
     name: "",
