@@ -145,6 +145,103 @@ export type Database = {
           },
         ]
       }
+      billing_cost_records: {
+        Row: {
+          cloud_project_id: string | null
+          created_at: string
+          credit_amount: number
+          currency: string
+          external_row_hash: string
+          gross_cost: number
+          id: string
+          imported_at: string
+          invoice_month: string | null
+          net_cost: number
+          organization_id: string
+          provider_connection_id: string
+          raw_metadata: Json
+          service_description: string | null
+          service_id: string | null
+          sku_description: string | null
+          sku_id: string | null
+          source: string
+          updated_at: string
+          usage_date: string
+          usage_end_time: string | null
+          usage_start_time: string | null
+        }
+        Insert: {
+          cloud_project_id?: string | null
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          external_row_hash: string
+          gross_cost?: number
+          id?: string
+          imported_at?: string
+          invoice_month?: string | null
+          net_cost?: number
+          organization_id: string
+          provider_connection_id: string
+          raw_metadata?: Json
+          service_description?: string | null
+          service_id?: string | null
+          sku_description?: string | null
+          sku_id?: string | null
+          source?: string
+          updated_at?: string
+          usage_date: string
+          usage_end_time?: string | null
+          usage_start_time?: string | null
+        }
+        Update: {
+          cloud_project_id?: string | null
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          external_row_hash?: string
+          gross_cost?: number
+          id?: string
+          imported_at?: string
+          invoice_month?: string | null
+          net_cost?: number
+          organization_id?: string
+          provider_connection_id?: string
+          raw_metadata?: Json
+          service_description?: string | null
+          service_id?: string | null
+          sku_description?: string | null
+          sku_id?: string | null
+          source?: string
+          updated_at?: string
+          usage_date?: string
+          usage_end_time?: string | null
+          usage_start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_cost_records_cloud_project_id_fkey"
+            columns: ["cloud_project_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_cost_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_cost_records_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           cnpj: string | null
@@ -188,6 +285,66 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_projects: {
+        Row: {
+          billing_account_id: string | null
+          billing_enabled: boolean | null
+          created_at: string
+          external_project_id: string
+          external_project_number: string | null
+          id: string
+          metadata: Json
+          name: string | null
+          organization_id: string
+          provider_connection_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_account_id?: string | null
+          billing_enabled?: boolean | null
+          created_at?: string
+          external_project_id: string
+          external_project_number?: string | null
+          id?: string
+          metadata?: Json
+          name?: string | null
+          organization_id: string
+          provider_connection_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_account_id?: string | null
+          billing_enabled?: boolean | null
+          created_at?: string
+          external_project_id?: string
+          external_project_number?: string | null
+          id?: string
+          metadata?: Json
+          name?: string | null
+          organization_id?: string
+          provider_connection_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_projects_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
             referencedColumns: ["id"]
           },
         ]
@@ -343,6 +500,75 @@ export type Database = {
           },
         ]
       }
+      cost_reconciliations: {
+        Row: {
+          cloud_project_id: string | null
+          confirmed_cost: number | null
+          created_at: string
+          difference_amount: number | null
+          difference_percentage: number | null
+          estimated_cost: number | null
+          explanation: string | null
+          id: string
+          model: string | null
+          organization_id: string
+          reconciled_at: string | null
+          reconciliation_date: string
+          sku_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cloud_project_id?: string | null
+          confirmed_cost?: number | null
+          created_at?: string
+          difference_amount?: number | null
+          difference_percentage?: number | null
+          estimated_cost?: number | null
+          explanation?: string | null
+          id?: string
+          model?: string | null
+          organization_id: string
+          reconciled_at?: string | null
+          reconciliation_date: string
+          sku_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cloud_project_id?: string | null
+          confirmed_cost?: number | null
+          created_at?: string
+          difference_amount?: number | null
+          difference_percentage?: number | null
+          estimated_cost?: number | null
+          explanation?: string | null
+          id?: string
+          model?: string | null
+          organization_id?: string
+          reconciled_at?: string | null
+          reconciliation_date?: string
+          sku_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_reconciliations_cloud_project_id_fkey"
+            columns: ["cloud_project_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_reconciliations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_notes: {
         Row: {
           author_id: string | null
@@ -380,6 +606,252 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dashboard_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gemini_usage_events: {
+        Row: {
+          cached_tokens: number | null
+          cloud_project_id: string | null
+          created_at: string
+          currency: string
+          duration_ms: number | null
+          environment: string | null
+          estimated_cost: number | null
+          http_status: number | null
+          id: string
+          model: string
+          occurred_at: string
+          operation: string | null
+          organization_id: string
+          output_tokens: number | null
+          pricing_status: string
+          prompt_tokens: number | null
+          provider_connection_id: string | null
+          request_id: string | null
+          success: boolean | null
+          tags: Json
+          thinking_tokens: number | null
+          total_tokens: number | null
+        }
+        Insert: {
+          cached_tokens?: number | null
+          cloud_project_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_ms?: number | null
+          environment?: string | null
+          estimated_cost?: number | null
+          http_status?: number | null
+          id?: string
+          model: string
+          occurred_at: string
+          operation?: string | null
+          organization_id: string
+          output_tokens?: number | null
+          pricing_status?: string
+          prompt_tokens?: number | null
+          provider_connection_id?: string | null
+          request_id?: string | null
+          success?: boolean | null
+          tags?: Json
+          thinking_tokens?: number | null
+          total_tokens?: number | null
+        }
+        Update: {
+          cached_tokens?: number | null
+          cloud_project_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_ms?: number | null
+          environment?: string | null
+          estimated_cost?: number | null
+          http_status?: number | null
+          id?: string
+          model?: string
+          occurred_at?: string
+          operation?: string | null
+          organization_id?: string
+          output_tokens?: number | null
+          pricing_status?: string
+          prompt_tokens?: number | null
+          provider_connection_id?: string | null
+          request_id?: string | null
+          success?: boolean | null
+          tags?: Json
+          thinking_tokens?: number | null
+          total_tokens?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gemini_usage_events_cloud_project_id_fkey"
+            columns: ["cloud_project_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gemini_usage_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gemini_usage_events_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_billing_connections: {
+        Row: {
+          bigquery_dataset_id: string
+          bigquery_project_id: string
+          billing_account_id: string
+          billing_enabled: boolean | null
+          billing_mode: string | null
+          created_at: string
+          currency: string
+          dataset_location: string
+          detailed_billing_table: string | null
+          gemini_project_id: string
+          gemini_project_number: string | null
+          gemini_tier: string | null
+          id: string
+          manual_balance_checked_at: string | null
+          manual_prepaid_balance: number | null
+          manual_spend_cap: number | null
+          notes: string | null
+          organization_id: string
+          pricing_table: string | null
+          provider_connection_id: string
+          standard_billing_table: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          bigquery_dataset_id: string
+          bigquery_project_id: string
+          billing_account_id: string
+          billing_enabled?: boolean | null
+          billing_mode?: string | null
+          created_at?: string
+          currency?: string
+          dataset_location?: string
+          detailed_billing_table?: string | null
+          gemini_project_id: string
+          gemini_project_number?: string | null
+          gemini_tier?: string | null
+          id?: string
+          manual_balance_checked_at?: string | null
+          manual_prepaid_balance?: number | null
+          manual_spend_cap?: number | null
+          notes?: string | null
+          organization_id: string
+          pricing_table?: string | null
+          provider_connection_id: string
+          standard_billing_table: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          bigquery_dataset_id?: string
+          bigquery_project_id?: string
+          billing_account_id?: string
+          billing_enabled?: boolean | null
+          billing_mode?: string | null
+          created_at?: string
+          currency?: string
+          dataset_location?: string
+          detailed_billing_table?: string | null
+          gemini_project_id?: string
+          gemini_project_number?: string | null
+          gemini_tier?: string | null
+          id?: string
+          manual_balance_checked_at?: string | null
+          manual_prepaid_balance?: number | null
+          manual_spend_cap?: number | null
+          notes?: string | null
+          organization_id?: string
+          pricing_table?: string | null
+          provider_connection_id?: string
+          standard_billing_table?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_billing_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_billing_connections_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: true
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+          permissions: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+          permissions?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+          permissions?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_api_keys_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -660,6 +1132,77 @@ export type Database = {
           },
         ]
       }
+      pricing_skus: {
+        Row: {
+          created_at: string
+          currency: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          model_name: string | null
+          provider_connection_id: string | null
+          raw_metadata: Json
+          service_id: string | null
+          service_name: string | null
+          sku_id: string
+          sku_name: string | null
+          source: string
+          status: string
+          unit: string | null
+          unit_price: number | null
+          updated_at: string
+          usage_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          model_name?: string | null
+          provider_connection_id?: string | null
+          raw_metadata?: Json
+          service_id?: string | null
+          service_name?: string | null
+          sku_id: string
+          sku_name?: string | null
+          source?: string
+          status?: string
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          usage_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          model_name?: string | null
+          provider_connection_id?: string | null
+          raw_metadata?: Json
+          service_id?: string | null
+          service_name?: string | null
+          sku_id?: string
+          sku_name?: string | null
+          source?: string
+          status?: string
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          usage_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_skus_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_billing_snapshots: {
         Row: {
           billing_cycle: string | null
@@ -935,6 +1478,65 @@ export type Database = {
           },
         ]
       }
+      provider_service_mappings: {
+        Row: {
+          active: boolean
+          created_at: string
+          external_service_id: string | null
+          external_service_name: string | null
+          external_sku_id: string | null
+          external_sku_name: string | null
+          id: string
+          internal_category: string
+          model_name: string | null
+          organization_id: string | null
+          provider: string
+          reviewed_by: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          external_service_id?: string | null
+          external_service_name?: string | null
+          external_sku_id?: string | null
+          external_sku_name?: string | null
+          id?: string
+          internal_category?: string
+          model_name?: string | null
+          organization_id?: string | null
+          provider: string
+          reviewed_by?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          external_service_id?: string | null
+          external_service_name?: string | null
+          external_sku_id?: string | null
+          external_sku_name?: string | null
+          id?: string
+          internal_category?: string
+          model_name?: string | null
+          organization_id?: string | null
+          provider?: string
+          reviewed_by?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_service_mappings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_usage_daily: {
         Row: {
           connection_id: string
@@ -1200,6 +1802,90 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_jobs: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_count: number
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          initiated_by: string | null
+          metadata: Json
+          organization_id: string
+          period_end: string | null
+          period_start: string | null
+          provider_connection_id: string | null
+          records_inserted: number
+          records_read: number
+          records_skipped: number
+          records_updated: number
+          started_at: string | null
+          status: string
+          sync_type: string
+          trigger_type: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_count?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          initiated_by?: string | null
+          metadata?: Json
+          organization_id: string
+          period_end?: string | null
+          period_start?: string | null
+          provider_connection_id?: string | null
+          records_inserted?: number
+          records_read?: number
+          records_skipped?: number
+          records_updated?: number
+          started_at?: string | null
+          status?: string
+          sync_type: string
+          trigger_type?: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_count?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          initiated_by?: string | null
+          metadata?: Json
+          organization_id?: string
+          period_end?: string | null
+          period_start?: string | null
+          provider_connection_id?: string | null
+          records_inserted?: number
+          records_read?: number
+          records_skipped?: number
+          records_updated?: number
+          started_at?: string | null
+          status?: string
+          sync_type?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_jobs_provider_connection_id_fkey"
+            columns: ["provider_connection_id"]
+            isOneToOne: false
+            referencedRelation: "provider_connections"
             referencedColumns: ["id"]
           },
         ]
