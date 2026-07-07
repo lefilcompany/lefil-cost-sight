@@ -1,96 +1,102 @@
-# Fase 5 — Billing, planos e uso detalhado
+# Integração Gemini + Google Cloud Billing — Plano de Execução
 
-## O que cada API realmente entrega
+Esse escopo é grande demais para uma única entrega. Proponho quebrar em 5 fases entregáveis, cada uma testável isoladamente. Confirme a ordem e eu começo pela Fase 1.
 
-| Dado | OpenAI | Firecrawl | Gemini (GCP) |
-|---|---|---|---|
-| Plano atual + limites | ⚠️ parcial (não há endpoint público de plano; dá pra inferir de créditos/limits) | ✅ `plan_credits`, `remaining_credits` | ✅ SKU/tier via BigQuery |
-| Uso detalhado (dia/modelo) | ✅ `/v1/organization/usage/*` (completions, embeddings, images, audio…) | ✅ `/v2/team/credit-usage-historical` | ✅ BigQuery billing export |
-| Custo diário | ✅ `/v1/organization/costs` (já temos) | ⚠️ só créditos (não USD direto) | ✅ BigQuery |
-| Faturas/invoices | ❌ sem API pública | ❌ sem API pública | ⚠️ via Cloud Billing API (limitado) |
-| Próxima cobrança estimada | 🧮 calculada (custo do ciclo + projeção linear) | 🧮 calculada | 🧮 calculada |
+## Estado atual
 
-Faturas oficiais de OpenAI e Firecrawl **não existem via API** — vamos permitir upload manual de PDFs/valores nesse caso.
+Já existe hoje no projeto:
+- `provider_connections` com credencial no `vault` (criptografada) + RPC `get_connection_api_key_internal`
+- `src/lib/gcp-auth.server.ts` (JWT RS256 → OAuth2 → BigQuery `jobs.query`)
+- `src/lib/gemini-billing.server.ts` (query no billing export, upsert em `provider_usage_daily` e `cost_entries`)
+- Sync manual + cron diário (`/api/public/cron/sync-billing`)
+- Página `/providers` com dialog de conexão (campos GCP básicos)
 
-## Schema (uma migration)
+O que **falta** e o que a spec pede é essencialmente uma reescrita/expansão. Vou preservar o que já funciona e adicionar por cima.
 
-**`provider_billing_snapshots`** — snapshot do estado de plano/quota por conexão
-- `id`, `connection_id`, `provider_id`, `platform_id`
-- `plan_name` text, `plan_tier` text, `billing_cycle` text (monthly/annual)
-- `cycle_start` date, `cycle_end` date
-- `included_quantity` numeric, `included_unit` text (tokens/credits/usd)
-- `used_quantity` numeric, `remaining_quantity` numeric
-- `hard_limit_usd` numeric, `soft_limit_usd` numeric
-- `cost_period_usd` numeric, `projected_cost_usd` numeric
-- `currency` text default 'USD', `raw` jsonb, `captured_at` timestamptz
-- RLS: admin/editor write, viewer read; GRANT completo
+## Fase 1 — Fundação (schema + conexão robusta)
 
-**`provider_usage_daily`** — uso agregado por dia/modelo
-- `id`, `provider_id`, `platform_id`, `connection_id`
-- `usage_date` date, `model` text nullable, `endpoint` text nullable
-- `input_tokens` bigint, `output_tokens` bigint, `requests` bigint
-- `quantity` numeric, `unit` text (tokens/credits/requests)
-- `cost_usd` numeric, `exchange_rate` numeric, `cost_brl` numeric
-- `raw` jsonb, `synced_at` timestamptz
-- Unique: `(connection_id, usage_date, model, endpoint)` para upsert
-- RLS idêntico + GRANT
+**Migration** (uma só):
+- `google_billing_connections` (1:1 com `provider_connections`, todos os campos GCP da spec: `bigquery_dataset_id`, `standard_billing_table`, `detailed_billing_table`, `pricing_table`, `dataset_location`, `timezone`, `billing_mode`, `gemini_tier`, `manual_spend_cap`, etc.)
+- `cloud_projects` (projetos GCP descobertos)
+- `billing_cost_records` (custos oficiais com `external_row_hash` UNIQUE p/ dedupe)
+- `gemini_usage_events` (metadados de `usageMetadata`)
+- `pricing_skus`
+- `cost_reconciliations`
+- `integration_api_keys` (hash + prefix)
+- `provider_service_mappings`
+- `sync_jobs` (substitui/estende `provider_usage_syncs` atual)
+- RLS por organização em todas + GRANT completo
+- `encrypted_credentials` fica só no vault (não em coluna); frontend nunca lê
 
-**`provider_invoices`** — faturas (mix de API + upload manual)
-- `id`, `provider_id`, `platform_id`, `connection_id`
-- `invoice_number` text, `issued_at` date, `period_start` date, `period_end` date
-- `amount_usd` numeric, `exchange_rate` numeric, `amount_brl` numeric
-- `status` text (paid/open/void), `pdf_url` text nullable
-- `source` text ('api'|'manual'), `raw` jsonb, `created_at`
-- RLS + GRANT
+**UI** — reescrever dialog de conexão Gemini como wizard de 3 etapas:
+1. Dados GCP (project_id, billing_account_id, bq_project, bq_dataset, tabelas, location, timezone, currency)
+2. Upload `.json` da service account (validação client: JSON válido, `type=service_account`, campos obrigatórios, tamanho; envio via server fn; **nunca** volta ao frontend)
+3. Checklist de permissões e APIs (informativo)
 
-## Backend — `src/lib/billing.server.ts`
+Após salvar: exibir apenas `client_email`, `project_id`, últimos 4 do `private_key_id`, data.
 
-Handlers novos, isolados dos syncs de custo existentes:
+## Fase 2 — Validação real (teste em etapas)
 
-- **`syncFirecrawlBilling(conn, rate)`**
-  - `GET /v2/team/credit-usage` → snapshot (plan_credits, remaining, used)
-  - `GET /v2/team/credit-usage-historical?byApiKey=false` → linhas em `provider_usage_daily`
-  - Projeção: `(used/dias_decorridos) * dias_no_ciclo`
+Botão "Testar conexão" que executa 6 testes sequenciais e emite eventos via SSE ou polling:
 
-- **`syncOpenAIBilling(conn, rate)`**
-  - `/v1/organization/usage/completions?bucket_width=1d` (+ embeddings, images, audio_speeches, audio_transcriptions, moderations) → `provider_usage_daily` com model breakdown
-  - `/v1/organization/costs` já existente → totais para snapshot
-  - Snapshot: cycle = mês corrente, `cost_period_usd` = soma do ciclo, `projected_cost_usd` = linear
-  - Plano/limites: não há endpoint — deixa `plan_name = 'pay-as-you-go'` até o usuário informar
+1. **Credencial** — parse SA, sign JWT, trocar por access_token
+2. **Projeto** — `GET cloudresourcemanager/v1/projects/{id}`
+3. **Billing** — `GET cloudbilling/v1/projects/{id}/billingInfo` → verificar `billingEnabled` e comparar `billingAccountName` com o informado
+4. **BigQuery** — `GET bigquery/v2/projects/{p}/datasets/{d}` + `.../tables/{t}` para cada tabela configurada; validar location
+5. **Orçamentos** — `GET billingbudgets/v1/billingAccounts/{id}/budgets` (permissão = warning se 403)
+6. **Dados** — query `SELECT MIN/MAX(usage_start_time), COUNT(DISTINCT project.id), COUNT(*)` com `LIMIT`
 
-- **`syncGCPBilling(conn, rate)`** (Gemini)
-  - Requer credenciais adicionais na `provider_connections.config`: `service_account_json`, `billing_export_dataset`, `billing_account_id`
-  - JWT RS256 assinado no servidor → OAuth token → BigQuery `jobs.query`
-  - Query padrão em `<dataset>.gcp_billing_export_v1_*` filtrando `service.description LIKE '%Gemini%'`
-  - Se `service_account_json` faltar: retorna `skipped` com instruções
+Cada teste grava resultado em `provider_connections.metadata.tests[]` com status (`connected|warning|error|not_configured`), mensagem segura (sem stack/token), timestamp.
 
-Server functions em `src/lib/billing.functions.ts`:
-- `runBillingSync({ connection_id })` — dispara para uma conexão
-- `runBillingSyncAll()` — todas
-- `saveManualInvoice({ ... })` — insere em `provider_invoices` com `source='manual'`
+UI: painel com linha por teste + status colorido; clicar abre detalhes filtrados.
 
-## UI — nova rota `/billing`
+Códigos de erro internos mapeados (todos os 20+ da spec §23) com título/explicação/orientação em pt-BR.
 
-Layout `crud-page` com abas:
+## Fase 3 — BigQuery Billing Export completo
 
-1. **Planos & limites** — cards por conexão mostrando plan_name, uso vs incluído (progress bar), gasto no ciclo, projeção, hard limit. Botão "Sincronizar agora".
-2. **Uso por dia/modelo** — tabela/chart filtrando por provedor + range de data. Colunas: data, modelo, requests, tokens in/out, custo USD/BRL.
-3. **Faturas** — lista de `provider_invoices`. Botão "Adicionar fatura manual" abre dialog (número, período, valor, PDF URL). Faturas com `source='api'` vêm read-only.
+- `GoogleBigQueryBillingService` em `src/lib/gcp-bq-billing.server.ts`:
+  - Sanitização de identificadores (`^[a-zA-Z0-9_-]+$` para project/dataset/table)
+  - Query parametrizada (datas via `queryParameters`, não interpolação)
+  - Campos completos: usage_date, start/end, project id/name, service, sku, gross_cost, credit_amount, net_cost, currency, invoice_month, location, labels
+  - Filtros opcionais: project, service, sku, currency, billing_account
+- **Dedupe**: hash SHA-256 sobre `billing_account_id|project_id|service_id|sku_id|usage_start_time|usage_end_time|invoice_month|currency` → coluna UNIQUE `external_row_hash`
+- Upsert com atualização se hash existe (Google pode ajustar valores)
+- Reprocessamento automático dos últimos 7d em cada sync
+- Botões: sync 7d / 30d / mês atual / backfill customizado
+- Substitui a lógica atual de delete-and-insert em `gemini-billing.server.ts`
+- Classificação Gemini via `provider_service_mappings` (não hardcoded); SKUs não classificados viram `unclassified` + alerta
 
-Sidebar: novo item "Billing" (ícone Receipt) entre "Custos" e "Sincronizações".
+## Fase 4 — Gemini usage + estimativas
 
-## Cron
+- Endpoint público `POST /api/public/hooks/gemini-usage`:
+  - Auth via `integration_api_keys` (header `X-Billing-OS-Key`) + HMAC opcional
+  - Valida payload (zod), grava em `gemini_usage_events`, calcula `estimated_cost` a partir de `pricing_skus`
+  - Se preço faltar: `pricing_status='pricing_missing'`, cost `NULL`, cria alerta
+- UI `/settings/integrations/api-keys`: gerar chave (mostrar uma vez), listar (só prefix + last_used), revogar
+- `GeminiCostEstimationService` server-side puro (tokens × unit_price)
+- Sync de preços via Cloud Billing Catalog API (`services/*/skus`) → `pricing_skus`
 
-Estender o cron `sync-all` diário para também chamar `runBillingSyncAll()` (ou criar `/api/public/cron/sync-billing` separado e adicionar ao `pg_cron` diariamente às 03:00).
+## Fase 5 — Reconciliação + dashboard + automação
 
-## Ordem de entrega
+- Job diário `cost_reconciliations`: agrega estimado vs confirmado por (project, date, sku)
+- Cron: custos 6h, projetos/preços 1x/dia, reconciliação 1x/dia (via `pg_cron`, configurável)
+- Página `/providers/[id]` reescrita com abas: Visão geral / Permissões / Dados / Sincronizações / Credencial / Configurações avançadas / Plano manual
+- Dashboard da conexão: custo confirmado, estimado, créditos, projeção, gráficos (custo diário, tokens/dia, por projeto, por SKU, in vs out, estimado vs confirmado)
+- Badges `Estimado | Confirmado | Reconciliado | Divergente | Pendente`
+- Audit log para operações sensíveis (upload credencial, teste, sync manual, revogação)
 
-1. Migration (3 tabelas + RLS + GRANT + índices únicos)
-2. Types.ts atualizado
-3. `billing.server.ts` + `billing.functions.ts` (Firecrawl + OpenAI; Gemini como skipped-com-instruções)
-4. Rota `/billing` com as 3 abas + dialog manual
-5. Sidebar + registro no routeTree
-6. Cron diário
-7. Depois, quando você tiver o service account do GCP pronto, implemento a parte real do Gemini/BigQuery
+## Detalhes técnicos importantes
 
-Confirma que posso seguir assim? Se preferir começar sem Gemini para acelerar, corto o item 7 e o skip handler já cobre.
+- **Criptografia**: mantenho o `vault` do Supabase (já em uso). A spec sugere `GOOGLE_CREDENTIAL_ENCRYPTION_KEY` próprio, mas o vault já entrega isso com KMS gerenciado — evita reinventar. Confirme se aceita ou se quer AES-GCM manual com secret adicional.
+- **Edge Functions vs Server Fn**: a spec cita "Supabase Edge Functions"; o projeto é TanStack Start (Cloudflare Worker). Vou usar `createServerFn` + rotas `/api/public/*` para webhooks (equivalente funcional, é o padrão do stack). Não vou criar Supabase Edge Functions novas.
+- **Roles**: já existe `has_role` + tabela `user_roles`. Vou adicionar checagem de role nas server fns sensíveis (só admin/owner cria/edita/desconecta).
+- **Sem dados fictícios**: já foi removido em turn anterior; não vou reintroduzir banner de demo — só mostrar "sem dados, conecte" quando vazio.
+
+## O que preciso confirmar antes de começar
+
+1. **Ordem**: começo pela Fase 1 (schema + wizard de conexão) e entrego para você testar antes de avançar? Ou quer tudo de uma vez (~5–10x mais tokens, alto risco de erro)?
+2. **Criptografia**: mantém o `vault` do Supabase (recomendo) ou implementa AES-GCM manual com `GOOGLE_CREDENTIAL_ENCRYPTION_KEY`?
+3. **Roles**: seu modelo atual (`user_roles` global com `admin/editor/viewer`) atende, ou quer o modelo por organização (`org_role: Owner/Admin/Analyst/Finance/Viewer`) que a spec descreve? O segundo exige refatorar auth de várias telas.
+4. **Escopo do Gemini usage endpoint**: você tem sistemas externos hoje que vão chamar esse endpoint, ou é preparação para o futuro? Se for futuro, posso deixar Fase 4 por último.
+
+Responda essas 4 perguntas e eu executo a Fase 1 já na próxima mensagem.
