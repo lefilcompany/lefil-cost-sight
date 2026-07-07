@@ -1232,14 +1232,39 @@ function GeminiAutoDiscover({
       </details>
 
       {result?.warnings?.length > 0 && (
-        <details className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px]">
+        <details className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px]" open>
           <summary className="cursor-pointer text-amber-700 dark:text-amber-400">
             {result.warnings.length} aviso(s) da autodescoberta
           </summary>
-          <ul className="mt-1 space-y-0.5 pl-4 text-muted-foreground">
-            {result.warnings.map((w: string, i: number) => (
-              <li key={i} className="list-disc break-all">{w}</li>
-            ))}
+          <ul className="mt-2 space-y-2 pl-1 text-muted-foreground">
+            {result.warnings.map((w: string, i: number) => {
+              const parsed = parseGcpWarning(w);
+              return (
+                <li key={i} className="rounded border border-border/50 bg-background/50 p-2">
+                  <div className="font-medium text-foreground">{parsed.title}</div>
+                  {parsed.detail && <div className="mt-0.5">{parsed.detail}</div>}
+                  {parsed.actions.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {parsed.actions.map((a, j) => (
+                        <a
+                          key={j}
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-primary hover:bg-primary/20"
+                        >
+                          {a.label} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground/70">Mensagem original</summary>
+                    <pre className="mt-1 whitespace-pre-wrap break-all text-[10px] opacity-70">{w}</pre>
+                  </details>
+                </li>
+              );
+            })}
           </ul>
         </details>
       )}
