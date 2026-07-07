@@ -12,7 +12,7 @@ import { lovable } from "@/integrations/lovable";
 import quiwiLogo from "@/assets/quiwi-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Quiwi Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Billing OS" }] }),
   component: AuthPage,
 });
 
