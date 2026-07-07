@@ -1272,6 +1272,47 @@ function GeminiAutoDiscover({
   );
 }
 
+function parseGcpWarning(w: string): { title: string; detail?: string; actions: { label: string; url: string }[] } {
+  const actions: { label: string; url: string }[] = [];
+  const urlMatch = w.match(/https?:\/\/[^\s"')]+/g);
+  if (urlMatch) {
+    for (const u of urlMatch) {
+      if (u.includes("console.developers.google.com") || u.includes("console.cloud.google.com")) {
+        actions.push({ label: "Abrir no Console", url: u });
+      }
+    }
+  }
+  const apiDisabled = w.match(/([\w.-]+\.googleapis\.com) API has not been used in project (\d+)/);
+  if (apiDisabled) {
+    const api = apiDisabled[1];
+    const proj = apiDisabled[2];
+    if (!actions.length) {
+      actions.push({
+        label: `Ativar ${api}`,
+        url: `https://console.developers.google.com/apis/api/${api}/overview?project=${proj}`,
+      });
+    }
+    return {
+      title: `API desativada: ${api}`,
+      detail: `Ative essa API no projeto ${proj} e aguarde alguns minutos antes de tentar novamente.`,
+      actions,
+    };
+  }
+  if (/\b403\b/.test(w)) {
+    const label = w.split(":")[0] || "Permissão negada";
+    return {
+      title: `Permissão negada em ${label}`,
+      detail: "A service account não tem permissão suficiente. Rode o script gcloud acima ou conceda os papéis manualmente.",
+      actions,
+    };
+  }
+  if (/\b404\b/.test(w)) {
+    return { title: "Recurso não encontrado", detail: w.slice(0, 200), actions };
+  }
+  const label = w.split(":")[0] || "Aviso";
+  return { title: label, detail: w.slice(label.length + 1, label.length + 240).trim(), actions };
+}
+
 function FieldSelect({
   label,
   value,
