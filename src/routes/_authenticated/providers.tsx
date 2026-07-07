@@ -1232,19 +1232,85 @@ function GeminiAutoDiscover({
       </details>
 
       {result?.warnings?.length > 0 && (
-        <details className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px]">
+        <details className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px]" open>
           <summary className="cursor-pointer text-amber-700 dark:text-amber-400">
             {result.warnings.length} aviso(s) da autodescoberta
           </summary>
-          <ul className="mt-1 space-y-0.5 pl-4 text-muted-foreground">
-            {result.warnings.map((w: string, i: number) => (
-              <li key={i} className="list-disc break-all">{w}</li>
-            ))}
+          <ul className="mt-2 space-y-2 pl-1 text-muted-foreground">
+            {result.warnings.map((w: string, i: number) => {
+              const parsed = parseGcpWarning(w);
+              return (
+                <li key={i} className="rounded border border-border/50 bg-background/50 p-2">
+                  <div className="font-medium text-foreground">{parsed.title}</div>
+                  {parsed.detail && <div className="mt-0.5">{parsed.detail}</div>}
+                  {parsed.actions.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {parsed.actions.map((a: { label: string; url: string }, j: number) => (
+                        <a
+                          key={j}
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-primary hover:bg-primary/20"
+                        >
+                          {a.label} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground/70">Mensagem original</summary>
+                    <pre className="mt-1 whitespace-pre-wrap break-all text-[10px] opacity-70">{w}</pre>
+                  </details>
+                </li>
+              );
+            })}
           </ul>
         </details>
       )}
     </div>
   );
+}
+
+function parseGcpWarning(w: string): { title: string; detail?: string; actions: { label: string; url: string }[] } {
+  const actions: { label: string; url: string }[] = [];
+  const urlMatch = w.match(/https?:\/\/[^\s"')]+/g);
+  if (urlMatch) {
+    for (const u of urlMatch) {
+      if (u.includes("console.developers.google.com") || u.includes("console.cloud.google.com")) {
+        actions.push({ label: "Abrir no Console", url: u });
+      }
+    }
+  }
+  const apiDisabled = w.match(/([\w.-]+\.googleapis\.com) API has not been used in project (\d+)/);
+  if (apiDisabled) {
+    const api = apiDisabled[1];
+    const proj = apiDisabled[2];
+    if (!actions.length) {
+      actions.push({
+        label: `Ativar ${api}`,
+        url: `https://console.developers.google.com/apis/api/${api}/overview?project=${proj}`,
+      });
+    }
+    return {
+      title: `API desativada: ${api}`,
+      detail: `Ative essa API no projeto ${proj} e aguarde alguns minutos antes de tentar novamente.`,
+      actions,
+    };
+  }
+  if (/\b403\b/.test(w)) {
+    const label = w.split(":")[0] || "Permissão negada";
+    return {
+      title: `Permissão negada em ${label}`,
+      detail: "A service account não tem permissão suficiente. Rode o script gcloud acima ou conceda os papéis manualmente.",
+      actions,
+    };
+  }
+  if (/\b404\b/.test(w)) {
+    return { title: "Recurso não encontrado", detail: w.slice(0, 200), actions };
+  }
+  const label = w.split(":")[0] || "Aviso";
+  return { title: label, detail: w.slice(label.length + 1, label.length + 240).trim(), actions };
 }
 
 function FieldSelect({
