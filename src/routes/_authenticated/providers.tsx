@@ -23,8 +23,14 @@ import {
   Wrench,
   Cloud,
   Bot,
+  Upload,
+  Wand2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { discoverGcp } from "@/lib/gcp-discover.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -661,10 +667,43 @@ function ProvidersPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">{schema.apiKeyLabel} *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-muted-foreground">{schema.apiKeyLabel} *</label>
+                    {schema.apiKeyType === "textarea" && (
+                      <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] text-primary hover:underline">
+                        <Upload className="h-3 w-3" /> Enviar arquivo .json
+                        <input
+                          type="file"
+                          accept="application/json,.json"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            if (f.size > 32_000) {
+                              toast.error("Arquivo muito grande (máx. 32KB).");
+                              return;
+                            }
+                            const text = await f.text();
+                            try {
+                              const j = JSON.parse(text);
+                              if (j.type !== "service_account" || !j.private_key || !j.client_email) {
+                                toast.error("JSON inválido: não parece uma service account.");
+                                return;
+                              }
+                            } catch {
+                              toast.error("Arquivo não é JSON válido.");
+                              return;
+                            }
+                            setConnectForm((prev) => ({ ...prev, api_key: text }));
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                   {schema.apiKeyType === "textarea" ? (
                     <textarea
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs min-h-[160px]"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs min-h-[140px]"
                       value={connectForm.api_key}
                       onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
                       placeholder={schema.apiKeyPlaceholder}
@@ -687,20 +726,28 @@ function ProvidersPage() {
                   )}
                 </div>
 
-                {schema.configFields.map((f) => (
-                  <div key={f.key} className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      {f.label} {f.required && "*"}
-                    </label>
-                    <Input
-                      value={connectForm.config[f.key] ?? ""}
-                      onChange={(e) => setConfig(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      required={f.required}
-                    />
-                    {f.helper && <p className="text-[11px] text-muted-foreground">{f.helper}</p>}
-                  </div>
-                ))}
+                {connectProvider && /gemini/i.test(connectProvider.name) ? (
+                  <GeminiAutoDiscover
+                    saJson={connectForm.api_key}
+                    config={connectForm.config}
+                    setConfig={setConfig}
+                  />
+                ) : (
+                  schema.configFields.map((f) => (
+                    <div key={f.key} className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {f.label} {f.required && "*"}
+                      </label>
+                      <Input
+                        value={connectForm.config[f.key] ?? ""}
+                        onChange={(e) => setConfig(f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        required={f.required}
+                      />
+                      {f.helper && <p className="text-[11px] text-muted-foreground">{f.helper}</p>}
+                    </div>
+                  ))
+                )}
 
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
@@ -956,3 +1003,344 @@ function prettyHost(url: string) {
     return url;
   }
 }
+
+// ---------- Gemini autodiscover + gcloud script block ----------
+
+function GeminiAutoDiscover({
+  saJson,
+  config,
+  setConfig,
+}: {
+  saJson: string;
+  config: Record<string, string>;
+  setConfig: (k: string, v: string) => void;
+}) {
+  const discover = useServerFn(discoverGcp);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const gcpProject = config["gcp.gcp_project"] ?? "";
+  const billingId = config["gcp.billing_account_id"] ?? "";
+  const bqProject = config["gcp.bq_project"] ?? "";
+  const bqDataset = config["gcp.bq_dataset"] ?? "";
+  const bqLocation = config["gcp.bq_location"] ?? "US";
+
+  const runDiscover = async () => {
+    if (!saJson.trim()) {
+      toast.error("Cole ou envie o Service Account JSON primeiro.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const r: any = await discover({ data: { service_account_json: saJson } });
+      setResult(r);
+      // Auto-fill obvious defaults
+      if (!gcpProject && r.service_account?.project_id) {
+        setConfig("gcp.gcp_project", r.service_account.project_id);
+      }
+      if (!bqProject && r.service_account?.project_id) {
+        setConfig("gcp.bq_project", r.service_account.project_id);
+      }
+      if (r.billing_accounts?.length === 1 && !billingId) {
+        setConfig("gcp.billing_account_id", r.billing_accounts[0].id);
+      }
+      if (r.detected_tables?.length === 1) {
+        const d = r.detected_tables[0];
+        setConfig("gcp.bq_project", d.bq_project);
+        setConfig("gcp.bq_dataset", d.bq_dataset);
+        setConfig("gcp.billing_account_id", d.billing_account_id);
+        const loc = r.datasets?.find(
+          (x: any) => x.projectId === d.bq_project && x.datasetId === d.bq_dataset,
+        )?.location;
+        if (loc) setConfig("gcp.bq_location", loc);
+        toast.success("Billing export detectado automaticamente.");
+      } else if (r.detected_tables?.length > 1) {
+        toast.info(`${r.detected_tables.length} exports encontrados — escolha um abaixo.`);
+      } else {
+        toast.info("Nenhum billing export encontrado. Use o script gcloud abaixo.");
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha na autodescoberta");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyDetected = (d: any) => {
+    setConfig("gcp.bq_project", d.bq_project);
+    setConfig("gcp.bq_dataset", d.bq_dataset);
+    setConfig("gcp.billing_account_id", d.billing_account_id);
+    const loc = result?.datasets?.find(
+      (x: any) => x.projectId === d.bq_project && x.datasetId === d.bq_dataset,
+    )?.location;
+    if (loc) setConfig("gcp.bq_location", loc);
+  };
+
+  const script = buildGcloudScript({
+    gcpProject: gcpProject || "MEU-PROJETO-GCP",
+    billingId: billingId || "XXXXXX-XXXXXX-XXXXXX",
+    bqProject: bqProject || gcpProject || "MEU-PROJETO-GCP",
+    bqDataset: bqDataset || "billing_export",
+    bqLocation: bqLocation || "US",
+  });
+
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(script);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={runDiscover}
+          disabled={loading}
+          className="gap-1.5"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          {loading ? "Detectando..." : "Autodetectar do JSON"}
+        </Button>
+        {result?.service_account?.client_email && (
+          <span className="truncate text-[11px] text-muted-foreground">
+            SA: {result.service_account.client_email}
+          </span>
+        )}
+      </div>
+
+      {/* GCP Project */}
+      <FieldSelect
+        label="GCP Project (Vertex/Gemini)"
+        required
+        value={gcpProject}
+        onChange={(v) => setConfig("gcp.gcp_project", v)}
+        options={(result?.projects ?? []).map((p: any) => ({ value: p.projectId, label: `${p.name} (${p.projectId})` }))}
+        placeholder="meu-projeto"
+      />
+
+      {/* Billing account */}
+      <FieldSelect
+        label="Billing Account"
+        required
+        value={billingId}
+        onChange={(v) => setConfig("gcp.billing_account_id", v)}
+        options={(result?.billing_accounts ?? []).map((b: any) => ({
+          value: b.id,
+          label: `${b.displayName} — ${b.id}${b.open ? "" : " (fechada)"}`,
+        }))}
+        placeholder="012345-ABCDEF-789012"
+      />
+
+      {/* Detected exports */}
+      {result?.detected_tables?.length > 0 && (
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2 text-xs">
+          <p className="mb-1 font-medium text-emerald-700 dark:text-emerald-400">
+            Exports encontrados:
+          </p>
+          <div className="space-y-1">
+            {result.detected_tables.map((d: any, i: number) => {
+              const selected =
+                d.bq_project === bqProject && d.bq_dataset === bqDataset && d.billing_account_id === billingId;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => applyDetected(d)}
+                  className={`flex w-full items-center justify-between rounded border px-2 py-1 text-left transition ${
+                    selected ? "border-primary bg-primary/10" : "border-border/60 hover:bg-muted"
+                  }`}
+                >
+                  <span className="truncate">
+                    {d.bq_project}.{d.bq_dataset} · {d.billing_account_id}
+                  </span>
+                  {selected && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* BQ Project + Dataset */}
+      <div className="grid grid-cols-2 gap-2">
+        <FieldSelect
+          label="BQ Project"
+          required
+          value={bqProject}
+          onChange={(v) => setConfig("gcp.bq_project", v)}
+          options={Array.from(new Set((result?.datasets ?? []).map((d: any) => d.projectId))).map((p: any) => ({
+            value: p,
+            label: p,
+          }))}
+          placeholder="projeto-billing"
+        />
+        <FieldSelect
+          label="BQ Dataset"
+          required
+          value={bqDataset}
+          onChange={(v) => setConfig("gcp.bq_dataset", v)}
+          options={(result?.datasets ?? [])
+            .filter((d: any) => !bqProject || d.projectId === bqProject)
+            .map((d: any) => ({ value: d.datasetId, label: `${d.datasetId}${d.location ? ` (${d.location})` : ""}` }))}
+          placeholder="billing_export"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Location</label>
+        <Input
+          value={bqLocation}
+          onChange={(e) => setConfig("gcp.bq_location", e.target.value)}
+          placeholder="US"
+          className="h-8"
+        />
+      </div>
+
+      {/* gcloud script */}
+      <details className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+        <summary className="cursor-pointer font-medium">
+          Não tem service account ainda? Script gcloud pronto ↓
+        </summary>
+        <div className="mt-2 space-y-2">
+          <p className="text-muted-foreground">
+            Cole os campos acima, copie e execute no Cloud Shell — cria SA, dá roles e baixa o JSON.
+          </p>
+          <div className="relative">
+            <pre className="max-h-52 overflow-auto rounded bg-background p-2 font-mono text-[10.5px] leading-tight">
+              {script}
+            </pre>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={copyScript}
+              className="absolute right-1 top-1 h-6 gap-1 px-2 text-[10px]"
+            >
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? "Copiado" : "Copiar"}
+            </Button>
+          </div>
+        </div>
+      </details>
+
+      {result?.warnings?.length > 0 && (
+        <details className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px]">
+          <summary className="cursor-pointer text-amber-700 dark:text-amber-400">
+            {result.warnings.length} aviso(s) da autodescoberta
+          </summary>
+          <ul className="mt-1 space-y-0.5 pl-4 text-muted-foreground">
+            {result.warnings.map((w: string, i: number) => (
+              <li key={i} className="list-disc break-all">{w}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function FieldSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">
+        {label} {required && "*"}
+      </label>
+      {options.length > 0 ? (
+        <Select value={value || "__none"} onValueChange={(v) => onChange(v === "__none" ? "" : v)}>
+          <SelectTrigger className="h-8"><SelectValue placeholder={placeholder} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none">— {placeholder ?? "selecionar"} —</SelectItem>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-8"
+          required={required}
+        />
+      )}
+    </div>
+  );
+}
+
+function buildGcloudScript(v: {
+  gcpProject: string;
+  billingId: string;
+  bqProject: string;
+  bqDataset: string;
+  bqLocation: string;
+}) {
+  return `# Rode no Google Cloud Shell (console.cloud.google.com) — leva ~1 min.
+export PROJECT_ID="${v.gcpProject}"
+export BILLING_ID="${v.billingId}"
+export BQ_PROJECT="${v.bqProject}"
+export BQ_DATASET="${v.bqDataset}"
+export BQ_LOCATION="${v.bqLocation}"
+export SA_NAME="billing-os"
+
+gcloud config set project "$PROJECT_ID"
+gcloud services enable bigquery.googleapis.com cloudbilling.googleapis.com \\
+  cloudresourcemanager.googleapis.com monitoring.googleapis.com
+
+# 1) Cria a service account
+gcloud iam service-accounts create "$SA_NAME" \\
+  --display-name="Billing OS"
+export SA_EMAIL="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+
+# 2) Cria o dataset (caso ainda não exista) e permissões no BigQuery
+bq --location="$BQ_LOCATION" mk -d "$BQ_PROJECT:$BQ_DATASET" || true
+gcloud projects add-iam-policy-binding "$BQ_PROJECT" \\
+  --member="serviceAccount:$SA_EMAIL" --role="roles/bigquery.jobUser"
+bq add-iam-policy-binding \\
+  --member="serviceAccount:$SA_EMAIL" --role="roles/bigquery.dataViewer" \\
+  "$BQ_PROJECT:$BQ_DATASET"
+
+# 3) Permissões de billing (para descoberta + budgets)
+gcloud billing accounts add-iam-policy-binding "$BILLING_ID" \\
+  --member="serviceAccount:$SA_EMAIL" --role="roles/billing.viewer"
+
+# 4) Monitoring (métricas do Vertex)
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \\
+  --member="serviceAccount:$SA_EMAIL" --role="roles/monitoring.viewer"
+
+# 5) Baixa a chave JSON
+gcloud iam service-accounts keys create billing-os-key.json \\
+  --iam-account="$SA_EMAIL"
+
+echo ""
+echo "==> Chave salva em billing-os-key.json"
+echo "==> Faça download (menu 'Download File' do Cloud Shell) e envie no Billing OS."
+echo ""
+echo "IMPORTANTE: habilite o Billing Export para BigQuery no console:"
+echo "  https://console.cloud.google.com/billing/$BILLING_ID/export/bigquery"
+echo "  → Dataset: $BQ_PROJECT.$BQ_DATASET"
+`;
+}
+
