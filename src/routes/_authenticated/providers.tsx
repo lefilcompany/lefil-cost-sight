@@ -402,19 +402,31 @@ function ProvidersPage() {
   const connect = useMutation({
     mutationFn: async () => {
       if (!connectProvider) throw new Error("Fornecedor inválido");
+      const schema = getConnectionSchema(connectProvider.name);
       const name = connectForm.name.trim();
       const apiKey = connectForm.api_key.trim();
       if (!name) throw new Error("Nome da conexão é obrigatório");
-      if (!apiKey) throw new Error("API key é obrigatória");
+      if (!apiKey) throw new Error(`${schema.apiKeyLabel} é obrigatório`);
+      for (const f of schema.configFields) {
+        if (f.required && !(connectForm.config[f.key] ?? "").trim()) {
+          throw new Error(`${f.label} é obrigatório`);
+        }
+      }
+      const configObj: Record<string, any> = {};
+      for (const f of schema.configFields) {
+        const v = (connectForm.config[f.key] ?? "").trim();
+        if (v) setDeepKey(configObj, f.key, v);
+      }
       const { data: insertedConnection, error } = await supabase.from("provider_connections").insert({
         provider_id: connectProvider.id,
         platform_id: connectForm.platform_id || null,
         name,
         status: "active",
-        config: {} as any,
+        config: configObj as any,
       }).select("id").single();
       if (error) throw error;
       if (!insertedConnection) throw new Error("Não foi possível criar a conexão");
+
 
       const { error: keyError } = await supabase.rpc("set_connection_api_key", {
         _connection_id: insertedConnection.id,
