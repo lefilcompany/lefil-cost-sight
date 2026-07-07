@@ -73,21 +73,19 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
 
   const token = await getGcpAccessToken(sa, [GCP_SCOPES.bigqueryReadonly]);
 
-  // Sync since last successful sync (bounded to 60d), else last 30d
+  // Always backfill at least 30d; if last_sync is older, go back further (up to 90d).
   const now = new Date();
-  const lookbackDays = 30;
-  const since = conn.last_sync_at
-    ? new Date(Math.max(new Date(conn.last_sync_at).getTime(), now.getTime() - 60 * 86400_000))
-    : new Date(now.getTime() - lookbackDays * 86400_000);
+  const minLookbackMs = 30 * 86400_000;
+  const maxLookbackMs = 90 * 86400_000;
+  const lastSyncMs = conn.last_sync_at ? new Date(conn.last_sync_at).getTime() : 0;
+  const sinceFromLastSync = lastSyncMs ? Math.min(lastSyncMs - 86400_000, now.getTime() - minLookbackMs) : now.getTime() - minLookbackMs;
+  const floor = now.getTime() - maxLookbackMs;
+  const since = new Date(Math.max(sinceFromLastSync, floor));
   const startDate = isoDate(since);
   const endDate = isoDate(now);
 
-  const billingIdEscaped = billingId!.replace(/-/g, "_");
-  const tableIdent = `\`${bqProject}.${bqDataset}.gcp_billing_export_v1_${billingIdEscaped}\``;
-
-  // Note: the export table name uses underscores where the billing account has hyphens? No —
-  // Google keeps hyphens in the table name. We must quote with backticks and preserve hyphens.
   const tableIdentHyphen = `\`${bqProject}.${bqDataset}.gcp_billing_export_v1_${billingId}\``;
+  const tableIdentUnderscore = `\`${bqProject}.${bqDataset}.gcp_billing_export_v1_${billingId!.replace(/-/g, "_")}\``;
 
   const sql = `
     SELECT
@@ -101,13 +99,17 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
     FROM ${tableIdentHyphen}
     WHERE DATE(usage_start_time) BETWEEN DATE('${startDate}') AND DATE('${endDate}')
       AND (
-        service.description LIKE '%Vertex AI%'
-        OR service.description LIKE '%Generative Language%'
-        OR sku.description LIKE '%Gemini%'
+        LOWER(service.description) LIKE '%vertex%'
+        OR LOWER(service.description) LIKE '%generative language%'
+        OR LOWER(service.description) LIKE '%gemini%'
+        OR LOWER(service.description) LIKE '%ai platform%'
+        OR LOWER(sku.description) LIKE '%gemini%'
+        OR LOWER(sku.description) LIKE '%vertex%'
       )
     GROUP BY 1, 2, 3
     ORDER BY 1, 3
   `;
+
 
   let bq;
   try {
@@ -123,7 +125,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
       bq = await bigqueryQuery(token, {
         projectId: bqProject!,
         location: bqLocation,
-        query: sql.replace(tableIdentHyphen, tableIdent),
+        query: sql.replace(tableIdentHyphen, tableIdentUnderscore),
         maximumBytesBilled: "10737418240",
       });
     } else {
