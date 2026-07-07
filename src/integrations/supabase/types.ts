@@ -45,7 +45,7 @@ export type Database = {
           message?: string | null
           metadata?: Json | null
           metric_value?: number | null
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           resolved_at?: string | null
           scope?: string | null
@@ -164,7 +164,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           responsible?: string | null
           status?: string
@@ -220,7 +220,7 @@ export type Database = {
           last_evaluated_at?: string | null
           metric: string
           name: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           scope: string
           scope_id?: string | null
@@ -284,7 +284,7 @@ export type Database = {
           exchange_rate?: number | null
           id?: string
           metadata?: Json | null
-          organization_id: string
+          organization_id?: string
           origin?: string
           owner_user_id?: string | null
           platform_id?: string | null
@@ -360,7 +360,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           id?: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           pinned?: boolean
           title: string
@@ -617,7 +617,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           name: string
-          organization_id: string
+          organization_id?: string
           owner_contact_id?: string | null
           owner_user_id?: string | null
           payment_method?: string | null
@@ -699,7 +699,7 @@ export type Database = {
           id?: string
           included_quantity?: number | null
           included_unit?: string | null
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           plan_name?: string | null
           plan_tier?: string | null
@@ -790,7 +790,7 @@ export type Database = {
           id?: string
           last_sync_at?: string | null
           name: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           platform_id?: string | null
           provider_id: string
@@ -870,7 +870,7 @@ export type Database = {
           invoice_number?: string | null
           issued_at?: string | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           pdf_url?: string | null
           period_end?: string | null
@@ -968,7 +968,7 @@ export type Database = {
           id?: string
           input_tokens?: number
           model?: string
-          organization_id: string
+          organization_id?: string
           output_tokens?: number
           owner_user_id?: string | null
           platform_id?: string | null
@@ -1058,7 +1058,7 @@ export type Database = {
           created_at?: string
           exchange_rate?: number | null
           id?: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -1133,7 +1133,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           status?: string
           updated_at?: string
@@ -1226,7 +1226,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           metadata?: Json | null
-          organization_id: string
+          organization_id?: string
           owner_user_id?: string | null
           provider_id?: string | null
           records_imported?: number | null
@@ -1323,6 +1323,7 @@ export type Database = {
         Args: { _org: string }
         Returns: Database["public"]["Enums"]["org_role"]
       }
+      default_org_id: { Args: never; Returns: string }
       get_connection_api_key: {
         Args: { _connection_id: string }
         Returns: string
