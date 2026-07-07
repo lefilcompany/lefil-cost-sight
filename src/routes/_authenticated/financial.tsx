@@ -63,7 +63,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/financial")({
-  head: () => ({ meta: [{ title: "Painel financeiro — Billing OS" }] }),
+  head: () => ({ meta: [{ title: "Painel financeiro — Quiwi Cost Center" }] }),
   validateSearch: searchSchema,
   component: FinancialDashboard,
 });

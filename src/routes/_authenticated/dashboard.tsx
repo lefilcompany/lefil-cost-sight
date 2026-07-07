@@ -40,7 +40,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Painel geral — Billing OS" }] }),
+  head: () => ({ meta: [{ title: "Painel geral — Quiwi Cost Center" }] }),
   validateSearch: searchSchema,
   component: Dashboard,
 });

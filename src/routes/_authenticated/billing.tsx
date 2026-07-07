@@ -40,7 +40,7 @@ import { fmtDateTime, fmtNumber } from "@/lib/format";
 import { runBillingSync, runBillingSyncAllFn } from "@/lib/billing.functions";
 
 export const Route = createFileRoute("/_authenticated/billing")({
-  head: () => ({ meta: [{ title: "Billing — Billing OS" }] }),
+  head: () => ({ meta: [{ title: "Billing — Quiwi Cost Center" }] }),
   component: BillingPage,
 });
 

@@ -45,7 +45,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Configurações — Billing OS" }] }),
+  head: () => ({ meta: [{ title: "Configurações — Quiwi Cost Center" }] }),
   validateSearch: searchSchema,
   component: SettingsPage,
 });
@@ -278,11 +278,11 @@ function SettingsPage() {
                 <Info className="h-4 w-4" />
                 Sobre
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Billing OS · versão MVP</p>
+              <p className="text-xs text-muted-foreground">Quiwi Cost Center · versão MVP</p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Central de custos e consumo de APIs de IA. Consolida consumo de IA, infraestrutura
+                Centro de inteligência de custos das plataformas Quiwi. Consolida consumo de IA, infraestrutura
                 e serviços em um único painel executivo.
               </p>
               <p>
