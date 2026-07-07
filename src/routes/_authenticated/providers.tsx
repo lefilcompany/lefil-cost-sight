@@ -23,8 +23,14 @@ import {
   Wrench,
   Cloud,
   Bot,
+  Upload,
+  Wand2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { discoverGcp } from "@/lib/gcp-discover.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
