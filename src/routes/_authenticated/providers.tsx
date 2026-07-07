@@ -86,6 +86,134 @@ function metaFor(category: string | null) {
   return CATEGORY_META[category] ?? { icon: Boxes, color: "#64748b" };
 }
 
+// ---------- Per-provider connection schemas ----------
+
+type ConfigField = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  helper?: string;
+  type?: "text" | "textarea" | "password";
+  required?: boolean;
+  defaultValue?: string;
+};
+
+type ConnectionSchema = {
+  apiKeyLabel: string;
+  apiKeyPlaceholder?: string;
+  apiKeyHelper?: string;
+  apiKeyType: "password" | "textarea";
+  configFields: ConfigField[];
+  docsUrl?: string;
+  setupSteps?: string[];
+};
+
+const DEFAULT_SCHEMA: ConnectionSchema = {
+  apiKeyLabel: "API Key",
+  apiKeyPlaceholder: "sk-...",
+  apiKeyType: "password",
+  apiKeyHelper: "A chave é armazenada com segurança no backend.",
+  configFields: [],
+};
+
+const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
+  Firecrawl: {
+    apiKeyLabel: "API Key",
+    apiKeyPlaceholder: "fc-...",
+    apiKeyType: "password",
+    apiKeyHelper: "Encontre em Firecrawl → Settings → API Keys.",
+    configFields: [],
+    docsUrl: "https://www.firecrawl.dev/app/api-keys",
+  },
+  OpenAI: {
+    apiKeyLabel: "Admin key",
+    apiKeyPlaceholder: "sk-admin-...",
+    apiKeyType: "password",
+    apiKeyHelper: "Precisa ser uma Admin key (sk-admin-...) — Settings → Admin keys.",
+    configFields: [
+      {
+        key: "org_id",
+        label: "Organization ID (opcional)",
+        placeholder: "org-...",
+        helper: "Só necessário se você usa múltiplas organizações na conta.",
+      },
+    ],
+    docsUrl: "https://platform.openai.com/settings/organization/admin-keys",
+  },
+  Gemini: {
+    apiKeyLabel: "Service Account JSON",
+    apiKeyPlaceholder: '{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}',
+    apiKeyType: "textarea",
+    apiKeyHelper: "Cole o conteúdo completo do arquivo JSON da service account.",
+    configFields: [
+      {
+        key: "gcp.gcp_project",
+        label: "GCP Project ID (Vertex AI)",
+        placeholder: "meu-projeto",
+        helper: "Projeto onde o Vertex AI/Gemini é usado.",
+        required: true,
+      },
+      {
+        key: "gcp.bq_project",
+        label: "BigQuery Project ID",
+        placeholder: "meu-projeto-billing",
+        helper: "Projeto onde está o dataset do billing export (pode ser o mesmo).",
+        required: true,
+      },
+      {
+        key: "gcp.bq_dataset",
+        label: "BigQuery Dataset",
+        placeholder: "billing_export",
+        required: true,
+      },
+      {
+        key: "gcp.billing_account_id",
+        label: "Billing Account ID",
+        placeholder: "012345-ABCDEF-789012",
+        helper: "Formato XXXXXX-XXXXXX-XXXXXX (com hífens).",
+        required: true,
+      },
+      {
+        key: "gcp.bq_location",
+        label: "Location do dataset",
+        placeholder: "US",
+        defaultValue: "US",
+      },
+    ],
+    docsUrl: "https://cloud.google.com/billing/docs/how-to/export-data-bigquery",
+    setupSteps: [
+      "Habilite o BigQuery billing export (Standard usage cost) no console GCP.",
+      "Crie o dataset em multi-região US ou EU (para backfill retroativo).",
+      "Crie uma service account e dê os papéis: BigQuery Data Viewer no dataset, BigQuery Job User no projeto, Monitoring Viewer no projeto Vertex.",
+      "Faça download da chave JSON e cole aqui.",
+    ],
+  },
+  "Google Gemini": {
+    apiKeyLabel: "Service Account JSON",
+    apiKeyPlaceholder: "{...}",
+    apiKeyType: "textarea",
+    configFields: [],
+  },
+};
+CONNECTION_SCHEMAS["Google Gemini"] = CONNECTION_SCHEMAS.Gemini;
+
+function getConnectionSchema(providerName: string): ConnectionSchema {
+  return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
+}
+
+function setDeepKey(obj: Record<string, any>, path: string, value: any) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i];
+    if (typeof cur[p] !== "object" || cur[p] == null) cur[p] = {};
+    cur = cur[p];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+
+
 function ProvidersPage() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/providers" });
@@ -189,17 +317,22 @@ function ProvidersPage() {
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectProvider, setConnectProvider] = useState<Provider | null>(null);
-  const [connectForm, setConnectForm] = useState<{ name: string; platform_id: string; api_key: string }>({
-    name: "",
-    platform_id: "",
-    api_key: "",
-  });
+  const [connectForm, setConnectForm] = useState<{
+    name: string;
+    platform_id: string;
+    api_key: string;
+    config: Record<string, string>;
+  }>({ name: "", platform_id: "", api_key: "", config: {} });
 
   const openConnect = (p: Provider) => {
     setConnectProvider(p);
-    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "" });
+    const schema = getConnectionSchema(p.name);
+    const config: Record<string, string> = {};
+    schema.configFields.forEach((f) => (config[f.key] = f.defaultValue ?? ""));
+    setConnectForm({ name: `${p.name} — Produção`, platform_id: "", api_key: "", config });
     setConnectOpen(true);
   };
+
 
   const emptyForm = () => ({
     name: "",
@@ -269,19 +402,31 @@ function ProvidersPage() {
   const connect = useMutation({
     mutationFn: async () => {
       if (!connectProvider) throw new Error("Fornecedor inválido");
+      const schema = getConnectionSchema(connectProvider.name);
       const name = connectForm.name.trim();
       const apiKey = connectForm.api_key.trim();
       if (!name) throw new Error("Nome da conexão é obrigatório");
-      if (!apiKey) throw new Error("API key é obrigatória");
+      if (!apiKey) throw new Error(`${schema.apiKeyLabel} é obrigatório`);
+      for (const f of schema.configFields) {
+        if (f.required && !(connectForm.config[f.key] ?? "").trim()) {
+          throw new Error(`${f.label} é obrigatório`);
+        }
+      }
+      const configObj: Record<string, any> = {};
+      for (const f of schema.configFields) {
+        const v = (connectForm.config[f.key] ?? "").trim();
+        if (v) setDeepKey(configObj, f.key, v);
+      }
       const { data: insertedConnection, error } = await supabase.from("provider_connections").insert({
         provider_id: connectProvider.id,
         platform_id: connectForm.platform_id || null,
         name,
         status: "active",
-        config: {} as any,
+        config: configObj as any,
       }).select("id").single();
       if (error) throw error;
       if (!insertedConnection) throw new Error("Não foi possível criar a conexão");
+
 
       const { error: keyError } = await supabase.rpc("set_connection_api_key", {
         _connection_id: insertedConnection.id,
@@ -457,7 +602,7 @@ function ProvidersPage() {
       </div>
 
       <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
               Conectar {connectProvider?.name ?? "fornecedor"}
@@ -466,64 +611,113 @@ function ProvidersPage() {
               Crie uma conexão segura para sincronizar custos deste fornecedor.
             </DialogDescription>
           </DialogHeader>
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              connect.mutate();
-            }}
-          >
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Nome da conexão *</label>
-              <Input
-                value={connectForm.name}
-                onChange={(e) => setConnectForm({ ...connectForm, name: e.target.value })}
-                placeholder="Ex: Produção"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Plataforma (opcional)</label>
-              <Select
-                value={connectForm.platform_id || "__none"}
-                onValueChange={(v) => setConnectForm({ ...connectForm, platform_id: v === "__none" ? "" : v })}
+          {(() => {
+            const schema = connectProvider ? getConnectionSchema(connectProvider.name) : DEFAULT_SCHEMA;
+            const setConfig = (k: string, v: string) =>
+              setConnectForm({ ...connectForm, config: { ...connectForm.config, [k]: v } });
+            return (
+              <form
+                className="space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  connect.mutate();
+                }}
               >
-                <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">Nenhuma</SelectItem>
-                  {platforms.map((pl) => (
-                    <SelectItem key={pl.id} value={pl.id}>{pl.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">API Key *</label>
-              <Input
-                type="password"
-                value={connectForm.api_key}
-                onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
-                placeholder="sk-..."
-                autoComplete="off"
-                required
-              />
-              <p className="text-[11px] text-muted-foreground">
-                A chave é armazenada com segurança no backend e usada para sincronizar custos.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={connect.isPending} className="gap-1.5">
-                <Plug className="h-4 w-4" />
-                {connect.isPending ? "Conectando..." : "Conectar"}
-              </Button>
-            </DialogFooter>
-          </form>
+                {schema.setupSteps && schema.setupSteps.length > 0 && (
+                  <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs">
+                    <p className="mb-1.5 font-medium text-foreground">Antes de conectar</p>
+                    <ol className="list-decimal space-y-0.5 pl-4 text-muted-foreground">
+                      {schema.setupSteps.map((s, i) => <li key={i}>{s}</li>)}
+                    </ol>
+                    {schema.docsUrl && (
+                      <a href={schema.docsUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-primary hover:underline">
+                        <ExternalLink className="h-3 w-3" /> Documentação oficial
+                      </a>
+                    )}
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Nome da conexão *</label>
+                  <Input
+                    value={connectForm.name}
+                    onChange={(e) => setConnectForm({ ...connectForm, name: e.target.value })}
+                    placeholder="Ex: Produção"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Plataforma (opcional)</label>
+                  <Select
+                    value={connectForm.platform_id || "__none"}
+                    onValueChange={(v) => setConnectForm({ ...connectForm, platform_id: v === "__none" ? "" : v })}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Nenhuma</SelectItem>
+                      {platforms.map((pl) => (
+                        <SelectItem key={pl.id} value={pl.id}>{pl.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">{schema.apiKeyLabel} *</label>
+                  {schema.apiKeyType === "textarea" ? (
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs min-h-[160px]"
+                      value={connectForm.api_key}
+                      onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
+                      placeholder={schema.apiKeyPlaceholder}
+                      autoComplete="off"
+                      spellCheck={false}
+                      required
+                    />
+                  ) : (
+                    <Input
+                      type="password"
+                      value={connectForm.api_key}
+                      onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
+                      placeholder={schema.apiKeyPlaceholder}
+                      autoComplete="off"
+                      required
+                    />
+                  )}
+                  {schema.apiKeyHelper && (
+                    <p className="text-[11px] text-muted-foreground">{schema.apiKeyHelper}</p>
+                  )}
+                </div>
+
+                {schema.configFields.map((f) => (
+                  <div key={f.key} className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      {f.label} {f.required && "*"}
+                    </label>
+                    <Input
+                      value={connectForm.config[f.key] ?? ""}
+                      onChange={(e) => setConfig(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      required={f.required}
+                    />
+                    {f.helper && <p className="text-[11px] text-muted-foreground">{f.helper}</p>}
+                  </div>
+                ))}
+
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={connect.isPending} className="gap-1.5">
+                    <Plug className="h-4 w-4" />
+                    {connect.isPending ? "Conectando..." : "Conectar"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </AppShell>
   );
 }
+
 
 
 function ProviderCard({

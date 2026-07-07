@@ -145,24 +145,19 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   };
 }
 
-async function syncGCPBilling(conn: any, _rate: number): Promise<SyncOutcome> {
-  // Google Cloud Billing (Gemini) requires BigQuery billing export + service account.
-  // This is a placeholder that reports the required setup. Full implementation
-  // requires JWT signing with a service account and querying BigQuery jobs.query.
-  return {
-    status: "skipped",
-    records: 0,
-    message:
-      "GCP Billing (Gemini) requer exportação BigQuery + service account. Envie os dados manualmente em /costs ou solicite a implementação completa.",
-  };
+async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
+  const { syncGeminiBilling } = await import("./gemini-billing.server");
+  return syncGeminiBilling(conn, rate);
 }
+
 
 const HANDLERS: Record<string, (c: any, r: number) => Promise<SyncOutcome>> = {
   Firecrawl: syncFirecrawl,
   OpenAI: syncOpenAI,
-  Gemini: syncGCPBilling,
-  "Google Gemini": syncGCPBilling,
+  Gemini: syncGemini,
+  "Google Gemini": syncGemini,
 };
+
 
 export async function runSyncForConnection(connectionId: string) {
   const { data: conn, error: connErr } = await supabaseAdmin
