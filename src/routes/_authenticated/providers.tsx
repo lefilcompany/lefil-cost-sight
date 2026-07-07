@@ -693,20 +693,28 @@ function ProvidersPage() {
                   )}
                 </div>
 
-                {schema.configFields.map((f) => (
-                  <div key={f.key} className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      {f.label} {f.required && "*"}
-                    </label>
-                    <Input
-                      value={connectForm.config[f.key] ?? ""}
-                      onChange={(e) => setConfig(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      required={f.required}
-                    />
-                    {f.helper && <p className="text-[11px] text-muted-foreground">{f.helper}</p>}
-                  </div>
-                ))}
+                {connectProvider && /gemini/i.test(connectProvider.name) ? (
+                  <GeminiAutoDiscover
+                    saJson={connectForm.api_key}
+                    config={connectForm.config}
+                    setConfig={setConfig}
+                  />
+                ) : (
+                  schema.configFields.map((f) => (
+                    <div key={f.key} className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {f.label} {f.required && "*"}
+                      </label>
+                      <Input
+                        value={connectForm.config[f.key] ?? ""}
+                        onChange={(e) => setConfig(f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        required={f.required}
+                      />
+                      {f.helper && <p className="text-[11px] text-muted-foreground">{f.helper}</p>}
+                    </div>
+                  ))
+                )}
 
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
