@@ -125,7 +125,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
       bq = await bigqueryQuery(token, {
         projectId: bqProject!,
         location: bqLocation,
-        query: sql.replace(tableIdentHyphen, tableIdent),
+        query: sql.replace(tableIdentHyphen, tableIdentUnderscore),
         maximumBytesBilled: "10737418240",
       });
     } else {
