@@ -86,6 +86,134 @@ function metaFor(category: string | null) {
   return CATEGORY_META[category] ?? { icon: Boxes, color: "#64748b" };
 }
 
+// ---------- Per-provider connection schemas ----------
+
+type ConfigField = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  helper?: string;
+  type?: "text" | "textarea" | "password";
+  required?: boolean;
+  defaultValue?: string;
+};
+
+type ConnectionSchema = {
+  apiKeyLabel: string;
+  apiKeyPlaceholder?: string;
+  apiKeyHelper?: string;
+  apiKeyType: "password" | "textarea";
+  configFields: ConfigField[];
+  docsUrl?: string;
+  setupSteps?: string[];
+};
+
+const DEFAULT_SCHEMA: ConnectionSchema = {
+  apiKeyLabel: "API Key",
+  apiKeyPlaceholder: "sk-...",
+  apiKeyType: "password",
+  apiKeyHelper: "A chave é armazenada com segurança no backend.",
+  configFields: [],
+};
+
+const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
+  Firecrawl: {
+    apiKeyLabel: "API Key",
+    apiKeyPlaceholder: "fc-...",
+    apiKeyType: "password",
+    apiKeyHelper: "Encontre em Firecrawl → Settings → API Keys.",
+    configFields: [],
+    docsUrl: "https://www.firecrawl.dev/app/api-keys",
+  },
+  OpenAI: {
+    apiKeyLabel: "Admin key",
+    apiKeyPlaceholder: "sk-admin-...",
+    apiKeyType: "password",
+    apiKeyHelper: "Precisa ser uma Admin key (sk-admin-...) — Settings → Admin keys.",
+    configFields: [
+      {
+        key: "org_id",
+        label: "Organization ID (opcional)",
+        placeholder: "org-...",
+        helper: "Só necessário se você usa múltiplas organizações na conta.",
+      },
+    ],
+    docsUrl: "https://platform.openai.com/settings/organization/admin-keys",
+  },
+  Gemini: {
+    apiKeyLabel: "Service Account JSON",
+    apiKeyPlaceholder: '{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}',
+    apiKeyType: "textarea",
+    apiKeyHelper: "Cole o conteúdo completo do arquivo JSON da service account.",
+    configFields: [
+      {
+        key: "gcp.gcp_project",
+        label: "GCP Project ID (Vertex AI)",
+        placeholder: "meu-projeto",
+        helper: "Projeto onde o Vertex AI/Gemini é usado.",
+        required: true,
+      },
+      {
+        key: "gcp.bq_project",
+        label: "BigQuery Project ID",
+        placeholder: "meu-projeto-billing",
+        helper: "Projeto onde está o dataset do billing export (pode ser o mesmo).",
+        required: true,
+      },
+      {
+        key: "gcp.bq_dataset",
+        label: "BigQuery Dataset",
+        placeholder: "billing_export",
+        required: true,
+      },
+      {
+        key: "gcp.billing_account_id",
+        label: "Billing Account ID",
+        placeholder: "012345-ABCDEF-789012",
+        helper: "Formato XXXXXX-XXXXXX-XXXXXX (com hífens).",
+        required: true,
+      },
+      {
+        key: "gcp.bq_location",
+        label: "Location do dataset",
+        placeholder: "US",
+        defaultValue: "US",
+      },
+    ],
+    docsUrl: "https://cloud.google.com/billing/docs/how-to/export-data-bigquery",
+    setupSteps: [
+      "Habilite o BigQuery billing export (Standard usage cost) no console GCP.",
+      "Crie o dataset em multi-região US ou EU (para backfill retroativo).",
+      "Crie uma service account e dê os papéis: BigQuery Data Viewer no dataset, BigQuery Job User no projeto, Monitoring Viewer no projeto Vertex.",
+      "Faça download da chave JSON e cole aqui.",
+    ],
+  },
+  "Google Gemini": {
+    apiKeyLabel: "Service Account JSON",
+    apiKeyPlaceholder: "{...}",
+    apiKeyType: "textarea",
+    configFields: [],
+  },
+};
+CONNECTION_SCHEMAS["Google Gemini"] = CONNECTION_SCHEMAS.Gemini;
+
+function getConnectionSchema(providerName: string): ConnectionSchema {
+  return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
+}
+
+function setDeepKey(obj: Record<string, any>, path: string, value: any) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i];
+    if (typeof cur[p] !== "object" || cur[p] == null) cur[p] = {};
+    cur = cur[p];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+
+
 function ProvidersPage() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/providers" });
