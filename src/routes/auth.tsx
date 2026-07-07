@@ -113,7 +113,7 @@ function AuthPage() {
         </div>
 
         <div className="relative text-[11px] text-[#2f4638]">
-          © {new Date().getFullYear()} Quiwi · Sistema interno
+          © {new Date().getFullYear()} Billing OS
         </div>
       </div>
 
@@ -163,7 +163,7 @@ function AuthPage() {
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email" type="email" placeholder="voce@quiwi.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email" type="email" placeholder="voce@empresa.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -182,7 +182,7 @@ function AuthPage() {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email2" className="text-xs font-medium">E-mail</Label>
-                  <Input id="email2" type="email" placeholder="voce@quiwi.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  <Input id="email2" type="email" placeholder="voce@empresa.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2" className="text-xs font-medium">Senha</Label>
@@ -196,7 +196,7 @@ function AuthPage() {
           </Tabs>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Ao continuar você concorda com as políticas internas da Quiwi.
+            Controle todos os seus custos de tecnologia em um único lugar.
           </p>
         </div>
       </div>
