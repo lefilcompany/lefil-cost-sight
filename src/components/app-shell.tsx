@@ -9,14 +9,22 @@ import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 
 const CRUMBS: Record<string, string> = {
-  dashboard: "Painel geral",
+  dashboard: "Visão geral",
   financial: "Financeiro",
   platforms: "Plataformas",
-  providers: "Fornecedores",
+  providers: "Provedores",
   clients: "Clientes",
   costs: "Custos",
+  consumption: "Consumo",
+  projects: "Projetos",
+  skus: "Modelos e SKUs",
+  budgets: "Orçamentos",
+  forecasts: "Projeções",
+  reports: "Relatórios",
   syncs: "Sincronizações",
   alerts: "Alertas",
+  team: "Equipe",
+  billing: "Billing",
   settings: "Configurações",
 };
 
@@ -70,7 +78,7 @@ export function AppShell({
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl">
             <SidebarTrigger className="h-8 w-8" />
             <nav className="hidden items-center gap-1.5 text-[12px] text-muted-foreground md:flex">
-              <Link to="/dashboard" className="hover:text-foreground">Quiwi</Link>
+              <Link to="/dashboard" className="hover:text-foreground">Billing OS</Link>
               {segments.map((seg, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   <ChevronRight className="h-3 w-3 opacity-50" />

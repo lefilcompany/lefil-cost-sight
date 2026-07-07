@@ -12,14 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSyncsRouteImport } from './routes/_authenticated/syncs'
+import { Route as AuthenticatedSkusRouteImport } from './routes/_authenticated/skus'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedProvidersRouteImport } from './routes/_authenticated/providers'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
+import { Route as AuthenticatedForecastsRouteImport } from './routes/_authenticated/forecasts'
 import { Route as AuthenticatedFinancialRouteImport } from './routes/_authenticated/financial'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/costs'
+import { Route as AuthenticatedConsumptionRouteImport } from './routes/_authenticated/consumption'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
@@ -41,9 +48,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSyncsRoute = AuthenticatedSyncsRouteImport.update({
   id: '/syncs',
   path: '/syncs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSkusRoute = AuthenticatedSkusRouteImport.update({
+  id: '/skus',
+  path: '/skus',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -51,14 +68,29 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProvidersRoute = AuthenticatedProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPlatformsRoute = AuthenticatedPlatformsRouteImport.update({
   id: '/platforms',
   path: '/platforms',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedForecastsRoute = AuthenticatedForecastsRouteImport.update({
+  id: '/forecasts',
+  path: '/forecasts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFinancialRoute = AuthenticatedFinancialRouteImport.update({
@@ -76,9 +108,20 @@ const AuthenticatedCostsRoute = AuthenticatedCostsRouteImport.update({
   path: '/costs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConsumptionRoute =
+  AuthenticatedConsumptionRouteImport.update({
+    id: '/consumption',
+    path: '/consumption',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBudgetsRoute = AuthenticatedBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
@@ -119,14 +162,21 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/budgets': typeof AuthenticatedBudgetsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
+  '/consumption': typeof AuthenticatedConsumptionRoute
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
+  '/forecasts': typeof AuthenticatedForecastsRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/providers': typeof AuthenticatedProvidersRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/skus': typeof AuthenticatedSkusRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
@@ -137,14 +187,21 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/budgets': typeof AuthenticatedBudgetsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
+  '/consumption': typeof AuthenticatedConsumptionRoute
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
+  '/forecasts': typeof AuthenticatedForecastsRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/providers': typeof AuthenticatedProvidersRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/skus': typeof AuthenticatedSkusRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
@@ -157,14 +214,21 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
+  '/_authenticated/consumption': typeof AuthenticatedConsumptionRoute
   '/_authenticated/costs': typeof AuthenticatedCostsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/financial': typeof AuthenticatedFinancialRoute
+  '/_authenticated/forecasts': typeof AuthenticatedForecastsRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/providers': typeof AuthenticatedProvidersRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/skus': typeof AuthenticatedSkusRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
@@ -177,14 +241,21 @@ export interface FileRouteTypes {
     | '/auth'
     | '/alerts'
     | '/billing'
+    | '/budgets'
     | '/clients'
+    | '/consumption'
     | '/costs'
     | '/dashboard'
     | '/financial'
+    | '/forecasts'
     | '/platforms'
+    | '/projects'
     | '/providers'
+    | '/reports'
     | '/settings'
+    | '/skus'
     | '/syncs'
+    | '/team'
     | '/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
@@ -195,14 +266,21 @@ export interface FileRouteTypes {
     | '/auth'
     | '/alerts'
     | '/billing'
+    | '/budgets'
     | '/clients'
+    | '/consumption'
     | '/costs'
     | '/dashboard'
     | '/financial'
+    | '/forecasts'
     | '/platforms'
+    | '/projects'
     | '/providers'
+    | '/reports'
     | '/settings'
+    | '/skus'
     | '/syncs'
+    | '/team'
     | '/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
@@ -214,14 +292,21 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/alerts'
     | '/_authenticated/billing'
+    | '/_authenticated/budgets'
     | '/_authenticated/clients'
+    | '/_authenticated/consumption'
     | '/_authenticated/costs'
     | '/_authenticated/dashboard'
     | '/_authenticated/financial'
+    | '/_authenticated/forecasts'
     | '/_authenticated/platforms'
+    | '/_authenticated/projects'
     | '/_authenticated/providers'
+    | '/_authenticated/reports'
     | '/_authenticated/settings'
+    | '/_authenticated/skus'
     | '/_authenticated/syncs'
+    | '/_authenticated/team'
     | '/_authenticated/clients/$id'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
@@ -260,11 +345,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/syncs': {
       id: '/_authenticated/syncs'
       path: '/syncs'
       fullPath: '/syncs'
       preLoaderRoute: typeof AuthenticatedSyncsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/skus': {
+      id: '/_authenticated/skus'
+      path: '/skus'
+      fullPath: '/skus'
+      preLoaderRoute: typeof AuthenticatedSkusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -274,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/providers': {
       id: '/_authenticated/providers'
       path: '/providers'
@@ -281,11 +387,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProvidersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/platforms': {
       id: '/_authenticated/platforms'
       path: '/platforms'
       fullPath: '/platforms'
       preLoaderRoute: typeof AuthenticatedPlatformsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/forecasts': {
+      id: '/_authenticated/forecasts'
+      path: '/forecasts'
+      fullPath: '/forecasts'
+      preLoaderRoute: typeof AuthenticatedForecastsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/financial': {
@@ -309,11 +429,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCostsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/consumption': {
+      id: '/_authenticated/consumption'
+      path: '/consumption'
+      fullPath: '/consumption'
+      preLoaderRoute: typeof AuthenticatedConsumptionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients': {
       id: '/_authenticated/clients'
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/budgets': {
+      id: '/_authenticated/budgets'
+      path: '/budgets'
+      fullPath: '/budgets'
+      preLoaderRoute: typeof AuthenticatedBudgetsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/billing': {
@@ -375,27 +509,41 @@ const AuthenticatedClientsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedBudgetsRoute: typeof AuthenticatedBudgetsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
+  AuthenticatedConsumptionRoute: typeof AuthenticatedConsumptionRoute
   AuthenticatedCostsRoute: typeof AuthenticatedCostsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinancialRoute: typeof AuthenticatedFinancialRoute
+  AuthenticatedForecastsRoute: typeof AuthenticatedForecastsRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedProvidersRoute: typeof AuthenticatedProvidersRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSkusRoute: typeof AuthenticatedSkusRoute
   AuthenticatedSyncsRoute: typeof AuthenticatedSyncsRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedBudgetsRoute: AuthenticatedBudgetsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
+  AuthenticatedConsumptionRoute: AuthenticatedConsumptionRoute,
   AuthenticatedCostsRoute: AuthenticatedCostsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinancialRoute: AuthenticatedFinancialRoute,
+  AuthenticatedForecastsRoute: AuthenticatedForecastsRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedProvidersRoute: AuthenticatedProvidersRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSkusRoute: AuthenticatedSkusRoute,
   AuthenticatedSyncsRoute: AuthenticatedSyncsRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
