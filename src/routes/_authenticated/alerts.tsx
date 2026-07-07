@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtDateTime, fmtBRL, fmtNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
-  head: () => ({ meta: [{ title: "Alertas — Quiwi Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Alertas — Billing OS" }] }),
   component: AlertsPage,
 });
 

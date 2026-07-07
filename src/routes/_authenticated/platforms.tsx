@@ -51,7 +51,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/platforms")({
-  head: () => ({ meta: [{ title: "Plataformas — Quiwi Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Plataformas — Billing OS" }] }),
   validateSearch: searchSchema,
   component: PlatformsPage,
 });
@@ -454,7 +454,7 @@ function PlatformsPage() {
                   <p className="text-xs text-muted-foreground">
                     {activeFilters > 0 || platforms.length > 0
                       ? "Ajuste os filtros ou limpe a busca."
-                      : "Plataformas agrupam custos e fornecedores por produto Quiwi."}
+                      : "Plataformas agrupam custos e provedores por produto ou linha de negócio."}
                   </p>
                   {activeFilters > 0 ? (
                     <Button variant="outline" size="sm" onClick={clearFilters} className="gap-1.5">

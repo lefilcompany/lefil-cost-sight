@@ -42,7 +42,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/syncs")({
-  head: () => ({ meta: [{ title: "Sincronizações — Quiwi Cost Center" }] }),
+  head: () => ({ meta: [{ title: "Sincronizações — Billing OS" }] }),
   validateSearch: searchSchema,
   component: SyncsPage,
 });
