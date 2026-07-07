@@ -667,10 +667,43 @@ function ProvidersPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">{schema.apiKeyLabel} *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-muted-foreground">{schema.apiKeyLabel} *</label>
+                    {schema.apiKeyType === "textarea" && (
+                      <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] text-primary hover:underline">
+                        <Upload className="h-3 w-3" /> Enviar arquivo .json
+                        <input
+                          type="file"
+                          accept="application/json,.json"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            if (f.size > 32_000) {
+                              toast.error("Arquivo muito grande (máx. 32KB).");
+                              return;
+                            }
+                            const text = await f.text();
+                            try {
+                              const j = JSON.parse(text);
+                              if (j.type !== "service_account" || !j.private_key || !j.client_email) {
+                                toast.error("JSON inválido: não parece uma service account.");
+                                return;
+                              }
+                            } catch {
+                              toast.error("Arquivo não é JSON válido.");
+                              return;
+                            }
+                            setConnectForm((prev) => ({ ...prev, api_key: text }));
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                   {schema.apiKeyType === "textarea" ? (
                     <textarea
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs min-h-[160px]"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs min-h-[140px]"
                       value={connectForm.api_key}
                       onChange={(e) => setConnectForm({ ...connectForm, api_key: e.target.value })}
                       placeholder={schema.apiKeyPlaceholder}
