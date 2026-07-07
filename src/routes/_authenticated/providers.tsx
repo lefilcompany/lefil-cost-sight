@@ -1245,7 +1245,7 @@ function GeminiAutoDiscover({
                   {parsed.detail && <div className="mt-0.5">{parsed.detail}</div>}
                   {parsed.actions.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {parsed.actions.map((a, j) => (
+                      {parsed.actions.map((a: { label: string; url: string }, j: number) => (
                         <a
                           key={j}
                           href={a.url}
