@@ -1045,7 +1045,7 @@ function ProviderCard({
         })()}
 
         {/* Gradiente preto sobre a imagem */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent" />
 
         {/* Status badge */}
         <div className="absolute right-3 top-3">
