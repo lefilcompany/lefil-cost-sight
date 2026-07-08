@@ -619,9 +619,14 @@ function ProvidersPage() {
                 </Button>
               )}
 
-              <span className="ml-auto text-xs text-muted-foreground">
-                {fmtNumber(filtered.length)} de {fmtNumber(providers.length)}
-              </span>
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <Button size="sm" onClick={() => setPickerOpen(true)} className="h-9 gap-1.5">
+                  <Plus className="h-3.5 w-3.5" /> Novo fornecedor
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {fmtNumber(filtered.length)} de {fmtNumber(providers.length)}
+                </span>
+              </div>
             </div>
 
             {isLoading ? (
