@@ -36,8 +36,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { runProviderSync } from "@/lib/sync.functions";
+import { getFirecrawlUsage } from "@/lib/firecrawl-usage.functions";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { Progress } from "@/components/ui/progress";
+
 
 export const Route = createFileRoute("/_authenticated/providers/$id")({
   head: () => ({ meta: [{ title: "Detalhes do fornecedor — Quiwi" }] }),
@@ -84,6 +87,8 @@ function ProviderDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const syncFn = useServerFn(runProviderSync);
+  const firecrawlUsageFn = useServerFn(getFirecrawlUsage);
+
 
   const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ["provider", id],
@@ -135,6 +140,18 @@ function ProviderDetailPage() {
       return data ?? [];
     },
   });
+
+  const isFirecrawl = (provider?.name ?? "").toLowerCase() === "firecrawl";
+  const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
+  const firecrawlUsage = useQuery({
+    queryKey: ["firecrawl-usage", activeConnId],
+    queryFn: async () => firecrawlUsageFn({ data: { connection_id: activeConnId! } }),
+    enabled: isFirecrawl && !!activeConnId,
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+
 
   const [renameOpen, setRenameOpen] = useState<Connection | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -249,6 +266,15 @@ function ProviderDetailPage() {
           <Kpi label="Syncs OK" value={fmtNumber(successCount)} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} />
           <Kpi label="Syncs com erro" value={fmtNumber(errorCount)} tone={errorCount ? "warn" : "neutral"} icon={<XCircle className="h-4 w-4" />} />
         </div>
+
+        {isFirecrawl && activeConnId && (
+          <FirecrawlUsageCard
+            query={firecrawlUsage}
+            onRefresh={() => firecrawlUsage.refetch()}
+          />
+        )}
+
+
 
         <Card className="surface-elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -513,3 +539,124 @@ function ProviderDetailPage() {
     </AppShell>
   );
 }
+
+function fmtInt(n: number) {
+  return new Intl.NumberFormat("pt-BR").format(Math.round(n));
+}
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+function FirecrawlUsageCard({
+  query,
+  onRefresh,
+}: {
+  query: ReturnType<typeof useQuery<any, any>>;
+  onRefresh: () => void;
+}) {
+  const usage = query.data as
+    | {
+        credits: { used: number; remaining: number; total: number };
+        tokens: { used: number; remaining: number; total: number };
+        billing_period: { start: string | null; end: string | null };
+        plan_name: string | null;
+      }
+    | undefined;
+
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <div className="min-w-0">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Activity className="h-4 w-4" /> Uso do plano Firecrawl
+          </CardTitle>
+          {usage?.billing_period.start && usage.billing_period.end && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ciclo: {fmtDate(usage.billing_period.start)} → {fmtDate(usage.billing_period.end)}
+              {usage.plan_name ? ` · ${usage.plan_name}` : ""}
+            </p>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={onRefresh}
+          disabled={query.isFetching}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${query.isFetching ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Consultando Firecrawl..." />
+        ) : query.error ? (
+          <p className="text-sm text-destructive">
+            Falha ao consultar Firecrawl: {String((query.error as any)?.message ?? query.error)}
+          </p>
+        ) : !usage ? (
+          <p className="text-sm text-muted-foreground">Sem dados.</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <UsageBlock
+              label="Créditos do plano"
+              used={usage.credits.used}
+              remaining={usage.credits.remaining}
+              total={usage.credits.total}
+              unit="créditos"
+            />
+            <UsageBlock
+              label="Tokens (1 crédito ≈ 15 tokens)"
+              used={usage.tokens.used}
+              remaining={usage.tokens.remaining}
+              total={usage.tokens.total}
+              unit="tokens"
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UsageBlock({
+  label,
+  used,
+  remaining,
+  total,
+  unit,
+}: {
+  label: string;
+  used: number;
+  remaining: number;
+  total: number;
+  unit: string;
+}) {
+  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="font-numeric text-xs text-muted-foreground">{pct.toFixed(1)}%</p>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-numeric text-2xl font-semibold tracking-tight">{fmtInt(used)}</span>
+        <span className="text-xs text-muted-foreground">/ {fmtInt(total)} {unit}</span>
+      </div>
+      <Progress value={pct} className="mt-3 h-2" />
+      <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+        <span>Usados: <span className="font-numeric text-foreground">{fmtInt(used)}</span></span>
+        <span>Restantes: <span className="font-numeric text-foreground">{fmtInt(remaining)}</span></span>
+      </div>
+    </div>
+  );
+}
+
