@@ -1203,6 +1203,42 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_billing_snapshots: {
         Row: {
           billing_cycle: string | null
@@ -2001,6 +2037,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: { Args: { _user_id: string }; Returns: undefined }
+      block_user: { Args: { _user_id: string }; Returns: undefined }
       clear_connection_api_key: {
         Args: { _connection_id: string }
         Returns: undefined
@@ -2018,6 +2056,7 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: string
       }
+      has_active_access: { Args: { _user_id: string }; Returns: boolean }
       has_org_role: {
         Args: {
           _org: string
