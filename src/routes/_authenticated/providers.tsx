@@ -275,6 +275,12 @@ const PROVIDER_HERO_BG: Record<string, string> = {
   Firecrawl: "#f97316",
 };
 
+// Padding do logo dentro do hero — menor padding faz a logo parecer maior.
+const PROVIDER_LOGO_PADDING: Record<string, string> = {
+  ElevenLabs: "p-2",
+  "Google Gemini": "p-2",
+};
+
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
   OpenAI: "openai.com",
   "Google Gemini": "gemini.google.com",
@@ -1032,7 +1038,9 @@ function ProviderCard({
               src={logo}
               alt=""
               aria-hidden
-              className="absolute inset-0 h-full w-full object-contain object-center p-6 opacity-90 transition duration-500 group-hover:scale-105"
+              className={`absolute inset-0 h-full w-full object-contain object-center ${
+                PROVIDER_LOGO_PADDING[provider.name] ?? "p-6"
+              } opacity-90 transition duration-500 group-hover:scale-105`}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
