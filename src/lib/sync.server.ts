@@ -67,6 +67,11 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
   const start = billingPeriodStart ? new Date(billingPeriodStart) : new Date(now.getFullYear(), now.getMonth(), 1);
   const end = billingPeriodEnd ? new Date(billingPeriodEnd) : now;
 
+  const cfg = (conn.config ?? {}) as any;
+  const pricePer1k = Number(cfg.usd_per_1k_credits ?? 0);
+  const costUsd = pricePer1k > 0 ? (usedCredits / 1000) * pricePer1k : 0;
+  const costBrl = costUsd * rate;
+
   await supabaseAdmin.from("provider_usage_syncs").insert({
     provider_id: conn.provider_id,
     platform_id: conn.platform_id,
@@ -74,9 +79,9 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
     period_end: isoDate(end),
     usage_quantity: usedCredits,
     usage_unit: "credits",
-    cost_usd: 0,
+    cost_usd: costUsd,
     exchange_rate: rate,
-    cost_brl: 0,
+    cost_brl: costBrl,
     raw_response: {
       credits,
       tokens,
@@ -86,18 +91,51 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
         credits: { used: usedCredits, remaining: remainingCredits, total: totalCredits },
         tokens: { used: usedTokens, remaining: remainingTokens, total: totalTokens },
         billing_period: { start: billingPeriodStart, end: billingPeriodEnd },
+        pricing: { usd_per_1k_credits: pricePer1k, cost_usd: costUsd },
       },
     },
   });
 
+  // Upsert one cost_entries row per (connection, billing period) so o dashboard/financeiro reflete o Firecrawl.
+  if (costUsd > 0) {
+    const dayIso = isoDate(start);
+    const description = `Firecrawl — ciclo ${isoDate(start)}→${isoDate(end)}`;
+    await supabaseAdmin
+      .from("cost_entries")
+      .delete()
+      .eq("provider_id", conn.provider_id)
+      .eq("origin", "api")
+      .contains("metadata", { connection_id: conn.id, source: "firecrawl_credits", billing_period_start: isoDate(start) });
+    await supabaseAdmin.from("cost_entries").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      description,
+      entry_date: dayIso,
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      origin: "api",
+      metadata: {
+        connection_id: conn.id,
+        source: "firecrawl_credits",
+        billing_period_start: isoDate(start),
+        billing_period_end: isoDate(end),
+        used_credits: usedCredits,
+        usd_per_1k_credits: pricePer1k,
+      },
+    });
+  }
+
   return {
     status: "success",
     records: 1,
-    message: `Créditos: ${usedCredits.toLocaleString("pt-BR")}/${totalCredits.toLocaleString("pt-BR")} · Tokens: ${usedTokens.toLocaleString("pt-BR")}/${totalTokens.toLocaleString("pt-BR")}`,
+    message: `Créditos: ${usedCredits.toLocaleString("pt-BR")}/${totalCredits.toLocaleString("pt-BR")} · Tokens: ${usedTokens.toLocaleString("pt-BR")}/${totalTokens.toLocaleString("pt-BR")}${costUsd > 0 ? ` · ~US$ ${costUsd.toFixed(2)}` : ""}`,
     meta: {
       credits: { used: usedCredits, remaining: remainingCredits, total: totalCredits },
       tokens: { used: usedTokens, remaining: remainingTokens, total: totalTokens },
       billing_period: { start: billingPeriodStart, end: billingPeriodEnd },
+      cost_usd: costUsd,
+
     },
   };
 }

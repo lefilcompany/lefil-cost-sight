@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate } from "@/lib/format";
+import { useAutoSync } from "@/hooks/use-auto-sync";
+
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd"] as const;
 type Period = (typeof PERIODS)[number];
@@ -117,10 +119,12 @@ function periodRange(period: Period): { start: string; end: string; prevStart: s
 }
 
 function Dashboard() {
+  useAutoSync(["dashboard-entries", "dashboard-dims"]);
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: entries = [], isLoading } = useQuery({ queryKey: ["dashboard-entries"], queryFn: fetchAll });
   const { data: dims } = useQuery({ queryKey: ["dashboard-dims"], queryFn: fetchDims });
+
 
   const range = useMemo(() => periodRange(search.period), [search.period]);
 
