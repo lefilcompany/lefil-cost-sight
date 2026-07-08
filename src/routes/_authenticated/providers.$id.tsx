@@ -87,6 +87,8 @@ function ProviderDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const syncFn = useServerFn(runProviderSync);
+  const firecrawlUsageFn = useServerFn(getFirecrawlUsage);
+
 
   const { data: provider, isLoading: providerLoading } = useQuery({
     queryKey: ["provider", id],
