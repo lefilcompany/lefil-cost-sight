@@ -254,9 +254,27 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
   { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
 ];
 
+const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
+  OpenAI: "openai.com",
+  "Google Gemini": "gemini.google.com",
+  Firecrawl: "firecrawl.dev",
+  "Google Cloud": "cloud.google.com",
+  Supabase: "supabase.com",
+  ElevenLabs: "elevenlabs.io",
+};
+
+function logoUrlFor(name?: string | null, website?: string | null) {
+  const domain =
+    (name && PROVIDER_LOGO_DOMAIN[name]) ||
+    (website ? prettyHost(website) : null);
+  if (!domain) return null;
+  return `https://logo.clearbit.com/${domain}?size=512`;
+}
+
 function getCatalogEntry(name: string) {
   return PROVIDER_CATALOG.find((c) => c.name === name);
 }
+
 
 function getConnectionSchema(providerName: string): ConnectionSchema {
   return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
@@ -975,51 +993,87 @@ function ProviderCard({
           else onConnect();
         }
       }}
-      className={`surface-elevated cursor-pointer transition hover:border-primary/50 hover:shadow-md ${active ? "" : "opacity-80"}`}
+      className={`group surface-elevated relative cursor-pointer overflow-hidden border-border/60 p-0 transition hover:border-primary/60 hover:shadow-xl ${active ? "" : "opacity-90"}`}
     >
-      <CardContent className="space-y-3 pt-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <div
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm"
-              style={{ background: meta.color }}
-            >
-              <Icon className="h-5 w-5" />
+      {/* Hero com logo de fundo + gradiente preto */}
+      <div
+        className="relative h-32 w-full overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${meta.color}22, ${meta.color}55)` }}
+      >
+        {(() => {
+          const logo = logoUrlFor(provider.name, provider.website);
+          return logo ? (
+            <img
+              src={logo}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-contain object-center p-6 opacity-90 transition duration-500 group-hover:scale-105"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center">
+              <Icon className="h-16 w-16 text-white/70" />
             </div>
-            <div className="min-w-0">
-              <p className="truncate font-display text-sm font-semibold">{provider.name}</p>
-              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                {provider.category ? (
-                  <Badge variant="outline" className="border-border/60 px-1.5 py-0 text-[10px] font-normal">
-                    {provider.category}
-                  </Badge>
-                ) : (
-                  <span className="text-[11px]">Sem categoria</span>
-                )}
-                {provider.website && (
-                  <a
-                    href={provider.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-0.5 truncate hover:text-foreground"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span className="truncate">{prettyHost(provider.website)}</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
+          );
+        })()}
+
+        {/* Gradiente preto sobre a imagem */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20" />
+
+        {/* Status badge */}
+        <div className="absolute right-3 top-3">
           {active ? (
-            <Badge className="gap-1 bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20 dark:text-emerald-400" variant="secondary">
+            <Badge className="gap-1 border-emerald-400/40 bg-emerald-500/20 text-emerald-100 backdrop-blur-sm hover:bg-emerald-500/25">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Conectado
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-border/60 text-muted-foreground">Desconectado</Badge>
+            <Badge variant="outline" className="border-white/30 bg-black/30 text-white/80 backdrop-blur-sm">
+              Desconectado
+            </Badge>
           )}
         </div>
 
+        {/* Título sobre o gradiente */}
+        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-4">
+          <div
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-lg ring-1 ring-white/20"
+            style={{ background: meta.color }}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-base font-semibold text-white drop-shadow">
+              {provider.name}
+            </p>
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-white/75">
+              {provider.category ? (
+                <Badge variant="outline" className="border-white/25 bg-white/10 px-1.5 py-0 text-[10px] font-normal text-white/90 backdrop-blur-sm">
+                  {provider.category}
+                </Badge>
+              ) : (
+                <span className="text-[11px]">Sem categoria</span>
+              )}
+              {provider.website && (
+                <a
+                  href={provider.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-0.5 truncate hover:text-white"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span className="truncate">{prettyHost(provider.website)}</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <CardContent className="space-y-3 pt-4">
         <div className="grid grid-cols-3 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
@@ -1079,6 +1133,7 @@ function ProviderCard({
     </Card>
   );
 }
+
 
 
 function ProviderDialog({
