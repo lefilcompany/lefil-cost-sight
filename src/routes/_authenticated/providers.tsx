@@ -1065,14 +1065,7 @@ function ProviderCard({
 
       <CardContent className="space-y-3 pt-4">
         {/* Título / identidade do fornecedor */}
-        <div className="flex items-start gap-3">
-          <div
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-lg ring-1 ring-white/20"
-            style={{ background: meta.color }}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
             <p className="truncate font-display text-base font-semibold text-foreground">
               {provider.name}
             </p>
@@ -1098,7 +1091,6 @@ function ProviderCard({
               )}
             </div>
           </div>
-        </div>
         <div className="grid grid-cols-3 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
