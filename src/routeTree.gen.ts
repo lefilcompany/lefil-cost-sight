@@ -24,6 +24,7 @@ import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedProvidersIdRouteImport } from './routes/_authenticated/providers.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as ApiPublicHooksUpdateUsdRateRouteImport } from './routes/api/public/hooks/update-usd-rate'
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
@@ -103,6 +104,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any)
+const ApiPublicHooksUpdateUsdRateRoute =
+  ApiPublicHooksUpdateUsdRateRouteImport.update({
+    id: '/api/public/hooks/update-usd-rate',
+    path: '/api/public/hooks/update-usd-rate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronSyncBillingRoute =
   ApiPublicCronSyncBillingRouteImport.update({
     id: '/api/public/cron/sync-billing',
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
+  '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
+  '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
+  '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
+    | '/api/public/hooks/update-usd-rate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
+    | '/api/public/hooks/update-usd-rate'
   id:
     | '__root__'
     | '/'
@@ -239,6 +251,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
+    | '/api/public/hooks/update-usd-rate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -248,6 +261,7 @@ export interface RootRouteChildren {
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
+  ApiPublicHooksUpdateUsdRateRoute: typeof ApiPublicHooksUpdateUsdRateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -357,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedClientsRoute
     }
+    '/api/public/hooks/update-usd-rate': {
+      id: '/api/public/hooks/update-usd-rate'
+      path: '/api/public/hooks/update-usd-rate'
+      fullPath: '/api/public/hooks/update-usd-rate'
+      preLoaderRoute: typeof ApiPublicHooksUpdateUsdRateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/sync-billing': {
       id: '/api/public/cron/sync-billing'
       path: '/api/public/cron/sync-billing'
@@ -442,6 +463,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
+  ApiPublicHooksUpdateUsdRateRoute: ApiPublicHooksUpdateUsdRateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
