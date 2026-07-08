@@ -370,10 +370,8 @@ function ProvidersPage() {
     },
   });
 
-  // form
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Provider | null>(null);
-  const [form, setForm] = useState<any>({});
+  // picker (novo fornecedor a partir do catálogo fixo)
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -394,51 +392,34 @@ function ProvidersPage() {
     setConnectOpen(true);
   };
 
+  // disconnect confirmação (2 etapas)
+  const [disconnectTarget, setDisconnectTarget] = useState<Provider | null>(null);
+  const [disconnectAck, setDisconnectAck] = useState(false);
 
-  const emptyForm = () => ({
-    name: "",
-    category: "AI",
-    website: "",
-    status: "active",
-  });
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm());
-    setOpen(true);
-  };
-  const openEdit = (p: Provider) => {
-    setEditing(p);
-    setForm({
-      name: p.name,
-      category: p.category ?? "",
-      website: p.website ?? "",
-      status: p.status,
-    });
-    setOpen(true);
-  };
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        name: form.name?.trim(),
-        category: form.category?.trim() || null,
-        website: form.website?.trim() || null,
-        status: form.status || "active",
-      };
-      if (!payload.name) throw new Error("Nome é obrigatório");
-      if (editing) {
-        const { error } = await supabase.from("providers").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("providers").insert(payload);
-        if (error) throw error;
-      }
+  // Adiciona fornecedor do catálogo (idempotente) e abre o modal de conexão.
+  const ensureProvider = useMutation({
+    mutationFn: async (catalogName: string) => {
+      const meta = getCatalogEntry(catalogName);
+      if (!meta) throw new Error("Fornecedor não suportado");
+      const existing = providers.find((p) => p.name === meta.name);
+      if (existing) return existing;
+      const { data, error } = await supabase
+        .from("providers")
+        .insert({
+          name: meta.name,
+          category: meta.category,
+          website: meta.website,
+          status: "inactive",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as Provider;
     },
-    onSuccess: () => {
-      toast.success(editing ? "Fornecedor atualizado" : "Fornecedor criado");
+    onSuccess: (p) => {
       qc.invalidateQueries({ queryKey: ["providers"] });
-      setOpen(false);
+      setPickerOpen(false);
+      openConnect(p);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -470,7 +451,7 @@ function ProvidersPage() {
         .eq("provider_id", connectProvider.id);
       if (countErr) throw countErr;
       if ((existingCount ?? 0) > 0) {
-        throw new Error("Este fornecedor já possui uma API conectada. Edite ou exclua a existente antes de cadastrar outra.");
+        throw new Error("Este fornecedor já possui uma API conectada. Desconecte antes de cadastrar outra.");
       }
       const schema = getConnectionSchema(connectProvider.name);
       const name = connectForm.name.trim();
@@ -547,18 +528,31 @@ function ProvidersPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("providers").delete().eq("id", id);
-      if (error) throw error;
+  // Desconectar: remove todas as conexões deste fornecedor e marca como inativo.
+  // O fornecedor em si permanece no catálogo.
+  const disconnect = useMutation({
+    mutationFn: async (p: Provider) => {
+      const { error: delErr } = await supabase
+        .from("provider_connections")
+        .delete()
+        .eq("provider_id", p.id);
+      if (delErr) throw delErr;
+      const { error: upErr } = await supabase
+        .from("providers")
+        .update({ status: "inactive" })
+        .eq("id", p.id);
+      if (upErr) throw upErr;
     },
     onSuccess: () => {
-      toast.success("Removido");
+      toast.success("Fornecedor desconectado");
       qc.invalidateQueries({ queryKey: ["providers"] });
+      qc.invalidateQueries({ queryKey: ["providers-connections"] });
+      setDisconnectTarget(null);
+      setDisconnectAck(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <AppShell
