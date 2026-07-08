@@ -255,11 +255,11 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
 ];
 
 import firecrawlLogo from "@/assets/providers/firecrawl.png.asset.json";
-import geminiLogo from "@/assets/providers/gemini.jpg.asset.json";
-import openaiLogo from "@/assets/providers/openai.webp.asset.json";
-import gcloudLogo from "@/assets/providers/gcloud.webp.asset.json";
+import geminiLogo from "@/assets/providers/gemini.png.asset.json";
+import openaiLogo from "@/assets/providers/openai.png.asset.json";
+import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
 import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
-import supabaseLogo from "@/assets/providers/supabase.png.asset.json";
+import supabaseLogo from "@/assets/providers/supabase.svg.asset.json";
 
 const PROVIDER_LOGO_URL: Record<string, string> = {
   OpenAI: openaiLogo.url,
