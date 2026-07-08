@@ -254,7 +254,7 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
   { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
 ];
 
-import firecrawlLogo from "@/assets/providers/firecrawl.png.asset.json";
+import firecrawlLogo from "@/assets/providers/firecrawl-logo.png.asset.json";
 import geminiLogo from "@/assets/providers/gemini.png.asset.json";
 import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
 import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
@@ -268,6 +268,11 @@ const PROVIDER_LOGO_URL: Record<string, string> = {
   "Google Cloud": gcloudLogo.url,
   Supabase: supabaseLogo.url,
   ElevenLabs: elevenlabsLogo.url,
+};
+
+// Cor de fundo do hero por fornecedor (fallback: cor da categoria).
+const PROVIDER_HERO_BG: Record<string, string> = {
+  Firecrawl: "#f97316",
 };
 
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
@@ -1016,7 +1021,9 @@ function ProviderCard({
       {/* Hero com logo de fundo + gradiente preto */}
       <div
         className="relative h-32 w-full overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${meta.color}22, ${meta.color}55)` }}
+        style={{
+          background: `linear-gradient(135deg, ${(PROVIDER_HERO_BG[provider.name] ?? meta.color)}22, ${(PROVIDER_HERO_BG[provider.name] ?? meta.color)}55)`,
+        }}
       >
         {(() => {
           const logo = logoUrlFor(provider.name, provider.website);
@@ -1038,7 +1045,7 @@ function ProviderCard({
         })()}
 
         {/* Gradiente preto sobre a imagem */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent" />
 
         {/* Status badge */}
         <div className="absolute right-3 top-3">
