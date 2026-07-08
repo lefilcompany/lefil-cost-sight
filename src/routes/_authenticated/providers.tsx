@@ -675,7 +675,7 @@ function ProvidersPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((p) => {
                   const agg = costByProvider.get(p.id) ?? { total: 0, count: 0 };
                   return (
