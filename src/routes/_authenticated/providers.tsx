@@ -1021,7 +1021,9 @@ function ProviderCard({
       {/* Hero com logo de fundo + gradiente preto */}
       <div
         className="relative h-32 w-full overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${meta.color}22, ${meta.color}55)` }}
+        style={{
+          background: `linear-gradient(135deg, ${(PROVIDER_HERO_BG[provider.name] ?? meta.color)}22, ${(PROVIDER_HERO_BG[provider.name] ?? meta.color)}55)`,
+        }}
       >
         {(() => {
           const logo = logoUrlFor(provider.name, provider.website);
