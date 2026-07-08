@@ -50,6 +50,8 @@ import { KpiCard, EmptyState, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate, fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
+import { useAutoSync } from "@/hooks/use-auto-sync";
+
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd"] as const;
 type Period = (typeof PERIODS)[number];
