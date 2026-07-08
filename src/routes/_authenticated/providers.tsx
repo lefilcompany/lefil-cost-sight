@@ -256,7 +256,7 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
 
 import firecrawlLogo from "@/assets/providers/firecrawl.png.asset.json";
 import geminiLogo from "@/assets/providers/gemini.png.asset.json";
-import openaiLogo from "@/assets/providers/openai.png.asset.json";
+import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
 import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
 import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
 import supabaseLogo from "@/assets/providers/supabase.svg.asset.json";
@@ -1054,19 +1054,6 @@ function ProviderCard({
           )}
         </div>
 
-        {/* Status badge */}
-        <div className="absolute right-3 top-3">
-          {active ? (
-            <Badge className="gap-1 border-emerald-400/40 bg-emerald-500/20 text-emerald-100 backdrop-blur-sm hover:bg-emerald-500/25">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Conectado
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="border-white/30 bg-black/30 text-white/80 backdrop-blur-sm">
-              Desconectado
-            </Badge>
-          )}
-        </div>
       </div>
 
       <CardContent className="space-y-3 pt-4">
