@@ -267,6 +267,15 @@ function ProviderDetailPage() {
           <Kpi label="Syncs com erro" value={fmtNumber(errorCount)} tone={errorCount ? "warn" : "neutral"} icon={<XCircle className="h-4 w-4" />} />
         </div>
 
+        {isFirecrawl && activeConnId && (
+          <FirecrawlUsageCard
+            query={firecrawlUsage}
+            onRefresh={() => firecrawlUsage.refetch()}
+          />
+        )}
+
+
+
         <Card className="surface-elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="font-display text-base">Chaves / conexões</CardTitle>
