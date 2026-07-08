@@ -848,21 +848,19 @@ function ProviderCard({
   totalBrl,
   entriesCount,
   connectionsCount,
-  onEdit,
   onConnect,
   onOpen,
   onToggle,
-  onDelete,
+  onDisconnect,
 }: {
   provider: Provider;
   totalBrl: number;
   entriesCount: number;
   connectionsCount: number;
-  onEdit: () => void;
   onConnect: () => void;
   onOpen: () => void;
   onToggle: () => void;
-  onDelete: () => void;
+  onDisconnect: () => void;
 }) {
   const meta = metaFor(provider.category);
   const Icon = meta.icon;
