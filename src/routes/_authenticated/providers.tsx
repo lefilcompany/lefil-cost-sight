@@ -1038,7 +1038,9 @@ function ProviderCard({
               src={logo}
               alt=""
               aria-hidden
-              className="absolute inset-0 h-full w-full object-contain object-center p-6 opacity-90 transition duration-500 group-hover:scale-105"
+              className={`absolute inset-0 h-full w-full object-contain object-center ${
+                PROVIDER_LOGO_PADDING[provider.name] ?? "p-6"
+              } opacity-90 transition duration-500 group-hover:scale-105`}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
