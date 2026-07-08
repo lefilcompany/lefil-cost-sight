@@ -559,20 +559,9 @@ function ProvidersPage() {
       eyebrow="Cadastros"
       title="Fornecedores"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Novo fornecedor
-            </Button>
-          </DialogTrigger>
-          <ProviderDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
-          />
-        </Dialog>
+        <Button onClick={() => setPickerOpen(true)} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Novo fornecedor
+        </Button>
       }
     >
       <div className="space-y-6">
