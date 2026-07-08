@@ -31,8 +31,9 @@ export const Route = createFileRoute("/api/public/hooks/update-usd-rate")({
     handlers: {
       POST: async ({ request }) => {
         const token = request.headers.get("apikey") ?? request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-          return new Response(JSON.stringify({ error: "missing apikey" }), {
+        const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
+        if (!token || !expected || token !== expected) {
+          return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },
           });
@@ -46,11 +47,8 @@ export const Route = createFileRoute("/api/public/hooks/update-usd-rate")({
           });
         }
 
-        const supabase = createClient(process.env.SUPABASE_URL!, token, {
-          auth: { autoRefreshToken: false, persistSession: false },
-        });
-
-        const { error } = await supabase
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { error } = await supabaseAdmin
           .from("system_settings")
           .upsert({ key: "usd_brl_rate", value: { rate, updated_at: new Date().toISOString() } });
 
