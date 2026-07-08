@@ -1,0 +1,3 @@
+REVOKE EXECUTE ON FUNCTION public.approve_user(UUID) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.block_user(UUID) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.has_active_access(UUID) FROM anon, PUBLIC;

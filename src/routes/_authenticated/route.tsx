@@ -6,7 +6,19 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session?.user) throw redirect({ to: "/auth" });
-    return { user: data.session.user };
+
+    const user = data.session.user;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile || profile.status !== "active") {
+      throw redirect({ to: "/pending" });
+    }
+
+    return { user };
   },
   component: () => <Outlet />,
 });
