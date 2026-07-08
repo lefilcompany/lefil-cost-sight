@@ -117,10 +117,12 @@ function periodRange(period: Period): { start: string; end: string; prevStart: s
 }
 
 function Dashboard() {
+  useAutoSync(["dashboard-entries", "dashboard-dims"]);
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: entries = [], isLoading } = useQuery({ queryKey: ["dashboard-entries"], queryFn: fetchAll });
   const { data: dims } = useQuery({ queryKey: ["dashboard-dims"], queryFn: fetchDims });
+
 
   const range = useMemo(() => periodRange(search.period), [search.period]);
 
