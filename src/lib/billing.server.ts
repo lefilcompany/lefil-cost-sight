@@ -102,11 +102,17 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
   const cycle = monthCycle();
   const projected = cycle.daysElapsed > 0 ? (used / cycle.daysElapsed) * cycle.daysInCycle : used;
 
+  const cfg = (conn.config ?? {}) as any;
+  const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+  const planLabel = cfg.plan_name
+    ? String(cfg.plan_name)
+    : total > 0 ? `${total} credits/mo` : "pay-as-you-go";
+
   await supabaseAdmin.from("provider_billing_snapshots").insert({
     connection_id: conn.id,
     provider_id: conn.provider_id,
     platform_id: conn.platform_id,
-    plan_name: total > 0 ? `${total} credits/mo` : "pay-as-you-go",
+    plan_name: planLabel,
     plan_tier: null,
     billing_cycle: "monthly",
     cycle_start: isoDate(cycle.start),
@@ -115,8 +121,8 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
     included_unit: "credits",
     used_quantity: used,
     remaining_quantity: remaining,
-    cost_period_usd: null,
-    projected_cost_usd: null,
+    cost_period_usd: planMonthlyUsd > 0 ? planMonthlyUsd : null,
+    projected_cost_usd: planMonthlyUsd > 0 ? planMonthlyUsd : null,
     currency: "USD",
     raw: usageJson,
   });
