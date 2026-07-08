@@ -294,10 +294,7 @@ export async function runSyncForConnection(connectionId: string) {
     .single();
 
   try {
-    const rate = await fetchUsdBrlRate();
-    await supabaseAdmin
-      .from("system_settings")
-      .upsert({ key: "usd_brl_rate", value: { rate, updated_at: new Date().toISOString() } });
+    const rate = await resolveUsdBrlRate();
 
     const handler = HANDLERS[providerName];
     let out: SyncOutcome;
