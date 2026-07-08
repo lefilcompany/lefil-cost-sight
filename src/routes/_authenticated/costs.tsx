@@ -35,6 +35,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtDate, fmtUSD, fmtNumber } from "@/lib/format";
+import { useAutoSync } from "@/hooks/use-auto-sync";
+
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd", "all"] as const;
 const ORIGINS = ["manual", "api", "import"] as const;
