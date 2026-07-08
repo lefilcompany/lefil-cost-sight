@@ -920,9 +920,11 @@ function ProviderCard({
             className="h-8 flex-1 gap-1.5"
             variant={hasConnections ? "outline" : "default"}
             onClick={onConnect}
+            disabled={hasConnections}
+            title={hasConnections ? "Este fornecedor já possui uma API conectada" : undefined}
           >
             <Plug className="h-3.5 w-3.5" />
-            {hasConnections ? "Nova conexão" : "Conectar"}
+            {hasConnections ? "API conectada" : "Conectar"}
           </Button>
           {hasConnections && (
             <Button
