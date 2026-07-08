@@ -129,9 +129,18 @@ const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
     apiKeyPlaceholder: "fc-...",
     apiKeyType: "password",
     apiKeyHelper: "Encontre em Firecrawl → Settings → API Keys.",
-    configFields: [],
+    configFields: [
+      {
+        key: "usd_per_1k_credits",
+        label: "Preço USD por 1.000 créditos",
+        placeholder: "0.89",
+        helper: "Usado para estimar o custo em USD/BRL. Ex.: plano Standard ≈ US$ 0,89/1k créditos.",
+        defaultValue: "0.89",
+      },
+    ],
     docsUrl: "https://www.firecrawl.dev/app/api-keys",
   },
+
   OpenAI: {
     apiKeyLabel: "Admin key",
     apiKeyPlaceholder: "sk-admin-...",
