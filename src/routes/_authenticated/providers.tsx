@@ -837,6 +837,103 @@ function ProvidersPage() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Picker — catálogo fixo de fornecedores suportados */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Novo fornecedor</DialogTitle>
+            <DialogDescription>
+              Escolha um fornecedor suportado. A conexão e o sync de custos são configurados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PROVIDER_CATALOG.map((c) => {
+              const existing = providers.find((p) => p.name === c.name);
+              const connected = existing ? (connByProvider.get(existing.id) ?? 0) > 0 : false;
+              const Icon = c.icon;
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  disabled={connected || ensureProvider.isPending}
+                  onClick={() => ensureProvider.mutate(c.name)}
+                  className="flex items-start gap-3 rounded-md border border-border/60 bg-muted/20 p-3 text-left transition hover:border-primary/50 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm" style={{ background: c.color }}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate font-display text-sm font-semibold">{c.name}</p>
+                      {connected && (
+                        <Badge variant="secondary" className="bg-emerald-600/15 px-1.5 py-0 text-[10px] text-emerald-700 dark:text-emerald-400">
+                          Conectado
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{c.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Só é possível adicionar fornecedores desta lista. Novos serão liberados aos poucos.
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação em 2 etapas para desconectar */}
+      <Dialog
+        open={!!disconnectTarget}
+        onOpenChange={(v) => {
+          if (!v) {
+            setDisconnectTarget(null);
+            setDisconnectAck(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Desconectar {disconnectTarget?.name}?</DialogTitle>
+            <DialogDescription>
+              A API e as configurações desta conexão serão removidas. Os custos históricos já sincronizados permanecem no relatório.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-red-600"
+              checked={disconnectAck}
+              onChange={(e) => setDisconnectAck(e.target.checked)}
+            />
+            <span>
+              Entendi que a chave de API será removida e novos sincs deixarão de rodar até eu reconectar.
+            </span>
+          </label>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDisconnectTarget(null);
+                setDisconnectAck(false);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!disconnectAck || disconnect.isPending}
+              onClick={() => disconnectTarget && disconnect.mutate(disconnectTarget)}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              {disconnect.isPending ? "Desconectando..." : "Desconectar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
