@@ -110,9 +110,11 @@ function periodEnd(period: string): Date | null {
 }
 
 function CostsPage() {
+  useAutoSync(["costs-entries", "cost_entries"]);
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/costs" });
   const search = Route.useSearch();
+
 
   const { data: dims } = useQuery({
     queryKey: ["cost-dims"],
