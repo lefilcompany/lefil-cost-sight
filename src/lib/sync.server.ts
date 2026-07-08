@@ -127,6 +127,7 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
         billing_period_end: isoDate(end),
         used_credits: usedCredits,
         usd_per_1k_credits: pricePer1k,
+        plan_monthly_usd: planMonthlyUsd,
       },
     });
   }
