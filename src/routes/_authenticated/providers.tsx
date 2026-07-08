@@ -431,6 +431,14 @@ function ProvidersPage() {
   const connect = useMutation({
     mutationFn: async () => {
       if (!connectProvider) throw new Error("Fornecedor inválido");
+      const { count: existingCount, error: countErr } = await supabase
+        .from("provider_connections")
+        .select("id", { count: "exact", head: true })
+        .eq("provider_id", connectProvider.id);
+      if (countErr) throw countErr;
+      if ((existingCount ?? 0) > 0) {
+        throw new Error("Este fornecedor já possui uma API conectada. Edite ou exclua a existente antes de cadastrar outra.");
+      }
       const schema = getConnectionSchema(connectProvider.name);
       const name = connectForm.name.trim();
       const apiKey = connectForm.api_key.trim();
