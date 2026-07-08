@@ -33,38 +33,75 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+async function fcFetch(path: string, key: string): Promise<any> {
+  const res = await fetch(`https://api.firecrawl.dev/v2${path}`, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  if (!res.ok) throw new Error(`Firecrawl ${path} ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
 async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
   const key = await getConnectionKey(conn.id, "FIRECRAWL_API_KEY");
   if (!key) throw new Error("API key da Firecrawl não configurada nesta conexão.");
-  const res = await fetch("https://api.firecrawl.dev/v2/team/credit-usage", {
-    headers: { Authorization: `Bearer ${key}` },
-  });
-  if (!res.ok) throw new Error(`Firecrawl API ${res.status}: ${await res.text()}`);
-  const json: any = await res.json();
-  const remaining = Number(json?.data?.remaining_credits ?? json?.data?.remainingCredits ?? 0);
-  const total = Number(json?.data?.plan_credits ?? json?.data?.planCredits ?? 0);
-  const used = Math.max(0, total - remaining);
+
+  const [credits, tokens, creditsHist, tokensHist] = await Promise.all([
+    fcFetch("/team/credit-usage", key).catch((e) => ({ error: String(e?.message ?? e) })),
+    fcFetch("/team/token-usage", key).catch((e) => ({ error: String(e?.message ?? e) })),
+    fcFetch("/team/credit-usage/historical?byApiKey=true", key).catch((e) => ({ error: String(e?.message ?? e) })),
+    fcFetch("/team/token-usage/historical?byApiKey=true", key).catch((e) => ({ error: String(e?.message ?? e) })),
+  ]);
+
+  const cData = credits?.data ?? {};
+  const tData = tokens?.data ?? {};
+  const remainingCredits = Number(cData.remaining_credits ?? cData.remainingCredits ?? 0);
+  const totalCredits = Number(cData.plan_credits ?? cData.planCredits ?? 0);
+  const usedCredits = Math.max(0, totalCredits - remainingCredits);
+  const remainingTokens = Number(tData.remaining_tokens ?? tData.remainingTokens ?? 0);
+  const totalTokens = Number(tData.plan_tokens ?? tData.planTokens ?? 0);
+  const usedTokens = Math.max(0, totalTokens - remainingTokens);
+  const billingPeriodStart = cData.billing_period_start ?? cData.billingPeriodStart ?? null;
+  const billingPeriodEnd = cData.billing_period_end ?? cData.billingPeriodEnd ?? null;
+
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const start = billingPeriodStart ? new Date(billingPeriodStart) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = billingPeriodEnd ? new Date(billingPeriodEnd) : now;
+
   await supabaseAdmin.from("provider_usage_syncs").insert({
     provider_id: conn.provider_id,
     platform_id: conn.platform_id,
     period_start: isoDate(start),
-    period_end: isoDate(now),
-    usage_quantity: used,
+    period_end: isoDate(end),
+    usage_quantity: usedCredits,
     usage_unit: "credits",
     cost_usd: 0,
     exchange_rate: rate,
     cost_brl: 0,
-    raw_response: json,
+    raw_response: {
+      credits,
+      tokens,
+      credits_historical: creditsHist,
+      tokens_historical: tokensHist,
+      summary: {
+        credits: { used: usedCredits, remaining: remainingCredits, total: totalCredits },
+        tokens: { used: usedTokens, remaining: remainingTokens, total: totalTokens },
+        billing_period: { start: billingPeriodStart, end: billingPeriodEnd },
+      },
+    },
   });
+
   return {
     status: "success",
     records: 1,
-    message: `${used} créditos usados de ${total}`,
-    meta: { used, remaining, total },
+    message: `Créditos: ${usedCredits.toLocaleString("pt-BR")}/${totalCredits.toLocaleString("pt-BR")} · Tokens: ${usedTokens.toLocaleString("pt-BR")}/${totalTokens.toLocaleString("pt-BR")}`,
+    meta: {
+      credits: { used: usedCredits, remaining: remainingCredits, total: totalCredits },
+      tokens: { used: usedTokens, remaining: remainingTokens, total: totalTokens },
+      billing_period: { start: billingPeriodStart, end: billingPeriodEnd },
+    },
   };
 }
+
 
 async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   const key = await getConnectionKey(conn.id, "OPENAI_ADMIN_KEY");
