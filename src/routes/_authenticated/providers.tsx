@@ -281,6 +281,11 @@ const PROVIDER_LOGO_PADDING: Record<string, string> = {
   "Google Gemini": "p-2",
 };
 
+// Escala extra do logo dentro do hero.
+const PROVIDER_LOGO_SCALE: Record<string, string> = {
+  ElevenLabs: "scale-[1.35]",
+};
+
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
   OpenAI: "openai.com",
   "Google Gemini": "gemini.google.com",
