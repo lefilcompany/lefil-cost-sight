@@ -520,7 +520,7 @@ function PlatformCard({
   return (
     <Card className={`surface-elevated overflow-hidden transition ${active ? "" : "opacity-70"}`}>
       <div
-        className="relative aspect-[16/9] w-full overflow-hidden bg-muted"
+        className="relative aspect-[21/9] w-full overflow-hidden bg-muted"
         style={platform.image_url ? undefined : { background: platform.color }}
       >
         {platform.image_url ? (
@@ -535,7 +535,7 @@ function PlatformCard({
           />
         ) : (
           <div className="grid h-full w-full place-items-center text-white/80">
-            <Icon className="h-10 w-10" />
+            <Icon className="h-8 w-8" />
           </div>
         )}
         <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
@@ -557,18 +557,17 @@ function PlatformCard({
           )}
         </div>
       </div>
-      <CardContent className="space-y-3 pt-4">
+      <CardContent className="space-y-2 p-3">
         <div className="min-w-0">
           <p className="truncate font-display text-sm font-semibold">{platform.name}</p>
-          <p className="line-clamp-2 text-xs text-muted-foreground">
+          <p className="line-clamp-1 text-xs text-muted-foreground">
             {platform.summary || platform.description || "Sem resumo"}
           </p>
         </div>
 
-
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">
-            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+          <div className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/30 px-1.5 py-1">
+            <CreditCard className="h-3 w-3 text-muted-foreground" />
             <span className="truncate">
               {platform.payment_method ? (
                 <>
@@ -580,51 +579,52 @@ function PlatformCard({
               )}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">
-            <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/30 px-1.5 py-1">
+            <UserRound className="h-3 w-3 text-muted-foreground" />
             <span className="truncate">
               {contact ? contact.name : <span className="text-muted-foreground">Sem responsável</span>}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
+        <div className="grid grid-cols-2 gap-2 rounded-md border border-border/60 bg-muted/30 p-2">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
-            <p className="mt-0.5 font-numeric text-sm font-semibold">{fmtBRL(totalBrl)}</p>
+            <p className="font-numeric text-xs font-semibold">{fmtBRL(totalBrl)}</p>
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lançamentos</p>
-            <p className="mt-0.5 font-numeric text-sm font-medium">{fmtNumber(entriesCount)}</p>
+            <p className="font-numeric text-xs font-medium">{fmtNumber(entriesCount)}</p>
           </div>
         </div>
 
         {incomplete && (
-          <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+          <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
             <AlertTriangle className="h-3 w-3" /> Cadastro incompleto
           </div>
         )}
 
         <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="outline" className="h-8 flex-1 gap-1.5" onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" /> Editar
+          <Button size="sm" variant="outline" className="h-7 flex-1 gap-1 text-xs" onClick={onEdit}>
+            <Pencil className="h-3 w-3" /> Editar
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="h-8 gap-1.5"
+            className="h-7 gap-1 text-xs"
             onClick={onToggle}
             title={active ? "Desativar" : "Ativar"}
           >
-            {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+            {active ? <PowerOff className="h-3 w-3" /> : <Power className="h-3 w-3" />}
             {active ? "Desativar" : "Ativar"}
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete}>
-            <Trash2 className="h-3.5 w-3.5" />
+          <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>
     </Card>
+
   );
 }
 
