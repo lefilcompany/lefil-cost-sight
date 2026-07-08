@@ -169,6 +169,36 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
     });
   }
 
+  // Snapshot de plano/quota → alimenta a página Billing automaticamente
+  try {
+    const projected = planMonthlyUsd > 0
+      ? planMonthlyUsd
+      : (() => {
+          const daysTotal = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400_000) + 1);
+          const daysElapsed = Math.max(1, Math.round((now.getTime() - start.getTime()) / 86400_000) + 1);
+          return costUsd > 0 ? (costUsd / daysElapsed) * daysTotal : 0;
+        })();
+    await supabaseAdmin.from("provider_billing_snapshots").insert({
+      connection_id: conn.id,
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      plan_name: cfg.plan_name ?? (totalCredits > 0 ? `${totalCredits.toLocaleString("en-US")} credits/mo` : "pay-as-you-go"),
+      billing_cycle: "monthly",
+      cycle_start: isoDate(start),
+      cycle_end: isoDate(end),
+      included_quantity: totalCredits,
+      included_unit: "credits",
+      used_quantity: usedCredits,
+      remaining_quantity: remainingCredits,
+      cost_period_usd: costUsd > 0 ? costUsd : (planMonthlyUsd > 0 ? planMonthlyUsd : null),
+      projected_cost_usd: projected > 0 ? projected : null,
+      currency: "USD",
+      raw: { credits: cData, tokens: tData },
+    });
+  } catch (e) {
+    console.warn("firecrawl billing snapshot failed", e);
+  }
+
   return {
     status: "success",
     records: 1,
