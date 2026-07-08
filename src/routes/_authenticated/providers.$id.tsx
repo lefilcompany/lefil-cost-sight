@@ -36,8 +36,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { runProviderSync } from "@/lib/sync.functions";
+import { getFirecrawlUsage } from "@/lib/firecrawl-usage.functions";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { Progress } from "@/components/ui/progress";
+
 
 export const Route = createFileRoute("/_authenticated/providers/$id")({
   head: () => ({ meta: [{ title: "Detalhes do fornecedor — Quiwi" }] }),
