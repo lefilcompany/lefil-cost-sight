@@ -13,6 +13,7 @@ import { Route as PendingRouteImport } from './routes/pending'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedSyncsRouteImport } from './routes/_authenticated/syncs'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProvidersRouteImport } from './routes/_authenticated/providers'
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSyncsRoute = AuthenticatedSyncsRouteImport.update({
   id: '/syncs',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/users': typeof AuthenticatedUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
+  '/users': typeof AuthenticatedUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/_authenticated/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
+  '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/users'
     | '/clients/$id'
     | '/providers/$id'
     | '/api/public/cron/evaluate-alerts'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/syncs'
+    | '/users'
     | '/clients/$id'
     | '/providers/$id'
     | '/api/public/cron/evaluate-alerts'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/_authenticated/providers'
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
+    | '/_authenticated/users'
     | '/_authenticated/clients/$id'
     | '/_authenticated/providers/$id'
     | '/api/public/cron/evaluate-alerts'
@@ -306,6 +318,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/users': {
+      id: '/_authenticated/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/syncs': {
       id: '/_authenticated/syncs'
@@ -458,6 +477,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProvidersRoute: typeof AuthenticatedProvidersRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSyncsRoute: typeof AuthenticatedSyncsRoute
+  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -471,6 +491,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProvidersRoute: AuthenticatedProvidersRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSyncsRoute: AuthenticatedSyncsRoute,
+  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

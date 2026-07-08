@@ -44,6 +44,7 @@ const registry = [
 
 const system = [
   { title: "Alertas", url: "/alerts", icon: Bell },
+  { title: "Usuários", url: "/users", icon: Users },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
