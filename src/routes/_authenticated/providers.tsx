@@ -256,7 +256,7 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
 
 import firecrawlLogo from "@/assets/providers/firecrawl.png.asset.json";
 import geminiLogo from "@/assets/providers/gemini.png.asset.json";
-import openaiLogo from "@/assets/providers/openai.png.asset.json";
+import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
 import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
 import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
 import supabaseLogo from "@/assets/providers/supabase.svg.asset.json";
