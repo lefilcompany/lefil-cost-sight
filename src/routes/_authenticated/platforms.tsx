@@ -468,7 +468,7 @@ function PlatformsPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 {filtered.map((p) => {
                   const agg = costByPlatform.get(p.id) ?? { total: 0, count: 0 };
                   return (
