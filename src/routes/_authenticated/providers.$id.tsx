@@ -234,15 +234,11 @@ function ProviderDetailPage() {
 
   return (
     <AppShell
-      eyebrow={
-        <Link to="/providers" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3 w-3" /> Fornecedores
-        </Link>
-      }
+      eyebrow="Fornecedor"
       title={provider.name}
       actions={
         <Link to="/providers">
-          <Button variant="outline" size="sm">Voltar</Button>
+          <Button variant="outline" size="sm" className="gap-1.5"><ArrowLeft className="h-3.5 w-3.5" /> Voltar</Button>
         </Link>
       }
     >
