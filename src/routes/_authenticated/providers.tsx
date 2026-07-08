@@ -224,6 +224,39 @@ const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
   },
 };
 CONNECTION_SCHEMAS["Google Gemini"] = CONNECTION_SCHEMAS.Gemini;
+CONNECTION_SCHEMAS["Google Cloud"] = CONNECTION_SCHEMAS.Gemini;
+CONNECTION_SCHEMAS["ElevenLabs"] = {
+  apiKeyLabel: "API Key",
+  apiKeyPlaceholder: "sk_...",
+  apiKeyType: "password",
+  apiKeyHelper: "Encontre em ElevenLabs → Profile → API Keys.",
+  configFields: [],
+  docsUrl: "https://elevenlabs.io/app/settings/api-keys",
+};
+CONNECTION_SCHEMAS["Supabase"] = {
+  apiKeyLabel: "Service Role Key",
+  apiKeyPlaceholder: "eyJhbGciOi...",
+  apiKeyType: "password",
+  apiKeyHelper: "Chave service_role usada apenas em leitura de billing/uso.",
+  configFields: [
+    { key: "project_ref", label: "Project Ref", placeholder: "abcdefghijkl", required: true },
+  ],
+  docsUrl: "https://supabase.com/dashboard/project/_/settings/api",
+};
+
+// Catálogo fixo — só estes fornecedores podem ser adicionados.
+const PROVIDER_CATALOG: { name: string; category: string; website: string; icon: any; color: string; description: string }[] = [
+  { name: "OpenAI", category: "AI", website: "https://openai.com", icon: Sparkles, color: "#10a37f", description: "GPT, embeddings e Costs API" },
+  { name: "Google Gemini", category: "AI", website: "https://ai.google.dev", icon: Sparkles, color: "#4285f4", description: "Vertex AI + BigQuery billing" },
+  { name: "Firecrawl", category: "Tools", website: "https://firecrawl.dev", icon: Wrench, color: "#f97316", description: "Scraping / crawl com créditos" },
+  { name: "Google Cloud", category: "Cloud", website: "https://cloud.google.com", icon: Cloud, color: "#0ea5e9", description: "Infra e serviços gerenciados" },
+  { name: "Supabase", category: "Infrastructure", website: "https://supabase.com", icon: Server, color: "#3ecf8e", description: "Postgres, Auth e Storage" },
+  { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
+];
+
+function getCatalogEntry(name: string) {
+  return PROVIDER_CATALOG.find((c) => c.name === name);
+}
 
 function getConnectionSchema(providerName: string): ConnectionSchema {
   return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
