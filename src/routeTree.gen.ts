@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PendingRouteImport } from './routes/pending'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -29,6 +30,11 @@ import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/publi
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
 
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -131,6 +137,7 @@ const ApiPublicCronEvaluateAlertsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/pending'
     | '/alerts'
     | '/billing'
     | '/clients'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/pending'
     | '/alerts'
     | '/billing'
     | '/clients'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/pending'
     | '/_authenticated/alerts'
     | '/_authenticated/billing'
     | '/_authenticated/clients'
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PendingRoute: typeof PendingRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
@@ -266,6 +279,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -460,6 +480,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PendingRoute: PendingRoute,
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
