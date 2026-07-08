@@ -48,6 +48,20 @@ export const Route = createFileRoute("/api/public/hooks/update-usd-rate")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        // Respect manual override — never overwrite a rate the user set manually.
+        const { data: existing } = await supabaseAdmin
+          .from("system_settings")
+          .select("value")
+          .eq("key", "usd_brl_rate")
+          .maybeSingle();
+        if ((existing?.value as any)?.manual === true) {
+          return new Response(
+            JSON.stringify({ success: true, skipped: true, reason: "manual override active" }),
+            { headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         const { error } = await supabaseAdmin
           .from("system_settings")
           .upsert({ key: "usd_brl_rate", value: { rate, updated_at: new Date().toISOString() } });
