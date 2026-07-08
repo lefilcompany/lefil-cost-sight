@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
   Plus,
-  Pencil as _Pencil,
+  
   Trash2,
   Search,
   Filter,
