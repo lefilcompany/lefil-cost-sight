@@ -965,12 +965,18 @@ function ProviderCard({
               {active ? "Desativar" : "Ativar"}
             </Button>
           )}
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete} title="Excluir">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {hasConnections && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={onDisconnect}
+              title="Desconectar fornecedor"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Desconectar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
