@@ -1,0 +1,1 @@
+DELETE FROM public.sync_logs WHERE status='error' AND started_at < now() - interval '1 hour';
