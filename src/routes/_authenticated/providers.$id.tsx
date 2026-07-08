@@ -141,6 +141,18 @@ function ProviderDetailPage() {
     },
   });
 
+  const isFirecrawl = (provider?.name ?? "").toLowerCase() === "firecrawl";
+  const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
+  const firecrawlUsage = useQuery({
+    queryKey: ["firecrawl-usage", activeConnId],
+    queryFn: async () => firecrawlUsageFn({ data: { connection_id: activeConnId! } }),
+    enabled: isFirecrawl && !!activeConnId,
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+
+
   const [renameOpen, setRenameOpen] = useState<Connection | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [rotateOpen, setRotateOpen] = useState<Connection | null>(null);
