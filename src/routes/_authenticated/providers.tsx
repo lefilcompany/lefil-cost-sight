@@ -254,7 +254,7 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
   { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
 ];
 
-import firecrawlLogo from "@/assets/providers/firecrawl-logo.png.asset.json";
+import firecrawlLogo from "@/assets/providers/firecrawl-wordmark.png.asset.json";
 import geminiLogo from "@/assets/providers/gemini.png.asset.json";
 import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
 import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
