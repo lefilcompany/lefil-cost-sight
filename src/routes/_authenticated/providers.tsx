@@ -1045,7 +1045,7 @@ function ProviderCard({
               aria-hidden
               className={`absolute inset-0 h-full w-full object-contain object-center ${
                 PROVIDER_LOGO_PADDING[provider.name] ?? "p-6"
-              } opacity-90 transition duration-500 group-hover:scale-105`}
+              } ${PROVIDER_LOGO_SCALE[provider.name] ?? ""} opacity-90 transition duration-500 group-hover:scale-105`}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
