@@ -104,7 +104,8 @@ function AuthPage() {
           <div className="space-y-2">
             <h2 className="font-display text-3xl font-semibold tracking-tight">Acesso interno</h2>
             <p className="text-sm text-muted-foreground">
-              Somente contas Google com e-mail <span className="font-medium text-foreground">@lefil.com.br</span> podem entrar.
+              Somente contas Google com e-mail <span className="font-medium text-foreground">@lefil.com.br</span>
+              <br />podem entrar.
             </p>
           </div>
 
