@@ -69,7 +69,12 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
 
   const cfg = (conn.config ?? {}) as any;
   const pricePer1k = Number(cfg.usd_per_1k_credits ?? 0);
-  const costUsd = pricePer1k > 0 ? (usedCredits / 1000) * pricePer1k : 0;
+  const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+  // Firecrawl é plano fixo: se houver plan_monthly_usd, usamos ele como custo do ciclo.
+  // Caso contrário, calcula por créditos consumidos.
+  const costUsd = planMonthlyUsd > 0
+    ? planMonthlyUsd
+    : pricePer1k > 0 ? (usedCredits / 1000) * pricePer1k : 0;
   const costBrl = costUsd * rate;
 
   await supabaseAdmin.from("provider_usage_syncs").insert({
