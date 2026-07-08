@@ -41,8 +41,8 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
   });
   if (!res.ok) throw new Error(`Firecrawl API ${res.status}: ${await res.text()}`);
   const json: any = await res.json();
-  const remaining = Number(json?.data?.remaining_credits ?? 0);
-  const total = Number(json?.data?.plan_credits ?? 0);
+  const remaining = Number(json?.data?.remaining_credits ?? json?.data?.remainingCredits ?? 0);
+  const total = Number(json?.data?.plan_credits ?? json?.data?.planCredits ?? 0);
   const used = Math.max(0, total - remaining);
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
