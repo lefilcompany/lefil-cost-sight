@@ -270,6 +270,11 @@ const PROVIDER_LOGO_URL: Record<string, string> = {
   ElevenLabs: elevenlabsLogo.url,
 };
 
+// Cor de fundo do hero por fornecedor (fallback: cor da categoria).
+const PROVIDER_HERO_BG: Record<string, string> = {
+  Firecrawl: "#f97316",
+};
+
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
   OpenAI: "openai.com",
   "Google Gemini": "gemini.google.com",
