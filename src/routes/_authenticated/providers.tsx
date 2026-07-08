@@ -1054,8 +1054,24 @@ function ProviderCard({
           )}
         </div>
 
-        {/* Título sobre o gradiente */}
-        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-4">
+        {/* Status badge */}
+        <div className="absolute right-3 top-3">
+          {active ? (
+            <Badge className="gap-1 border-emerald-400/40 bg-emerald-500/20 text-emerald-100 backdrop-blur-sm hover:bg-emerald-500/25">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Conectado
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-white/30 bg-black/30 text-white/80 backdrop-blur-sm">
+              Desconectado
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <CardContent className="space-y-3 pt-4">
+        {/* Título / identidade do fornecedor */}
+        <div className="flex items-start gap-3">
           <div
             className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-lg ring-1 ring-white/20"
             style={{ background: meta.color }}
@@ -1063,12 +1079,12 @@ function ProviderCard({
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-base font-semibold text-white drop-shadow">
+            <p className="truncate font-display text-base font-semibold text-foreground">
               {provider.name}
             </p>
-            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-white/75">
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
               {provider.category ? (
-                <Badge variant="outline" className="border-white/25 bg-white/10 px-1.5 py-0 text-[10px] font-normal text-white/90 backdrop-blur-sm">
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
                   {provider.category}
                 </Badge>
               ) : (
@@ -1080,7 +1096,7 @@ function ProviderCard({
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-0.5 truncate hover:text-white"
+                  className="inline-flex items-center gap-0.5 truncate hover:text-foreground"
                 >
                   <ExternalLink className="h-3 w-3" />
                   <span className="truncate">{prettyHost(provider.website)}</span>
@@ -1089,9 +1105,6 @@ function ProviderCard({
             </div>
           </div>
         </div>
-      </div>
-
-      <CardContent className="space-y-3 pt-4">
         <div className="grid grid-cols-3 gap-3 rounded-md border border-border/60 bg-muted/30 p-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custo BRL</p>
