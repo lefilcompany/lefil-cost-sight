@@ -254,6 +254,22 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
   { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
 ];
 
+import firecrawlLogo from "@/assets/providers/firecrawl.png.asset.json";
+import geminiLogo from "@/assets/providers/gemini.jpg.asset.json";
+import openaiLogo from "@/assets/providers/openai.webp.asset.json";
+import gcloudLogo from "@/assets/providers/gcloud.webp.asset.json";
+import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
+import supabaseLogo from "@/assets/providers/supabase.png.asset.json";
+
+const PROVIDER_LOGO_URL: Record<string, string> = {
+  OpenAI: openaiLogo.url,
+  "Google Gemini": geminiLogo.url,
+  Firecrawl: firecrawlLogo.url,
+  "Google Cloud": gcloudLogo.url,
+  Supabase: supabaseLogo.url,
+  ElevenLabs: elevenlabsLogo.url,
+};
+
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
   OpenAI: "openai.com",
   "Google Gemini": "gemini.google.com",
@@ -264,12 +280,14 @@ const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
 };
 
 function logoUrlFor(name?: string | null, website?: string | null) {
+  if (name && PROVIDER_LOGO_URL[name]) return PROVIDER_LOGO_URL[name];
   const domain =
     (name && PROVIDER_LOGO_DOMAIN[name]) ||
     (website ? prettyHost(website) : null);
   if (!domain) return null;
   return `https://logo.clearbit.com/${domain}?size=512`;
 }
+
 
 function getCatalogEntry(name: string) {
   return PROVIDER_CATALOG.find((c) => c.name === name);
