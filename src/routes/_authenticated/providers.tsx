@@ -1092,43 +1092,44 @@ function ProviderCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            className="h-8 flex-1 gap-1.5"
+            className="h-8 min-w-0 flex-1 basis-full gap-1.5 sm:basis-auto"
             variant={hasConnections ? "outline" : "default"}
             onClick={onConnect}
             disabled={hasConnections}
             title={hasConnections ? "Este fornecedor já possui uma API conectada" : undefined}
           >
-            <Plug className="h-3.5 w-3.5" />
-            {hasConnections ? "API conectada" : "Conectar"}
+            <Plug className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{hasConnections ? "API conectada" : "Conectar"}</span>
           </Button>
           {hasConnections && (
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5"
+              className="h-8 min-w-0 flex-1 gap-1.5"
               onClick={onToggle}
               title={active ? "Desativar" : "Ativar"}
             >
-              {active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-              {active ? "Desativar" : "Ativar"}
+              {active ? <PowerOff className="h-3.5 w-3.5 shrink-0" /> : <Power className="h-3.5 w-3.5 shrink-0" />}
+              <span className="truncate">{active ? "Desativar" : "Ativar"}</span>
             </Button>
           )}
           {hasConnections && (
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-8 min-w-0 flex-1 gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={onDisconnect}
               title="Desconectar fornecedor"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Desconectar
+              <Trash2 className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Desconectar</span>
             </Button>
           )}
         </div>
+
       </CardContent>
     </Card>
   );
