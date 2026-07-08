@@ -281,6 +281,11 @@ const PROVIDER_LOGO_PADDING: Record<string, string> = {
   "Google Gemini": "p-2",
 };
 
+// Escala extra do logo dentro do hero.
+const PROVIDER_LOGO_SCALE: Record<string, string> = {
+  ElevenLabs: "scale-[1.35]",
+};
+
 const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
   OpenAI: "openai.com",
   "Google Gemini": "gemini.google.com",
@@ -1040,7 +1045,7 @@ function ProviderCard({
               aria-hidden
               className={`absolute inset-0 h-full w-full object-contain object-center ${
                 PROVIDER_LOGO_PADDING[provider.name] ?? "p-6"
-              } opacity-90 transition duration-500 group-hover:scale-105`}
+              } ${PROVIDER_LOGO_SCALE[provider.name] ?? ""} opacity-90 transition duration-500 group-hover:scale-105`}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
