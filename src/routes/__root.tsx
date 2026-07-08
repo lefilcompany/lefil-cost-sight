@@ -66,16 +66,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Quiwi Cost Center — Inteligência de custos das plataformas" },
+      { title: "Quiwi" },
       { name: "description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
-      { property: "og:title", content: "Quiwi Cost Center" },
-      { property: "og:description", content: "Inteligência de custos para o portfólio de plataformas Quiwi." },
+      { property: "og:title", content: "Quiwi" },
+      { property: "og:description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Quiwi" },
+      { name: "twitter:description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783518071516-quiwi-logo.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783518071516-quiwi-logo.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/favicon.png?v=3" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
