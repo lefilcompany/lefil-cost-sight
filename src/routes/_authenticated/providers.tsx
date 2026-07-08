@@ -277,7 +277,7 @@ const PROVIDER_HERO_BG: Record<string, string> = {
 
 // Padding do logo dentro do hero — menor padding faz a logo parecer maior.
 const PROVIDER_LOGO_PADDING: Record<string, string> = {
-  ElevenLabs: "p-2",
+  ElevenLabs: "p-0",
   "Google Gemini": "p-2",
 };
 
