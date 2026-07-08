@@ -650,7 +650,7 @@ function ProvidersPage() {
                       <X className="h-3.5 w-3.5" /> Limpar filtros
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={openCreate} className="gap-1.5">
+                    <Button size="sm" onClick={() => setPickerOpen(true)} className="gap-1.5">
                       <Plus className="h-3.5 w-3.5" /> Novo fornecedor
                     </Button>
                   )}
