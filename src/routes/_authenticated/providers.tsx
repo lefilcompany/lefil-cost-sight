@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
   Plus,
-  Pencil,
+  
   Trash2,
   Search,
   Filter,
@@ -224,6 +224,39 @@ const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
   },
 };
 CONNECTION_SCHEMAS["Google Gemini"] = CONNECTION_SCHEMAS.Gemini;
+CONNECTION_SCHEMAS["Google Cloud"] = CONNECTION_SCHEMAS.Gemini;
+CONNECTION_SCHEMAS["ElevenLabs"] = {
+  apiKeyLabel: "API Key",
+  apiKeyPlaceholder: "sk_...",
+  apiKeyType: "password",
+  apiKeyHelper: "Encontre em ElevenLabs → Profile → API Keys.",
+  configFields: [],
+  docsUrl: "https://elevenlabs.io/app/settings/api-keys",
+};
+CONNECTION_SCHEMAS["Supabase"] = {
+  apiKeyLabel: "Service Role Key",
+  apiKeyPlaceholder: "eyJhbGciOi...",
+  apiKeyType: "password",
+  apiKeyHelper: "Chave service_role usada apenas em leitura de billing/uso.",
+  configFields: [
+    { key: "project_ref", label: "Project Ref", placeholder: "abcdefghijkl", required: true },
+  ],
+  docsUrl: "https://supabase.com/dashboard/project/_/settings/api",
+};
+
+// Catálogo fixo — só estes fornecedores podem ser adicionados.
+const PROVIDER_CATALOG: { name: string; category: string; website: string; icon: any; color: string; description: string }[] = [
+  { name: "OpenAI", category: "AI", website: "https://openai.com", icon: Sparkles, color: "#10a37f", description: "GPT, embeddings e Costs API" },
+  { name: "Google Gemini", category: "AI", website: "https://ai.google.dev", icon: Sparkles, color: "#4285f4", description: "Vertex AI + BigQuery billing" },
+  { name: "Firecrawl", category: "Tools", website: "https://firecrawl.dev", icon: Wrench, color: "#f97316", description: "Scraping / crawl com créditos" },
+  { name: "Google Cloud", category: "Cloud", website: "https://cloud.google.com", icon: Cloud, color: "#0ea5e9", description: "Infra e serviços gerenciados" },
+  { name: "Supabase", category: "Infrastructure", website: "https://supabase.com", icon: Server, color: "#3ecf8e", description: "Postgres, Auth e Storage" },
+  { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
+];
+
+function getCatalogEntry(name: string) {
+  return PROVIDER_CATALOG.find((c) => c.name === name);
+}
 
 function getConnectionSchema(providerName: string): ConnectionSchema {
   return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
@@ -337,10 +370,8 @@ function ProvidersPage() {
     },
   });
 
-  // form
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Provider | null>(null);
-  const [form, setForm] = useState<any>({});
+  // picker (novo fornecedor a partir do catálogo fixo)
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -361,51 +392,34 @@ function ProvidersPage() {
     setConnectOpen(true);
   };
 
+  // disconnect confirmação (2 etapas)
+  const [disconnectTarget, setDisconnectTarget] = useState<Provider | null>(null);
+  const [disconnectAck, setDisconnectAck] = useState(false);
 
-  const emptyForm = () => ({
-    name: "",
-    category: "AI",
-    website: "",
-    status: "active",
-  });
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm());
-    setOpen(true);
-  };
-  const openEdit = (p: Provider) => {
-    setEditing(p);
-    setForm({
-      name: p.name,
-      category: p.category ?? "",
-      website: p.website ?? "",
-      status: p.status,
-    });
-    setOpen(true);
-  };
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        name: form.name?.trim(),
-        category: form.category?.trim() || null,
-        website: form.website?.trim() || null,
-        status: form.status || "active",
-      };
-      if (!payload.name) throw new Error("Nome é obrigatório");
-      if (editing) {
-        const { error } = await supabase.from("providers").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("providers").insert(payload);
-        if (error) throw error;
-      }
+  // Adiciona fornecedor do catálogo (idempotente) e abre o modal de conexão.
+  const ensureProvider = useMutation({
+    mutationFn: async (catalogName: string) => {
+      const meta = getCatalogEntry(catalogName);
+      if (!meta) throw new Error("Fornecedor não suportado");
+      const existing = providers.find((p) => p.name === meta.name);
+      if (existing) return existing;
+      const { data, error } = await supabase
+        .from("providers")
+        .insert({
+          name: meta.name,
+          category: meta.category,
+          website: meta.website,
+          status: "inactive",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as Provider;
     },
-    onSuccess: () => {
-      toast.success(editing ? "Fornecedor atualizado" : "Fornecedor criado");
+    onSuccess: (p) => {
       qc.invalidateQueries({ queryKey: ["providers"] });
-      setOpen(false);
+      setPickerOpen(false);
+      openConnect(p);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -437,7 +451,7 @@ function ProvidersPage() {
         .eq("provider_id", connectProvider.id);
       if (countErr) throw countErr;
       if ((existingCount ?? 0) > 0) {
-        throw new Error("Este fornecedor já possui uma API conectada. Edite ou exclua a existente antes de cadastrar outra.");
+        throw new Error("Este fornecedor já possui uma API conectada. Desconecte antes de cadastrar outra.");
       }
       const schema = getConnectionSchema(connectProvider.name);
       const name = connectForm.name.trim();
@@ -514,38 +528,40 @@ function ProvidersPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("providers").delete().eq("id", id);
-      if (error) throw error;
+  // Desconectar: remove todas as conexões deste fornecedor e marca como inativo.
+  // O fornecedor em si permanece no catálogo.
+  const disconnect = useMutation({
+    mutationFn: async (p: Provider) => {
+      const { error: delErr } = await supabase
+        .from("provider_connections")
+        .delete()
+        .eq("provider_id", p.id);
+      if (delErr) throw delErr;
+      const { error: upErr } = await supabase
+        .from("providers")
+        .update({ status: "inactive" })
+        .eq("id", p.id);
+      if (upErr) throw upErr;
     },
     onSuccess: () => {
-      toast.success("Removido");
+      toast.success("Fornecedor desconectado");
       qc.invalidateQueries({ queryKey: ["providers"] });
+      qc.invalidateQueries({ queryKey: ["providers-connections"] });
+      setDisconnectTarget(null);
+      setDisconnectAck(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <AppShell
       eyebrow="Cadastros"
       title="Fornecedores"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Novo fornecedor
-            </Button>
-          </DialogTrigger>
-          <ProviderDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
-          />
-        </Dialog>
+        <Button onClick={() => setPickerOpen(true)} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Novo fornecedor
+        </Button>
       }
     >
       <div className="space-y-6">
@@ -603,9 +619,14 @@ function ProvidersPage() {
                 </Button>
               )}
 
-              <span className="ml-auto text-xs text-muted-foreground">
-                {fmtNumber(filtered.length)} de {fmtNumber(providers.length)}
-              </span>
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <Button size="sm" onClick={() => setPickerOpen(true)} className="h-9 gap-1.5">
+                  <Plus className="h-3.5 w-3.5" /> Novo fornecedor
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {fmtNumber(filtered.length)} de {fmtNumber(providers.length)}
+                </span>
+              </div>
             </div>
 
             {isLoading ? (
@@ -629,7 +650,7 @@ function ProvidersPage() {
                       <X className="h-3.5 w-3.5" /> Limpar filtros
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={openCreate} className="gap-1.5">
+                    <Button size="sm" onClick={() => setPickerOpen(true)} className="gap-1.5">
                       <Plus className="h-3.5 w-3.5" /> Novo fornecedor
                     </Button>
                   )}
@@ -646,12 +667,12 @@ function ProvidersPage() {
                       totalBrl={agg.total}
                       entriesCount={agg.count}
                       connectionsCount={connByProvider.get(p.id) ?? 0}
-                      onEdit={() => openEdit(p)}
                       onConnect={() => openConnect(p)}
                       onOpen={() => navigate({ to: "/providers/$id", params: { id: p.id } })}
                       onToggle={() => toggleStatus.mutate({ p, connections: connByProvider.get(p.id) ?? 0 })}
-                      onDelete={() => {
-                        if (confirm(`Excluir "${p.name}"? Custos e conexões associadas perderão o vínculo.`)) remove.mutate(p.id);
+                      onDisconnect={() => {
+                        setDisconnectAck(false);
+                        setDisconnectTarget(p);
                       }}
                     />
                   );
@@ -816,6 +837,103 @@ function ProvidersPage() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Picker — catálogo fixo de fornecedores suportados */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Novo fornecedor</DialogTitle>
+            <DialogDescription>
+              Escolha um fornecedor suportado. A conexão e o sync de custos são configurados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PROVIDER_CATALOG.map((c) => {
+              const existing = providers.find((p) => p.name === c.name);
+              const connected = existing ? (connByProvider.get(existing.id) ?? 0) > 0 : false;
+              const Icon = c.icon;
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  disabled={connected || ensureProvider.isPending}
+                  onClick={() => ensureProvider.mutate(c.name)}
+                  className="flex items-start gap-3 rounded-md border border-border/60 bg-muted/20 p-3 text-left transition hover:border-primary/50 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm" style={{ background: c.color }}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate font-display text-sm font-semibold">{c.name}</p>
+                      {connected && (
+                        <Badge variant="secondary" className="bg-emerald-600/15 px-1.5 py-0 text-[10px] text-emerald-700 dark:text-emerald-400">
+                          Conectado
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{c.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Só é possível adicionar fornecedores desta lista. Novos serão liberados aos poucos.
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação em 2 etapas para desconectar */}
+      <Dialog
+        open={!!disconnectTarget}
+        onOpenChange={(v) => {
+          if (!v) {
+            setDisconnectTarget(null);
+            setDisconnectAck(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Desconectar {disconnectTarget?.name}?</DialogTitle>
+            <DialogDescription>
+              A API e as configurações desta conexão serão removidas. Os custos históricos já sincronizados permanecem no relatório.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-red-600"
+              checked={disconnectAck}
+              onChange={(e) => setDisconnectAck(e.target.checked)}
+            />
+            <span>
+              Entendi que a chave de API será removida e novos sincs deixarão de rodar até eu reconectar.
+            </span>
+          </label>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDisconnectTarget(null);
+                setDisconnectAck(false);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!disconnectAck || disconnect.isPending}
+              onClick={() => disconnectTarget && disconnect.mutate(disconnectTarget)}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              {disconnect.isPending ? "Desconectando..." : "Desconectar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
@@ -827,21 +945,19 @@ function ProviderCard({
   totalBrl,
   entriesCount,
   connectionsCount,
-  onEdit,
   onConnect,
   onOpen,
   onToggle,
-  onDelete,
+  onDisconnect,
 }: {
   provider: Provider;
   totalBrl: number;
   entriesCount: number;
   connectionsCount: number;
-  onEdit: () => void;
   onConnect: () => void;
   onOpen: () => void;
   onToggle: () => void;
-  onDelete: () => void;
+  onDisconnect: () => void;
 }) {
   const meta = metaFor(provider.category);
   const Icon = meta.icon;
@@ -946,12 +1062,18 @@ function ProviderCard({
               {active ? "Desativar" : "Ativar"}
             </Button>
           )}
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={onDelete} title="Excluir">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {hasConnections && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={onDisconnect}
+              title="Desconectar fornecedor"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Desconectar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
