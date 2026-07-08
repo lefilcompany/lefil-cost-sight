@@ -254,9 +254,27 @@ const PROVIDER_CATALOG: { name: string; category: string; website: string; icon:
   { name: "ElevenLabs", category: "Voice", website: "https://elevenlabs.io", icon: Mic, color: "#111827", description: "Text-to-speech e vozes IA" },
 ];
 
+const PROVIDER_LOGO_DOMAIN: Record<string, string> = {
+  OpenAI: "openai.com",
+  "Google Gemini": "gemini.google.com",
+  Firecrawl: "firecrawl.dev",
+  "Google Cloud": "cloud.google.com",
+  Supabase: "supabase.com",
+  ElevenLabs: "elevenlabs.io",
+};
+
+function logoUrlFor(name?: string | null, website?: string | null) {
+  const domain =
+    (name && PROVIDER_LOGO_DOMAIN[name]) ||
+    (website ? prettyHost(website) : null);
+  if (!domain) return null;
+  return `https://logo.clearbit.com/${domain}?size=512`;
+}
+
 function getCatalogEntry(name: string) {
   return PROVIDER_CATALOG.find((c) => c.name === name);
 }
+
 
 function getConnectionSchema(providerName: string): ConnectionSchema {
   return CONNECTION_SCHEMAS[providerName] ?? DEFAULT_SCHEMA;
