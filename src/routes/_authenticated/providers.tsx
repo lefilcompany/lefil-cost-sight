@@ -131,6 +131,18 @@ const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
     apiKeyHelper: "Encontre em Firecrawl → Settings → API Keys.",
     configFields: [
       {
+        key: "plan_name",
+        label: "Nome do plano",
+        placeholder: "Ex.: Growth",
+        helper: "Nome do plano contratado (Free, Hobby, Standard, Growth, Scale…).",
+      },
+      {
+        key: "plan_monthly_usd",
+        label: "Valor mensal do plano (USD)",
+        placeholder: "333",
+        helper: "Mensalidade fixa do plano, em dólar. Ex.: Growth = US$ 333/mês.",
+      },
+      {
         key: "usd_per_1k_credits",
         label: "Preço USD por 1.000 créditos",
         placeholder: "0.89",
