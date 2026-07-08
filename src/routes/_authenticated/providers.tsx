@@ -800,6 +800,7 @@ function ProviderCard({
   connectionsCount,
   onEdit,
   onConnect,
+  onOpen,
   onToggle,
   onDelete,
 }: {
@@ -809,6 +810,7 @@ function ProviderCard({
   connectionsCount: number;
   onEdit: () => void;
   onConnect: () => void;
+  onOpen: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
@@ -820,11 +822,12 @@ function ProviderCard({
     <Card
       role="button"
       tabIndex={0}
-      onClick={onConnect}
+      onClick={hasConnections ? onOpen : onConnect}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onConnect();
+          if (hasConnections) onOpen();
+          else onConnect();
         }
       }}
       className={`surface-elevated cursor-pointer transition hover:border-primary/50 hover:shadow-md ${active ? "" : "opacity-80"}`}
