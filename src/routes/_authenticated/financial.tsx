@@ -147,9 +147,11 @@ function periodRange(period: Period) {
 }
 
 function FinancialDashboard() {
+  useAutoSync(["financial-entries", "financial-syncs", "cost_entries", "provider_usage_syncs"]);
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const qc = useQueryClient();
+
 
   const { data: entries = [], isLoading } = useQuery({ queryKey: ["fin-entries"], queryFn: fetchAll });
   const { data: dims } = useQuery({ queryKey: ["fin-dims"], queryFn: fetchDims });
