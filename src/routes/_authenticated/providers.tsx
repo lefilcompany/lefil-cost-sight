@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { discoverGcp } from "@/lib/gcp-discover.functions";
+import { runProviderSync } from "@/lib/sync.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -405,6 +406,7 @@ function ProvidersPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const runSync = useServerFn(runProviderSync);
   const connect = useMutation({
     mutationFn: async () => {
       if (!connectProvider) throw new Error("Fornecedor inválido");
@@ -450,12 +452,35 @@ function ProvidersPage() {
           .eq("id", connectProvider.id);
         if (upErr) throw upErr;
       }
+
+      // First sync — best effort, never block the success feedback.
+      try {
+        const r: any = await runSync({ data: { connection_id: insertedConnection.id } });
+        return { providerId: connectProvider.id, syncMessage: r?.message, records: r?.records ?? 0, syncOk: true };
+      } catch (syncErr: any) {
+        return {
+          providerId: connectProvider.id,
+          syncMessage: String(syncErr?.message ?? syncErr),
+          records: 0,
+          syncOk: false,
+        };
+      }
     },
-    onSuccess: () => {
-      toast.success("Conexão criada e fornecedor ativado");
+    onSuccess: (r) => {
+      if (r?.syncOk) {
+        toast.success("Conexão criada e sincronizada", {
+          description: r.syncMessage ?? `${r.records} registros importados`,
+        });
+      } else {
+        toast.warning("Conexão criada, mas o primeiro sync falhou", {
+          description: r?.syncMessage ?? "Você pode tentar novamente na página do fornecedor.",
+        });
+      }
       qc.invalidateQueries({ queryKey: ["providers"] });
       qc.invalidateQueries({ queryKey: ["providers-connections"] });
+      qc.invalidateQueries({ queryKey: ["providers-costs"] });
       setConnectOpen(false);
+      if (r?.providerId) navigate({ to: "/providers/$id", params: { id: r.providerId } });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -594,6 +619,7 @@ function ProvidersPage() {
                       connectionsCount={connByProvider.get(p.id) ?? 0}
                       onEdit={() => openEdit(p)}
                       onConnect={() => openConnect(p)}
+                      onOpen={() => navigate({ to: "/providers/$id", params: { id: p.id } })}
                       onToggle={() => toggleStatus.mutate({ p, connections: connByProvider.get(p.id) ?? 0 })}
                       onDelete={() => {
                         if (confirm(`Excluir "${p.name}"? Custos e conexões associadas perderão o vínculo.`)) remove.mutate(p.id);
@@ -774,6 +800,7 @@ function ProviderCard({
   connectionsCount,
   onEdit,
   onConnect,
+  onOpen,
   onToggle,
   onDelete,
 }: {
@@ -783,6 +810,7 @@ function ProviderCard({
   connectionsCount: number;
   onEdit: () => void;
   onConnect: () => void;
+  onOpen: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
@@ -794,11 +822,12 @@ function ProviderCard({
     <Card
       role="button"
       tabIndex={0}
-      onClick={onConnect}
+      onClick={hasConnections ? onOpen : onConnect}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onConnect();
+          if (hasConnections) onOpen();
+          else onConnect();
         }
       }}
       className={`surface-elevated cursor-pointer transition hover:border-primary/50 hover:shadow-md ${active ? "" : "opacity-80"}`}
