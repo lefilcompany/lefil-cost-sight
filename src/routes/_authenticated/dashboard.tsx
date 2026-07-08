@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate } from "@/lib/format";
+import { useAutoSync } from "@/hooks/use-auto-sync";
+
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd"] as const;
 type Period = (typeof PERIODS)[number];
