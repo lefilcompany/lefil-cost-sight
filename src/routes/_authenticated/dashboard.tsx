@@ -231,7 +231,7 @@ function Dashboard() {
     navigate({ search: (prev: any) => ({ ...prev, ...patch }) });
 
   const modelBreakdown = useMemo(() => {
-    const inWindow = usageDaily.filter((u: any) => u.usage_date >= range.start && u.usage_date <= range.end);
+    const inWindow = usageDaily.filter((u: any) => u.usage_date >= range.start && u.usage_date <= range.end && u.model !== "__project__");
     const map = new Map<string, { provider: string; model: string; type: string; costBrl: number; costUsd: number }>();
     for (const u of inWindow) {
       const provider = u.providers?.name ?? "—";
