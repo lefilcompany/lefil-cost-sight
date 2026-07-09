@@ -287,6 +287,7 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
       cost_brl: costBrl,
       origin: "api",
       metadata: { connection_id: conn.id, source: "openai_costs" },
+      raw_response: bucket,
     });
     inserted += 1;
   }
