@@ -427,6 +427,7 @@ export type Database = {
           owner_user_id: string | null
           platform_id: string | null
           provider_id: string | null
+          raw_response: Json | null
           updated_at: string
           usage_quantity: number | null
           usage_unit: string | null
@@ -446,6 +447,7 @@ export type Database = {
           owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string | null
+          raw_response?: Json | null
           updated_at?: string
           usage_quantity?: number | null
           usage_unit?: string | null
@@ -465,6 +467,7 @@ export type Database = {
           owner_user_id?: string | null
           platform_id?: string | null
           provider_id?: string | null
+          raw_response?: Json | null
           updated_at?: string
           usage_quantity?: number | null
           usage_unit?: string | null
