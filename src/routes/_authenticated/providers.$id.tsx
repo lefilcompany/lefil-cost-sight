@@ -1007,7 +1007,9 @@ function ComingSoonUsageCard({ meta }: { meta: ProviderMeta }) {
 }
 
 function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
-  const rows = (query.data ?? []) as Array<{ usage_date: string; model: string; endpoint: string; cost_usd: number | string }>;
+  const allRows = (query.data ?? []) as Array<{ usage_date: string; model: string; endpoint: string; cost_usd: number | string; raw?: any }>;
+  const projectRaw = allRows.filter((r) => r.model === "__project__");
+  const rows = allRows.filter((r) => r.model !== "__project__");
   const totalUsd = rows.reduce((a, r) => a + Number(r.cost_usd ?? 0), 0);
 
   // Aggregate by model + type
@@ -1028,6 +1030,19 @@ function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any
   const modelRows = Array.from(byModel.entries()).sort((a, b) => b[1] - a[1]);
   const typeRows = Array.from(byType.entries()).sort((a, b) => b[1] - a[1]);
   const detailRows = Array.from(byModelType.values()).sort((a, b) => b.costUsd - a.costUsd);
+
+  // Aggregate by project
+  const byProject = new Map<string, { projectId: string; name: string; costUsd: number }>();
+  for (const r of projectRaw) {
+    const projectId = r.endpoint || "unattributed";
+    const name = String(r.raw?.project_name ?? projectId);
+    const cost = Number(r.cost_usd ?? 0);
+    const cur = byProject.get(projectId) ?? { projectId, name, costUsd: 0 };
+    cur.costUsd += cost;
+    byProject.set(projectId, cur);
+  }
+  const projectRows = Array.from(byProject.values()).sort((a, b) => b.costUsd - a.costUsd);
+  const projectTotalUsd = projectRows.reduce((a, r) => a + r.costUsd, 0);
 
   return (
     <Card className="surface-elevated">
