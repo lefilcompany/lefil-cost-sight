@@ -16,7 +16,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedSyncsRouteImport } from './routes/_authenticated/syncs'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedProvidersRouteImport } from './routes/_authenticated/providers'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
 import { Route as AuthenticatedFinancialRouteImport } from './routes/_authenticated/financial'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -24,6 +23,7 @@ import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
+import { Route as AuthenticatedProvidersIndexRouteImport } from './routes/_authenticated/providers.index'
 import { Route as AuthenticatedProvidersIdRouteImport } from './routes/_authenticated/providers.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as ApiPublicHooksUpdateUsdRateRouteImport } from './routes/api/public/hooks/update-usd-rate'
@@ -65,11 +65,6 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProvidersRoute = AuthenticatedProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedPlatformsRoute = AuthenticatedPlatformsRouteImport.update({
   id: '/platforms',
   path: '/platforms',
@@ -105,11 +100,17 @@ const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProvidersIndexRoute =
+  AuthenticatedProvidersIndexRouteImport.update({
+    id: '/providers/',
+    path: '/providers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProvidersIdRoute =
   AuthenticatedProvidersIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedProvidersRoute,
+    id: '/providers/$id',
+    path: '/providers/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
@@ -151,12 +152,12 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
-  '/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
+  '/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -173,12 +174,12 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
-  '/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
+  '/providers': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -197,12 +198,12 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/financial': typeof AuthenticatedFinancialRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
-  '/_authenticated/providers': typeof AuthenticatedProvidersRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/providers/$id': typeof AuthenticatedProvidersIdRoute
+  '/_authenticated/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -221,12 +222,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/financial'
     | '/platforms'
-    | '/providers'
     | '/settings'
     | '/syncs'
     | '/users'
     | '/clients/$id'
     | '/providers/$id'
+    | '/providers/'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -243,12 +244,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/financial'
     | '/platforms'
-    | '/providers'
     | '/settings'
     | '/syncs'
     | '/users'
     | '/clients/$id'
     | '/providers/$id'
+    | '/providers'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -266,12 +267,12 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/financial'
     | '/_authenticated/platforms'
-    | '/_authenticated/providers'
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
     | '/_authenticated/users'
     | '/_authenticated/clients/$id'
     | '/_authenticated/providers/$id'
+    | '/_authenticated/providers/'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -340,13 +341,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/providers': {
-      id: '/_authenticated/providers'
-      path: '/providers'
-      fullPath: '/providers'
-      preLoaderRoute: typeof AuthenticatedProvidersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/platforms': {
       id: '/_authenticated/platforms'
       path: '/platforms'
@@ -396,12 +390,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/providers/': {
+      id: '/_authenticated/providers/'
+      path: '/providers'
+      fullPath: '/providers/'
+      preLoaderRoute: typeof AuthenticatedProvidersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/providers/$id': {
       id: '/_authenticated/providers/$id'
-      path: '/$id'
+      path: '/providers/$id'
       fullPath: '/providers/$id'
       preLoaderRoute: typeof AuthenticatedProvidersIdRouteImport
-      parentRoute: typeof AuthenticatedProvidersRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
@@ -452,20 +453,6 @@ const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
 const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren)
 
-interface AuthenticatedProvidersRouteChildren {
-  AuthenticatedProvidersIdRoute: typeof AuthenticatedProvidersIdRoute
-}
-
-const AuthenticatedProvidersRouteChildren: AuthenticatedProvidersRouteChildren =
-  {
-    AuthenticatedProvidersIdRoute: AuthenticatedProvidersIdRoute,
-  }
-
-const AuthenticatedProvidersRouteWithChildren =
-  AuthenticatedProvidersRoute._addFileChildren(
-    AuthenticatedProvidersRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
@@ -474,10 +461,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinancialRoute: typeof AuthenticatedFinancialRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
-  AuthenticatedProvidersRoute: typeof AuthenticatedProvidersRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSyncsRoute: typeof AuthenticatedSyncsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedProvidersIdRoute: typeof AuthenticatedProvidersIdRoute
+  AuthenticatedProvidersIndexRoute: typeof AuthenticatedProvidersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -488,10 +476,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinancialRoute: AuthenticatedFinancialRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,
-  AuthenticatedProvidersRoute: AuthenticatedProvidersRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSyncsRoute: AuthenticatedSyncsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedProvidersIdRoute: AuthenticatedProvidersIdRoute,
+  AuthenticatedProvidersIndexRoute: AuthenticatedProvidersIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
