@@ -432,8 +432,8 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
     records: inserted,
     message: inserted === 0
       ? "Nenhum custo novo no período"
-      : `${inserted} dias importados, US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} linhas por modelo` : ""}`,
-    meta: { total_usd: totalUsd, buckets: buckets.length, detail_rows: detailRowsCount },
+      : `${inserted} dias · US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} modelos` : ""}${projectRowsCount ? ` · ${projectRowsCount} projetos` : ""}`,
+    meta: { total_usd: totalUsd, buckets: buckets.length, detail_rows: detailRowsCount, project_rows: projectRowsCount },
   };
 }
 
