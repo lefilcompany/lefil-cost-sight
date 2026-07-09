@@ -124,6 +124,21 @@ function Dashboard() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: entries = [], isLoading } = useQuery({ queryKey: ["dashboard-entries"], queryFn: fetchAll });
   const { data: dims } = useQuery({ queryKey: ["dashboard-dims"], queryFn: fetchDims });
+  const { data: usageDaily = [] } = useQuery({
+    queryKey: ["dashboard-usage-daily"],
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 120);
+      const { data, error } = await supabase
+        .from("provider_usage_daily")
+        .select("usage_date, model, endpoint, cost_usd, cost_brl, providers(name)")
+        .gte("usage_date", since.toISOString().slice(0, 10))
+        .order("usage_date", { ascending: false })
+        .limit(10000);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
 
 
   const range = useMemo(() => periodRange(search.period), [search.period]);
@@ -214,6 +229,22 @@ function Dashboard() {
 
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev: any) => ({ ...prev, ...patch }) });
+
+  const modelBreakdown = useMemo(() => {
+    const inWindow = usageDaily.filter((u: any) => u.usage_date >= range.start && u.usage_date <= range.end);
+    const map = new Map<string, { provider: string; model: string; type: string; costBrl: number; costUsd: number }>();
+    for (const u of inWindow) {
+      const provider = u.providers?.name ?? "—";
+      const model = u.model ?? "—";
+      const type = u.endpoint ?? "—";
+      const k = `${provider}::${model}::${type}`;
+      const cur = map.get(k) ?? { provider, model, type, costBrl: 0, costUsd: 0 };
+      cur.costBrl += Number(u.cost_brl ?? 0);
+      cur.costUsd += Number(u.cost_usd ?? 0);
+      map.set(k, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.costBrl - a.costBrl);
+  }, [usageDaily, range]);
 
   const hasFilters = !!(search.platform || search.client || search.provider);
 
@@ -417,6 +448,40 @@ function Dashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </div>
+
+        {/* Model & type breakdown (OpenAI/Gemini/…) */}
+        {modelBreakdown.length > 0 && (
+          <Card className="surface-elevated overflow-hidden">
+            <CardHeader className="border-b border-border/60 py-4">
+              <CardTitle className="font-display text-base">Custos por modelo e tipo</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Detalhamento das APIs no período — top 12</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Modelo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Custo USD</TableHead>
+                    <TableHead className="text-right">Custo BRL</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {modelBreakdown.slice(0, 12).map((r) => (
+                    <TableRow key={`${r.provider}-${r.model}-${r.type}`} className="border-border/50">
+                      <TableCell className="text-sm">{r.provider}</TableCell>
+                      <TableCell className="text-xs font-medium">{r.model}</TableCell>
+                      <TableCell><Badge variant="outline" className="font-normal">{r.type}</Badge></TableCell>
+                      <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                      <TableCell className="text-right font-numeric text-sm">{fmtBRL(r.costBrl)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent */}
         <Card className="surface-elevated overflow-hidden">

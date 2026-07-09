@@ -224,6 +224,7 @@ function ProviderDetailPage() {
   const isFirecrawl = providerName.toLowerCase() === "firecrawl";
   const isGemini = providerName.toLowerCase().includes("gemini");
   const isGCloud = providerName.toLowerCase().includes("google cloud");
+  const isOpenAI = providerName.toLowerCase() === "openai";
   const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
   const firecrawlUsage = useQuery({
     queryKey: ["firecrawl-usage", activeConnId],
@@ -289,6 +290,24 @@ function ProviderDetailPage() {
       return data;
     },
   });
+  const openaiUsage = useQuery({
+    queryKey: ["openai-usage-breakdown", id],
+    enabled: isOpenAI,
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data, error } = await supabase
+        .from("provider_usage_daily")
+        .select("usage_date, model, endpoint, cost_usd")
+        .eq("provider_id", id)
+        .gte("usage_date", since.toISOString().slice(0, 10))
+        .order("usage_date", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
 
 
 
@@ -418,7 +437,8 @@ function ProviderDetailPage() {
 
         {isGemini && <GeminiUsageCard query={geminiUsage} />}
         {isGCloud && <GoogleCloudSnapshotCard query={gcloudSnapshot} />}
-        {!isFirecrawl && !isGemini && !isGCloud && <ComingSoonUsageCard meta={meta} />}
+        {isOpenAI && <OpenAIUsageCard query={openaiUsage} />}
+        {!isFirecrawl && !isGemini && !isGCloud && !isOpenAI && <ComingSoonUsageCard meta={meta} />}
 
 
 
@@ -985,6 +1005,133 @@ function ComingSoonUsageCard({ meta }: { meta: ProviderMeta }) {
     </Card>
   );
 }
+
+function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
+  const rows = (query.data ?? []) as Array<{ usage_date: string; model: string; endpoint: string; cost_usd: number | string }>;
+  const totalUsd = rows.reduce((a, r) => a + Number(r.cost_usd ?? 0), 0);
+
+  // Aggregate by model + type
+  const byModelType = new Map<string, { model: string; type: string; costUsd: number }>();
+  const byModel = new Map<string, number>();
+  const byType = new Map<string, number>();
+  for (const r of rows) {
+    const model = r.model || "unknown";
+    const type = r.endpoint || "usage";
+    const cost = Number(r.cost_usd ?? 0);
+    const k = `${model}::${type}`;
+    const cur = byModelType.get(k) ?? { model, type, costUsd: 0 };
+    cur.costUsd += cost;
+    byModelType.set(k, cur);
+    byModel.set(model, (byModel.get(model) ?? 0) + cost);
+    byType.set(type, (byType.get(type) ?? 0) + cost);
+  }
+  const modelRows = Array.from(byModel.entries()).sort((a, b) => b[1] - a[1]);
+  const typeRows = Array.from(byType.entries()).sort((a, b) => b[1] - a[1]);
+  const detailRows = Array.from(byModelType.values()).sort((a, b) => b.costUsd - a.costUsd);
+
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Sparkles className="h-4 w-4" /> Uso da OpenAI (últimos 30 dias)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Consultando custos..." />
+        ) : query.error ? (
+          <p className="text-sm text-destructive">Falha ao carregar: {String((query.error as any)?.message ?? query.error)}</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum detalhamento disponível. Sincronize a conexão para importar o consumo por modelo e tipo (input/output/cached).
+          </p>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <MiniStat label="Custo total" value={`US$ ${totalUsd.toFixed(2)}`} />
+              <MiniStat label="Modelos" value={String(modelRows.length)} />
+              <MiniStat label="Tipos" value={String(typeRows.length)} />
+              <MiniStat label="Linhas" value={String(rows.length)} />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Por modelo</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                      <TableHead className="text-right">% total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {modelRows.slice(0, 8).map(([model, cost]) => (
+                      <TableRow key={model}>
+                        <TableCell className="text-xs font-medium">{model}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{cost.toFixed(4)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs text-muted-foreground">
+                          {totalUsd > 0 ? ((cost / totalUsd) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Por tipo</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                      <TableHead className="text-right">% total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {typeRows.map(([type, cost]) => (
+                      <TableRow key={type}>
+                        <TableCell className="text-xs"><Badge variant="outline" className="font-normal">{type}</Badge></TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{cost.toFixed(4)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs text-muted-foreground">
+                          {totalUsd > 0 ? ((cost / totalUsd) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Modelo × tipo (top 12)</p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Modelo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Custo USD</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailRows.slice(0, 12).map((r) => (
+                    <TableRow key={`${r.model}-${r.type}`}>
+                      <TableCell className="text-xs font-medium">{r.model}</TableCell>
+                      <TableCell className="text-xs"><Badge variant="outline" className="font-normal">{r.type}</Badge></TableCell>
+                      <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
