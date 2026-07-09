@@ -1019,12 +1019,11 @@ function ProviderCard({
     <Card
       role="button"
       tabIndex={0}
-      onClick={hasConnections ? onOpen : onConnect}
+      onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          if (hasConnections) onOpen();
-          else onConnect();
+          onOpen();
         }
       }}
       className={`group surface-elevated relative cursor-pointer overflow-hidden border-border/60 p-0 transition hover:border-primary/60 hover:shadow-xl ${active ? "" : "opacity-90"}`}
