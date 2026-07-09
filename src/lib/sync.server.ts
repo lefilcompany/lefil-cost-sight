@@ -312,16 +312,12 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   // Reconsulta a Costs API agrupando por line_item para popular provider_usage_daily.
   let detailRowsCount = 0;
   try {
-    const detailUrl = new URL("https://api.openai.com/v1/organization/costs");
-    detailUrl.searchParams.set("start_time", String(startTime));
-    detailUrl.searchParams.set("end_time", String(endTime));
-    detailUrl.searchParams.set("bucket_width", "1d");
-    detailUrl.searchParams.set("group_by", "line_item");
-    detailUrl.searchParams.set("limit", "180");
-    const detailRes = await fetch(detailUrl, { headers });
-    if (detailRes.ok) {
-      const detailJson: any = await detailRes.json();
-      const dBuckets: any[] = Array.isArray(detailJson?.data) ? detailJson.data : [];
+    const dBuckets = await fetchAllCostBuckets({ ...baseParams, group_by: "line_item" });
+    {
+      const rowsByKey = new Map<string, {
+        day: string; model: string; type: string; costUsd: number; raw: any[];
+      }>();
+
       const rowsByKey = new Map<string, {
         day: string; model: string; type: string; costUsd: number; raw: any[];
       }>();
