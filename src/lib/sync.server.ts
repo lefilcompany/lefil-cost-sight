@@ -354,13 +354,86 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
     console.warn("openai line_item breakdown failed", e);
   }
 
+  // ------- Detalhamento por projeto (project_id) -------
+  let projectRowsCount = 0;
+  try {
+    const projUrl = new URL("https://api.openai.com/v1/organization/costs");
+    projUrl.searchParams.set("start_time", String(startTime));
+    projUrl.searchParams.set("end_time", String(endTime));
+    projUrl.searchParams.set("bucket_width", "1d");
+    projUrl.searchParams.set("group_by", "project_id");
+    projUrl.searchParams.set("limit", "180");
+    const projRes = await fetch(projUrl, { headers });
+    if (projRes.ok) {
+      const projJson: any = await projRes.json();
+      const pBuckets: any[] = Array.isArray(projJson?.data) ? projJson.data : [];
+      // Opcional: lista de projetos para mapear id -> nome
+      const projectNames = new Map<string, string>();
+      try {
+        const listRes = await fetch("https://api.openai.com/v1/organization/projects?limit=100", { headers });
+        if (listRes.ok) {
+          const listJson: any = await listRes.json();
+          for (const p of listJson?.data ?? []) {
+            if (p?.id) projectNames.set(String(p.id), String(p?.name ?? p.id));
+          }
+        }
+      } catch { /* ignore */ }
+
+      const rowsByKey = new Map<string, {
+        day: string; projectId: string; projectName: string; costUsd: number; raw: any[];
+      }>();
+      for (const b of pBuckets) {
+        const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
+        for (const r of b?.results ?? []) {
+          const projectId = String(r?.project_id ?? "").trim() || "unattributed";
+          const amt = Number(r?.amount?.value ?? 0);
+          if (!Number.isFinite(amt) || amt <= 0) continue;
+          const projectName = projectNames.get(projectId) ?? projectId;
+          const key = `${dayIso}::${projectId}`;
+          const cur = rowsByKey.get(key) ?? { day: dayIso, projectId, projectName, costUsd: 0, raw: [] };
+          cur.costUsd += amt;
+          cur.raw.push(r);
+          rowsByKey.set(key, cur);
+        }
+      }
+      const projectRows = Array.from(rowsByKey.values());
+      if (projectRows.length > 0) {
+        // model="__project__" reserva estas linhas apenas para agregações por projeto (não somam com model breakdown).
+        const payload = projectRows.map((r) => ({
+          connection_id: conn.id,
+          provider_id: conn.provider_id,
+          platform_id: conn.platform_id,
+          usage_date: r.day,
+          model: "__project__",
+          endpoint: r.projectId,
+          input_tokens: 0,
+          output_tokens: 0,
+          requests: 0,
+          quantity: 0,
+          unit: "usd",
+          cost_usd: r.costUsd,
+          exchange_rate: rate,
+          cost_brl: r.costUsd * rate,
+          raw: { source: "openai_costs_project", project_name: r.projectName, entries: r.raw },
+        }));
+        await supabaseAdmin
+          .from("provider_usage_daily")
+          .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+        projectRowsCount = projectRows.length;
+      }
+    }
+  } catch (e) {
+    console.warn("openai project breakdown failed", e);
+  }
+
+
   return {
     status: "success",
     records: inserted,
     message: inserted === 0
       ? "Nenhum custo novo no período"
-      : `${inserted} dias importados, US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} linhas por modelo` : ""}`,
-    meta: { total_usd: totalUsd, buckets: buckets.length, detail_rows: detailRowsCount },
+      : `${inserted} dias · US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} modelos` : ""}${projectRowsCount ? ` · ${projectRowsCount} projetos` : ""}`,
+    meta: { total_usd: totalUsd, buckets: buckets.length, detail_rows: detailRowsCount, project_rows: projectRowsCount },
   };
 }
 

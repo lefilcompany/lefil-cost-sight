@@ -298,7 +298,7 @@ function ProviderDetailPage() {
       since.setDate(since.getDate() - 30);
       const { data, error } = await supabase
         .from("provider_usage_daily")
-        .select("usage_date, model, endpoint, cost_usd")
+        .select("usage_date, model, endpoint, cost_usd, raw")
         .eq("provider_id", id)
         .gte("usage_date", since.toISOString().slice(0, 10))
         .order("usage_date", { ascending: false })
@@ -1007,7 +1007,9 @@ function ComingSoonUsageCard({ meta }: { meta: ProviderMeta }) {
 }
 
 function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
-  const rows = (query.data ?? []) as Array<{ usage_date: string; model: string; endpoint: string; cost_usd: number | string }>;
+  const allRows = (query.data ?? []) as Array<{ usage_date: string; model: string; endpoint: string; cost_usd: number | string; raw?: any }>;
+  const projectRaw = allRows.filter((r) => r.model === "__project__");
+  const rows = allRows.filter((r) => r.model !== "__project__");
   const totalUsd = rows.reduce((a, r) => a + Number(r.cost_usd ?? 0), 0);
 
   // Aggregate by model + type
@@ -1028,6 +1030,19 @@ function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any
   const modelRows = Array.from(byModel.entries()).sort((a, b) => b[1] - a[1]);
   const typeRows = Array.from(byType.entries()).sort((a, b) => b[1] - a[1]);
   const detailRows = Array.from(byModelType.values()).sort((a, b) => b.costUsd - a.costUsd);
+
+  // Aggregate by project
+  const byProject = new Map<string, { projectId: string; name: string; costUsd: number }>();
+  for (const r of projectRaw) {
+    const projectId = r.endpoint || "unattributed";
+    const name = String(r.raw?.project_name ?? projectId);
+    const cost = Number(r.cost_usd ?? 0);
+    const cur = byProject.get(projectId) ?? { projectId, name, costUsd: 0 };
+    cur.costUsd += cost;
+    byProject.set(projectId, cur);
+  }
+  const projectRows = Array.from(byProject.values()).sort((a, b) => b.costUsd - a.costUsd);
+  const projectTotalUsd = projectRows.reduce((a, r) => a + r.costUsd, 0);
 
   return (
     <Card className="surface-elevated">
@@ -1125,6 +1140,39 @@ function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any
                 </TableBody>
               </Table>
             </div>
+
+            {projectRows.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Por projeto ({projectRows.length}) — total US$ {projectTotalUsd.toFixed(2)}
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Projeto</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                      <TableHead className="text-right">% do total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projectRows.slice(0, 12).map((r) => (
+                      <TableRow key={r.projectId}>
+                        <TableCell className="text-xs">
+                          <div className="font-medium">{r.name}</div>
+                          {r.name !== r.projectId && (
+                            <div className="text-[10px] text-muted-foreground">{r.projectId}</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs text-muted-foreground">
+                          {projectTotalUsd > 0 ? ((r.costUsd / projectTotalUsd) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
