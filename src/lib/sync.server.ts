@@ -313,59 +313,54 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   let detailRowsCount = 0;
   try {
     const dBuckets = await fetchAllCostBuckets({ ...baseParams, group_by: "line_item" });
-    {
-      const rowsByKey = new Map<string, {
-        day: string; model: string; type: string; costUsd: number; raw: any[];
-      }>();
-
-      const rowsByKey = new Map<string, {
-        day: string; model: string; type: string; costUsd: number; raw: any[];
-      }>();
-      for (const b of dBuckets) {
-        const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
-        for (const r of b?.results ?? []) {
-          const lineItem = String(r?.line_item ?? "").trim();
-          if (!lineItem) continue;
-          const [rawModel, rawType] = lineItem.split(",").map((s: string) => s.trim());
-          const model = rawModel || "unknown";
-          const type = (rawType || "usage").toLowerCase().replace(/\s+/g, "_");
-          const amt = Number(r?.amount?.value ?? 0);
-          if (!Number.isFinite(amt) || amt <= 0) continue;
-          const key = `${dayIso}::${model}::${type}`;
-          const cur = rowsByKey.get(key) ?? { day: dayIso, model, type, costUsd: 0, raw: [] };
-          cur.costUsd += amt;
-          cur.raw.push(r);
-          rowsByKey.set(key, cur);
-        }
+    const rowsByKey = new Map<string, {
+      day: string; model: string; type: string; costUsd: number; raw: any[];
+    }>();
+    for (const b of dBuckets) {
+      const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
+      for (const r of b?.results ?? []) {
+        const lineItem = String(r?.line_item ?? "").trim();
+        if (!lineItem) continue;
+        const [rawModel, rawType] = lineItem.split(",").map((s: string) => s.trim());
+        const model = rawModel || "unknown";
+        const type = (rawType || "usage").toLowerCase().replace(/\s+/g, "_");
+        const amt = Number(r?.amount?.value ?? 0);
+        if (!Number.isFinite(amt) || amt <= 0) continue;
+        const key = `${dayIso}::${model}::${type}`;
+        const cur = rowsByKey.get(key) ?? { day: dayIso, model, type, costUsd: 0, raw: [] };
+        cur.costUsd += amt;
+        cur.raw.push(r);
+        rowsByKey.set(key, cur);
       }
-      const detailRows = Array.from(rowsByKey.values());
-      if (detailRows.length > 0) {
-        const payload = detailRows.map((r) => ({
-          connection_id: conn.id,
-          provider_id: conn.provider_id,
-          platform_id: conn.platform_id,
-          usage_date: r.day,
-          model: r.model,
-          endpoint: r.type,
-          input_tokens: 0,
-          output_tokens: 0,
-          requests: 0,
-          quantity: 0,
-          unit: "usd",
-          cost_usd: r.costUsd,
-          exchange_rate: rate,
-          cost_brl: r.costUsd * rate,
-          raw: { source: "openai_costs_line_item", entries: r.raw },
-        }));
-        await supabaseAdmin
-          .from("provider_usage_daily")
-          .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
-        detailRowsCount = detailRows.length;
-      }
+    }
+    const detailRows = Array.from(rowsByKey.values());
+    if (detailRows.length > 0) {
+      const payload = detailRows.map((r) => ({
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        usage_date: r.day,
+        model: r.model,
+        endpoint: r.type,
+        input_tokens: 0,
+        output_tokens: 0,
+        requests: 0,
+        quantity: 0,
+        unit: "usd",
+        cost_usd: r.costUsd,
+        exchange_rate: rate,
+        cost_brl: r.costUsd * rate,
+        raw: { source: "openai_costs_line_item", entries: r.raw },
+      }));
+      await supabaseAdmin
+        .from("provider_usage_daily")
+        .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+      detailRowsCount = detailRows.length;
     }
   } catch (e) {
     console.warn("openai line_item breakdown failed", e);
   }
+
 
   // ------- Detalhamento por projeto (project_id) -------
   let projectRowsCount = 0;
