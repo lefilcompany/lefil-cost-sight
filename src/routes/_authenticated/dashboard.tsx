@@ -124,6 +124,21 @@ function Dashboard() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: entries = [], isLoading } = useQuery({ queryKey: ["dashboard-entries"], queryFn: fetchAll });
   const { data: dims } = useQuery({ queryKey: ["dashboard-dims"], queryFn: fetchDims });
+  const { data: usageDaily = [] } = useQuery({
+    queryKey: ["dashboard-usage-daily"],
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 120);
+      const { data, error } = await supabase
+        .from("provider_usage_daily")
+        .select("usage_date, model, endpoint, cost_usd, cost_brl, providers(name)")
+        .gte("usage_date", since.toISOString().slice(0, 10))
+        .order("usage_date", { ascending: false })
+        .limit(10000);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
 
 
   const range = useMemo(() => periodRange(search.period), [search.period]);
