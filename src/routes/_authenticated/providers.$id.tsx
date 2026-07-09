@@ -400,6 +400,8 @@ function ProviderDetailPage() {
       }
     >
       <div className="space-y-6">
+        <ProviderHero meta={meta} name={providerName} connections={connections.length} activeConns={connections.filter(c => c.status === "active").length} />
+
         <div className="grid gap-3 md:grid-cols-4">
           <Kpi label="Conexões" value={fmtNumber(connections.length)} icon={<Plug className="h-4 w-4" />} />
           <Kpi label="Custo importado" value={fmtBRL(totalBrl)} icon={<Wallet className="h-4 w-4" />} />
@@ -413,6 +415,11 @@ function ProviderDetailPage() {
             onRefresh={() => firecrawlUsage.refetch()}
           />
         )}
+
+        {isGemini && <GeminiUsageCard query={geminiUsage} />}
+        {isGCloud && <GoogleCloudSnapshotCard query={gcloudSnapshot} />}
+        {!isFirecrawl && !isGemini && !isGCloud && <ComingSoonUsageCard meta={meta} />}
+
 
 
 
