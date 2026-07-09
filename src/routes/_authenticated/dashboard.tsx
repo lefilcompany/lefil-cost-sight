@@ -230,6 +230,22 @@ function Dashboard() {
   const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev: any) => ({ ...prev, ...patch }) });
 
+  const modelBreakdown = useMemo(() => {
+    const inWindow = usageDaily.filter((u: any) => u.usage_date >= range.start && u.usage_date <= range.end);
+    const map = new Map<string, { provider: string; model: string; type: string; costBrl: number; costUsd: number }>();
+    for (const u of inWindow) {
+      const provider = u.providers?.name ?? "—";
+      const model = u.model ?? "—";
+      const type = u.endpoint ?? "—";
+      const k = `${provider}::${model}::${type}`;
+      const cur = map.get(k) ?? { provider, model, type, costBrl: 0, costUsd: 0 };
+      cur.costBrl += Number(u.cost_brl ?? 0);
+      cur.costUsd += Number(u.cost_usd ?? 0);
+      map.set(k, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.costBrl - a.costBrl);
+  }, [usageDaily, range]);
+
   const hasFilters = !!(search.platform || search.client || search.provider);
 
   return (
