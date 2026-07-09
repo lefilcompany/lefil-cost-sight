@@ -552,9 +552,214 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
 }
 
 
+async function syncElevenLabs(conn: any, rate: number): Promise<SyncOutcome> {
+  const key = await getConnectionKey(conn.id, "ELEVENLABS_API_KEY");
+  if (!key) throw new Error("API key do ElevenLabs não configurada nesta conexão.");
+
+  const cfg = (conn.config ?? {}) as any;
+  const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+
+  const [subRes, charRes] = await Promise.all([
+    fetch("https://api.elevenlabs.io/v1/user/subscription", {
+      headers: { "xi-api-key": key, Accept: "application/json" },
+    }).catch((e) => ({ ok: false, text: () => Promise.resolve(String(e?.message ?? e)) }) as any),
+    fetch("https://api.elevenlabs.io/v1/usage/character-stats", {
+      headers: { "xi-api-key": key, Accept: "application/json" },
+    }).catch((e) => ({ ok: false, text: () => Promise.resolve(String(e?.message ?? e)) }) as any),
+  ]);
+
+  let sub: any = {};
+  if (subRes.ok) sub = await subRes.json().catch(() => ({}));
+  else {
+    const txt = await subRes.text();
+    throw new Error(`ElevenLabs subscription ${subRes.status}: ${txt}`);
+  }
+
+  let usage: any = {};
+  if (charRes.ok) usage = await charRes.json().catch(() => ({}));
+
+  const tier = sub.tier ?? "unknown";
+  const characterCount = Number(sub.character_count ?? usage.character_count ?? 0);
+  const characterLimit = Number(sub.character_limit ?? usage.character_limit ?? 0);
+  const remaining = Math.max(0, characterLimit - characterCount);
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = now;
+
+  // Preferimos custo fixo mensal configurado; senão, usamos character_count * rate por caractere (se configurado).
+  const pricePer1kChars = Number(cfg.usd_per_1k_characters ?? 0);
+  const costUsd = planMonthlyUsd > 0
+    ? planMonthlyUsd
+    : pricePer1kChars > 0
+      ? (characterCount / 1000) * pricePer1kChars
+      : 0;
+  const costBrl = costUsd * rate;
+
+  await supabaseAdmin.from("provider_usage_syncs").insert({
+    provider_id: conn.provider_id,
+    platform_id: conn.platform_id,
+    period_start: isoDate(start),
+    period_end: isoDate(end),
+    usage_quantity: characterCount,
+    usage_unit: "characters",
+    cost_usd: costUsd,
+    exchange_rate: rate,
+    cost_brl: costBrl,
+    raw_response: { subscription: sub, character_stats: usage },
+  });
+
+  if (costUsd > 0) {
+    const description = `ElevenLabs — ciclo ${isoDate(start)}→${isoDate(end)}`;
+    await supabaseAdmin
+      .from("cost_entries")
+      .delete()
+      .eq("provider_id", conn.provider_id)
+      .eq("origin", "api")
+      .contains("metadata", { connection_id: conn.id, source: "elevenlabs_subscription" });
+    await supabaseAdmin.from("cost_entries").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      description,
+      entry_date: isoDate(start),
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      origin: "api",
+      metadata: {
+        connection_id: conn.id,
+        source: "elevenlabs_subscription",
+        tier,
+        character_count: characterCount,
+        character_limit: characterLimit,
+        plan_monthly_usd: planMonthlyUsd,
+      },
+    });
+  }
+
+  try {
+    await supabaseAdmin.from("provider_billing_snapshots").insert({
+      connection_id: conn.id,
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      plan_name: cfg.plan_name ?? tier,
+      billing_cycle: "monthly",
+      cycle_start: isoDate(start),
+      cycle_end: isoDate(end),
+      included_quantity: characterLimit,
+      included_unit: "characters",
+      used_quantity: characterCount,
+      remaining_quantity: remaining,
+      cost_period_usd: costUsd > 0 ? costUsd : (planMonthlyUsd > 0 ? planMonthlyUsd : null),
+      projected_cost_usd: costUsd > 0 ? costUsd : null,
+      currency: "USD",
+      raw: { subscription: sub, character_stats: usage },
+    });
+  } catch (e) {
+    console.warn("elevenlabs billing snapshot failed", e);
+  }
+
+  return {
+    status: "success",
+    records: 1,
+    message: `ElevenLabs · Tier: ${tier} · Caracteres: ${characterCount.toLocaleString("pt-BR")}/${characterLimit.toLocaleString("pt-BR")}${costUsd > 0 ? ` · ~US$ ${costUsd.toFixed(2)}` : ""}`,
+    meta: {
+      tier,
+      character_count: characterCount,
+      character_limit: characterLimit,
+      cost_usd: costUsd,
+    },
+  };
+}
+
+
+async function syncGoogleCloud(conn: any, rate: number): Promise<SyncOutcome> {
+  const { syncGcpBilling } = await import("./gcp-billing.server");
+  // Todos os serviços do projeto de faturamento (sem filtro de serviço).
+  return syncGcpBilling(conn, rate, { providerName: "Google Cloud" });
+}
+
+
 async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
-  const { syncGeminiBilling } = await import("./gemini-billing.server");
+  const { syncGeminiBilling } = await import("./gcp-billing.server");
   return syncGeminiBilling(conn, rate);
+}
+
+
+async function syncSupabase(conn: any, rate: number): Promise<SyncOutcome> {
+  const cfg = (conn.config ?? {}) as any;
+  const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+  const planName = cfg.plan_name ?? "Supabase";
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = now;
+  const costUsd = planMonthlyUsd;
+  const costBrl = costUsd * rate;
+
+  if (costUsd > 0) {
+    await supabaseAdmin.from("provider_usage_syncs").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      period_start: isoDate(start),
+      period_end: isoDate(end),
+      usage_quantity: null,
+      usage_unit: "fixed",
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      raw_response: { plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+    });
+
+    await supabaseAdmin
+      .from("cost_entries")
+      .delete()
+      .eq("provider_id", conn.provider_id)
+      .eq("origin", "api")
+      .contains("metadata", { connection_id: conn.id, source: "supabase_fixed" });
+    await supabaseAdmin.from("cost_entries").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      description: `Supabase — ${planName} · ciclo ${isoDate(start)}→${isoDate(end)}`,
+      entry_date: isoDate(start),
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      origin: "api",
+      metadata: { connection_id: conn.id, source: "supabase_fixed", plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+    });
+
+    try {
+      await supabaseAdmin.from("provider_billing_snapshots").insert({
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        plan_name: planName,
+        billing_cycle: "monthly",
+        cycle_start: isoDate(start),
+        cycle_end: isoDate(end),
+        included_quantity: null,
+        included_unit: "fixed",
+        used_quantity: null,
+        remaining_quantity: null,
+        cost_period_usd: costUsd,
+        projected_cost_usd: costUsd,
+        currency: "USD",
+        raw: { plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+      });
+    } catch (e) {
+      console.warn("supabase billing snapshot failed", e);
+    }
+  }
+
+  return {
+    status: costUsd > 0 ? "success" : "skipped",
+    records: costUsd > 0 ? 1 : 0,
+    message: costUsd > 0
+      ? `Supabase · ${planName} · US$ ${costUsd.toFixed(2)}/mês`
+      : "A API pública de billing do Supabase não está disponível. Cadastre o valor mensal do plano na conexão para que ele apareça no financeiro.",
+    meta: { plan_name: planName, plan_monthly_usd: planMonthlyUsd, cost_usd: costUsd },
+  };
 }
 
 
@@ -563,6 +768,9 @@ const HANDLERS: Record<string, (c: any, r: number) => Promise<SyncOutcome>> = {
   OpenAI: syncOpenAI,
   Gemini: syncGemini,
   "Google Gemini": syncGemini,
+  "Google Cloud": syncGoogleCloud,
+  ElevenLabs: syncElevenLabs,
+  Supabase: syncSupabase,
 };
 
 

@@ -37,6 +37,21 @@ function isoDate(d: Date | string): string {
 }
 
 export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOutcome> {
+  // Gemini/Vertex: filtra por serviços de IA generativa do GCP.
+  return syncGcpBilling(conn, rate, {
+    providerName: "Gemini/Vertex AI",
+    serviceFilter: ["%vertex%", "%generative language%", "%gemini%", "%ai platform%"],
+  });
+}
+
+export async function syncGcpBilling(
+  conn: any,
+  rate: number,
+  options: {
+    providerName?: string;
+    serviceFilter?: string[];
+  } = {},
+): Promise<SyncOutcome> {
   const rawSa = await getConnectionKey(conn.id);
   if (!rawSa) {
     return {
@@ -60,7 +75,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
     return {
       status: "skipped",
       records: 0,
-      message: `Configuração incompleta: falta ${missing.join(", ")}. Edite a conexão do Gemini.`,
+      message: `Configuração incompleta: falta ${missing.join(", ")}. Edite a conexão do GCP.`,
     };
   }
 
@@ -78,7 +93,9 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
   const minLookbackMs = 30 * 86400_000;
   const maxLookbackMs = 90 * 86400_000;
   const lastSyncMs = conn.last_sync_at ? new Date(conn.last_sync_at).getTime() : 0;
-  const sinceFromLastSync = lastSyncMs ? Math.min(lastSyncMs - 86400_000, now.getTime() - minLookbackMs) : now.getTime() - minLookbackMs;
+  const sinceFromLastSync = lastSyncMs
+    ? Math.min(lastSyncMs - 86400_000, now.getTime() - minLookbackMs)
+    : now.getTime() - minLookbackMs;
   const floor = now.getTime() - maxLookbackMs;
   const since = new Date(Math.max(sinceFromLastSync, floor));
   const startDate = isoDate(since);
@@ -86,6 +103,16 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
 
   const tableIdentHyphen = `\`${bqProject}.${bqDataset}.gcp_billing_export_v1_${billingId}\``;
   const tableIdentUnderscore = `\`${bqProject}.${bqDataset}.gcp_billing_export_v1_${billingId!.replace(/-/g, "_")}\``;
+
+  const providerName = options.providerName ?? "GCP";
+  const filter = options.serviceFilter;
+  let serviceWhere = "";
+  if (filter && filter.length > 0) {
+    const conditions = filter
+      .map((f) => `LOWER(service.description) LIKE '${f.replace(/'/g, "''")}'`)
+      .join("\n        OR ");
+    serviceWhere = `AND (\n        ${conditions}\n      )`;
+  }
 
   const sql = `
     SELECT
@@ -98,14 +125,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
       MAX(usage.unit) AS usage_unit
     FROM ${tableIdentHyphen}
     WHERE DATE(usage_start_time) BETWEEN DATE('${startDate}') AND DATE('${endDate}')
-      AND (
-        LOWER(service.description) LIKE '%vertex%'
-        OR LOWER(service.description) LIKE '%generative language%'
-        OR LOWER(service.description) LIKE '%gemini%'
-        OR LOWER(service.description) LIKE '%ai platform%'
-        OR LOWER(sku.description) LIKE '%gemini%'
-        OR LOWER(sku.description) LIKE '%vertex%'
-      )
+      ${serviceWhere}
     GROUP BY 1, 2, 3
     ORDER BY 1, 3
   `;
@@ -138,7 +158,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
     return {
       status: "success",
       records: 0,
-      message: `Sem uso de Gemini/Vertex entre ${startDate} e ${endDate}`,
+      message: `Sem uso de ${providerName} entre ${startDate} e ${endDate}`,
       meta: { bytes: bq.totalBytesProcessed },
     };
   }
@@ -206,7 +226,7 @@ export async function syncGeminiBilling(conn: any, rate: number): Promise<SyncOu
     .map(([day, usd]) => ({
       provider_id: conn.provider_id,
       platform_id: conn.platform_id,
-      description: `Gemini/Vertex AI — ${day}`,
+      description: `${providerName} — ${day}`,
       entry_date: day,
       cost_usd: usd,
       exchange_rate: rate,

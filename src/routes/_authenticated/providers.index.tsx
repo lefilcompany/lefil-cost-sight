@@ -230,7 +230,27 @@ CONNECTION_SCHEMAS["ElevenLabs"] = {
   apiKeyPlaceholder: "sk_...",
   apiKeyType: "password",
   apiKeyHelper: "Encontre em ElevenLabs → Profile → API Keys.",
-  configFields: [],
+  configFields: [
+    {
+      key: "plan_name",
+      label: "Nome do plano",
+      placeholder: "Ex.: Creator",
+      helper: "Nome do plano contratado (Free, Starter, Creator, Pro, Scale…).",
+    },
+    {
+      key: "plan_monthly_usd",
+      label: "Valor mensal do plano (USD)",
+      placeholder: "22",
+      helper: "Mensalidade fixa do plano, em dólar. Ex.: Creator = US$ 22/mês.",
+    },
+    {
+      key: "usd_per_1k_characters",
+      label: "Preço USD por 1.000 caracteres",
+      placeholder: "0.30",
+      helper: "Usado para estimar custo quando não há plano fixo. Ex.: US$ 0,30/1k caracteres.",
+      defaultValue: "0.30",
+    },
+  ],
   docsUrl: "https://elevenlabs.io/app/settings/api-keys",
 };
 CONNECTION_SCHEMAS["Supabase"] = {
@@ -240,6 +260,18 @@ CONNECTION_SCHEMAS["Supabase"] = {
   apiKeyHelper: "Chave service_role usada apenas em leitura de billing/uso.",
   configFields: [
     { key: "project_ref", label: "Project Ref", placeholder: "abcdefghijkl", required: true },
+    {
+      key: "plan_name",
+      label: "Nome do plano",
+      placeholder: "Ex.: Pro",
+      helper: "Plano contratado no Supabase (Free, Pro, Team, Enterprise).",
+    },
+    {
+      key: "plan_monthly_usd",
+      label: "Valor mensal do plano (USD)",
+      placeholder: "25",
+      helper: "Mensalidade fixa do projeto, em dólar. Ex.: Pro = US$ 25/mês.",
+    },
   ],
   docsUrl: "https://supabase.com/dashboard/project/_/settings/api",
 };
