@@ -1140,6 +1140,39 @@ function OpenAIUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any
                 </TableBody>
               </Table>
             </div>
+
+            {projectRows.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Por projeto ({projectRows.length}) — total US$ {projectTotalUsd.toFixed(2)}
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Projeto</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                      <TableHead className="text-right">% do total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projectRows.slice(0, 12).map((r) => (
+                      <TableRow key={r.projectId}>
+                        <TableCell className="text-xs">
+                          <div className="font-medium">{r.name}</div>
+                          {r.name !== r.projectId && (
+                            <div className="text-[10px] text-muted-foreground">{r.projectId}</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs text-muted-foreground">
+                          {projectTotalUsd > 0 ? ((r.costUsd / projectTotalUsd) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
