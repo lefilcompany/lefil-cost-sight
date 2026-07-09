@@ -1,0 +1,1 @@
+ALTER TABLE public.cost_entries ADD COLUMN IF NOT EXISTS raw_response jsonb;
