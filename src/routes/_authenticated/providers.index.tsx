@@ -169,62 +169,62 @@ const CONNECTION_SCHEMAS: Record<string, ConnectionSchema> = {
     docsUrl: "https://platform.openai.com/settings/organization/admin-keys",
   },
   Gemini: {
+    apiKeyLabel: "API Key (Google AI Studio)",
+    apiKeyPlaceholder: "AIza...",
+    apiKeyType: "password",
+    apiKeyHelper: "Gere em Google AI Studio → Get API key. Sem service account, sem BigQuery.",
+    configFields: [
+      {
+        key: "plan_name",
+        label: "Nome do plano (opcional)",
+        placeholder: "Ex.: Pay-as-you-go, AI Pro",
+        helper: "Usado como rótulo no financeiro quando não há eventos de uso.",
+      },
+      {
+        key: "plan_monthly_usd",
+        label: "Valor mensal fixo (USD, opcional)",
+        placeholder: "0",
+        helper: "Registra um custo fixo mensal quando ainda não há eventos em gemini_usage_events.",
+        defaultValue: "0",
+      },
+    ],
+    docsUrl: "https://aistudio.google.com/app/apikey",
+    setupSteps: [
+      "Abra o Google AI Studio e clique em Get API key.",
+      "Crie uma chave num projeto GCP com billing ativo (ou use pay-as-you-go).",
+      "Cole a chave aqui. A validação chama ListModels para confirmar acesso.",
+      "Opcional: informe um valor mensal fixo para aparecer no financeiro enquanto o proxy de eventos não estiver ativo.",
+    ],
+  },
+  "Google Gemini": {
+    apiKeyLabel: "API Key (Google AI Studio)",
+    apiKeyPlaceholder: "AIza...",
+    apiKeyType: "password",
+    configFields: [],
+  },
+  "Google Cloud": {
     apiKeyLabel: "Service Account JSON",
     apiKeyPlaceholder: '{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}',
     apiKeyType: "textarea",
     apiKeyHelper: "Cole o conteúdo completo do arquivo JSON da service account.",
     configFields: [
-      {
-        key: "gcp.gcp_project",
-        label: "GCP Project ID (Vertex AI)",
-        placeholder: "meu-projeto",
-        helper: "Projeto onde o Vertex AI/Gemini é usado.",
-        required: true,
-      },
-      {
-        key: "gcp.bq_project",
-        label: "BigQuery Project ID",
-        placeholder: "meu-projeto-billing",
-        helper: "Projeto onde está o dataset do billing export (pode ser o mesmo).",
-        required: true,
-      },
-      {
-        key: "gcp.bq_dataset",
-        label: "BigQuery Dataset",
-        placeholder: "billing_export",
-        required: true,
-      },
-      {
-        key: "gcp.billing_account_id",
-        label: "Billing Account ID",
-        placeholder: "012345-ABCDEF-789012",
-        helper: "Formato XXXXXX-XXXXXX-XXXXXX (com hífens).",
-        required: true,
-      },
-      {
-        key: "gcp.bq_location",
-        label: "Location do dataset",
-        placeholder: "US",
-        defaultValue: "US",
-      },
+      { key: "gcp.gcp_project", label: "GCP Project ID", placeholder: "meu-projeto", required: true },
+      { key: "gcp.bq_project", label: "BigQuery Project ID", placeholder: "meu-projeto-billing", required: true },
+      { key: "gcp.bq_dataset", label: "BigQuery Dataset", placeholder: "billing_export", required: true },
+      { key: "gcp.billing_account_id", label: "Billing Account ID", placeholder: "012345-ABCDEF-789012", helper: "Formato XXXXXX-XXXXXX-XXXXXX (com hífens).", required: true },
+      { key: "gcp.bq_location", label: "Location do dataset", placeholder: "US", defaultValue: "US" },
     ],
     docsUrl: "https://cloud.google.com/billing/docs/how-to/export-data-bigquery",
     setupSteps: [
       "Habilite o BigQuery billing export (Standard usage cost) no console GCP.",
       "Crie o dataset em multi-região US ou EU (para backfill retroativo).",
-      "Crie uma service account e dê os papéis: BigQuery Data Viewer no dataset, BigQuery Job User no projeto, Monitoring Viewer no projeto Vertex.",
+      "Crie uma service account com BigQuery Data Viewer no dataset e BigQuery Job User no projeto.",
       "Faça download da chave JSON e cole aqui.",
     ],
   },
-  "Google Gemini": {
-    apiKeyLabel: "Service Account JSON",
-    apiKeyPlaceholder: "{...}",
-    apiKeyType: "textarea",
-    configFields: [],
-  },
 };
 CONNECTION_SCHEMAS["Google Gemini"] = CONNECTION_SCHEMAS.Gemini;
-CONNECTION_SCHEMAS["Google Cloud"] = CONNECTION_SCHEMAS.Gemini;
+
 CONNECTION_SCHEMAS["ElevenLabs"] = {
   apiKeyLabel: "API Key",
   apiKeyPlaceholder: "sk_...",

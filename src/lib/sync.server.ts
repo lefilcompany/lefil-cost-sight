@@ -681,9 +681,17 @@ async function syncGoogleCloud(conn: any, rate: number): Promise<SyncOutcome> {
 
 
 async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
-  const { syncGeminiBilling } = await import("./gcp-billing.server");
-  return syncGeminiBilling(conn, rate);
+  // Detecta modo: API Key do AI Studio (AIza...) vs Service Account JSON (legado).
+  const cfg = (conn.config ?? {}) as any;
+  const hasGcpConfig = !!(cfg.gcp?.bq_project || cfg.gcp?.billing_account_id);
+  if (hasGcpConfig) {
+    const { syncGeminiBilling } = await import("./gcp-billing.server");
+    return syncGeminiBilling(conn, rate);
+  }
+  const { syncGeminiApiKey } = await import("./gemini-apikey.server");
+  return syncGeminiApiKey(conn, rate);
 }
+
 
 
 async function syncSupabase(conn: any, rate: number): Promise<SyncOutcome> {
