@@ -60,7 +60,7 @@ const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
 });
 
-export const Route = createFileRoute("/_authenticated/providers")({
+export const Route = createFileRoute("/_authenticated/providers/")({
   head: () => ({ meta: [{ title: "Fornecedores — Quiwi Cost Center" }] }),
   validateSearch: searchSchema,
   component: ProvidersPage,
