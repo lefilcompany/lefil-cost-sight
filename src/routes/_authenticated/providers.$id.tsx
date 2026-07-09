@@ -18,6 +18,14 @@ import {
   AlertCircle,
   Wallet,
   Activity,
+  ExternalLink,
+  Info,
+  Sparkles,
+  Cloud,
+  Server,
+  Mic,
+  Wrench,
+  BookOpen,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -40,6 +48,76 @@ import { getFirecrawlUsage } from "@/lib/firecrawl-usage.functions";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { Progress } from "@/components/ui/progress";
+
+import firecrawlLogo from "@/assets/providers/firecrawl-wordmark.png.asset.json";
+import geminiLogo from "@/assets/providers/gemini.png.asset.json";
+import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
+import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
+import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
+import supabaseLogo from "@/assets/providers/supabase.svg.asset.json";
+
+type ProviderMeta = {
+  logo: string;
+  bg: string;
+  logoPadding?: string;
+  logoScale?: string;
+  category: string;
+  description: string;
+  website: string;
+  docs: string;
+  icon: any;
+  highlights: string[];
+};
+
+const PROVIDER_META: Record<string, ProviderMeta> = {
+  OpenAI: {
+    logo: openaiLogo.url, bg: "#111827", category: "AI · LLM",
+    description: "Modelos GPT, embeddings e Costs API. Ideal para chat, extração de dados e automações com IA.",
+    website: "https://openai.com", docs: "https://platform.openai.com/docs", icon: Sparkles,
+    highlights: ["Uso de tokens por modelo e projeto", "Costs API para custo diário em USD", "Chaves separadas por ambiente / cliente"],
+  },
+  "Google Gemini": {
+    logo: geminiLogo.url, bg: "#1f2937", logoPadding: "p-2", category: "AI · Multimodal",
+    description: "Gemini via Vertex AI. Eventos de uso (prompt/output/thinking tokens) com custo estimado.",
+    website: "https://ai.google.dev", docs: "https://ai.google.dev/gemini-api/docs", icon: Sparkles,
+    highlights: ["Eventos de uso por modelo e operação", "Custo estimado por request (USD)", "Integração com projetos Google Cloud"],
+  },
+  Firecrawl: {
+    logo: firecrawlLogo.url, bg: "#f97316", category: "Ferramenta · Scraping",
+    description: "Crawl / scrape com créditos mensais. Créditos, tokens e período de faturamento em tempo real.",
+    website: "https://firecrawl.dev", docs: "https://docs.firecrawl.dev", icon: Wrench,
+    highlights: ["Créditos e tokens do plano em tempo real", "Ciclo de faturamento detectado automaticamente", "Custo fixo mensal convertido em BRL"],
+  },
+  "Google Cloud": {
+    logo: gcloudLogo.url, bg: "#0f172a", category: "Cloud · Infra",
+    description: "Infra, BigQuery e serviços gerenciados. Billing via export do BigQuery da conta de cobrança.",
+    website: "https://cloud.google.com", docs: "https://cloud.google.com/billing/docs", icon: Cloud,
+    highlights: ["Snapshots periódicos de custo do ciclo", "Export de billing via BigQuery", "Limites e projeções por conexão"],
+  },
+  Supabase: {
+    logo: supabaseLogo.url, bg: "#0f1a17", category: "Backend · Postgres",
+    description: "Postgres, Auth, Storage e Realtime. Base gerenciada com RLS e Edge Functions.",
+    website: "https://supabase.com", docs: "https://supabase.com/docs", icon: Server,
+    highlights: ["Conexões e chaves por projeto", "Custo mensal do plano em BRL", "Integração de billing em breve"],
+  },
+  ElevenLabs: {
+    logo: elevenlabsLogo.url, bg: "#0a0a0a", logoPadding: "p-0", logoScale: "scale-[1.35]",
+    category: "Voz · TTS",
+    description: "Text-to-speech ultra-realista e clonagem de voz. Cobrança por caracteres consumidos.",
+    website: "https://elevenlabs.io", docs: "https://elevenlabs.io/docs", icon: Mic,
+    highlights: ["Custo mensal do plano", "Caracteres / segundos por conexão", "Integração de billing em breve"],
+  },
+};
+
+function metaFor(name: string): ProviderMeta {
+  return (
+    PROVIDER_META[name] ?? {
+      logo: "", bg: "#1f2937", category: "Fornecedor",
+      description: "Fornecedor conectado ao Quiwi.",
+      website: "", docs: "", icon: Info, highlights: [],
+    }
+  );
+}
 
 
 export const Route = createFileRoute("/_authenticated/providers/$id")({
