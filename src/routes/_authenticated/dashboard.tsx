@@ -449,6 +449,40 @@ function Dashboard() {
           </ChartCard>
         </div>
 
+        {/* Model & type breakdown (OpenAI/Gemini/…) */}
+        {modelBreakdown.length > 0 && (
+          <Card className="surface-elevated overflow-hidden">
+            <CardHeader className="border-b border-border/60 py-4">
+              <CardTitle className="font-display text-base">Custos por modelo e tipo</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Detalhamento das APIs no período — top 12</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Modelo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Custo USD</TableHead>
+                    <TableHead className="text-right">Custo BRL</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {modelBreakdown.slice(0, 12).map((r) => (
+                    <TableRow key={`${r.provider}-${r.model}-${r.type}`} className="border-border/50">
+                      <TableCell className="text-sm">{r.provider}</TableCell>
+                      <TableCell className="text-xs font-medium">{r.model}</TableCell>
+                      <TableCell><Badge variant="outline" className="font-normal">{r.type}</Badge></TableCell>
+                      <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                      <TableCell className="text-right font-numeric text-sm">{fmtBRL(r.costBrl)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recent */}
         <Card className="surface-elevated overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 py-4">
