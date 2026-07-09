@@ -219,7 +219,11 @@ function ProviderDetailPage() {
     },
   });
 
-  const isFirecrawl = (provider?.name ?? "").toLowerCase() === "firecrawl";
+  const providerName = provider?.name ?? "";
+  const meta = metaFor(providerName);
+  const isFirecrawl = providerName.toLowerCase() === "firecrawl";
+  const isGemini = providerName.toLowerCase().includes("gemini");
+  const isGCloud = providerName.toLowerCase().includes("google cloud");
   const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
   const firecrawlUsage = useQuery({
     queryKey: ["firecrawl-usage", activeConnId],
@@ -228,6 +232,64 @@ function ProviderDetailPage() {
     refetchInterval: 60_000,
     retry: false,
   });
+
+  const geminiUsage = useQuery({
+    queryKey: ["gemini-usage-summary", id],
+    enabled: isGemini,
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data, error } = await supabase
+        .from("gemini_usage_events")
+        .select("model, total_tokens, prompt_tokens, output_tokens, estimated_cost, success, occurred_at")
+        .in("provider_connection_id", connections.map((c) => c.id))
+        .gte("occurred_at", since.toISOString())
+        .limit(5000);
+      if (error) throw error;
+      const rows = data ?? [];
+      const byModel = new Map<string, { requests: number; tokens: number; cost: number }>();
+      let totalTokens = 0, totalCost = 0, ok = 0, fail = 0;
+      for (const r of rows as any[]) {
+        const m = r.model ?? "—";
+        const cur = byModel.get(m) ?? { requests: 0, tokens: 0, cost: 0 };
+        cur.requests += 1;
+        cur.tokens += Number(r.total_tokens ?? 0);
+        cur.cost += Number(r.estimated_cost ?? 0);
+        byModel.set(m, cur);
+        totalTokens += Number(r.total_tokens ?? 0);
+        totalCost += Number(r.estimated_cost ?? 0);
+        if (r.success === false) fail += 1; else ok += 1;
+      }
+      return {
+        totalRequests: rows.length,
+        totalTokens,
+        totalCost,
+        successRate: rows.length ? (ok / rows.length) * 100 : 0,
+        failed: fail,
+        topModels: Array.from(byModel.entries())
+          .sort((a, b) => b[1].tokens - a[1].tokens)
+          .slice(0, 5)
+          .map(([model, v]) => ({ model, ...v })),
+      };
+    },
+  });
+
+  const gcloudSnapshot = useQuery({
+    queryKey: ["gcloud-snapshot", id],
+    enabled: isGCloud,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_billing_snapshots")
+        .select("*")
+        .eq("provider_id", id)
+        .order("captured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
 
 
 
