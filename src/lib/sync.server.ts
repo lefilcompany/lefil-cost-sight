@@ -686,11 +686,79 @@ async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
 }
 
 
-async function syncSupabase(_conn: any, _rate: number): Promise<SyncOutcome> {
+async function syncSupabase(conn: any, rate: number): Promise<SyncOutcome> {
+  const cfg = (conn.config ?? {}) as any;
+  const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+  const planName = cfg.plan_name ?? "Supabase";
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = now;
+  const costUsd = planMonthlyUsd;
+  const costBrl = costUsd * rate;
+
+  if (costUsd > 0) {
+    await supabaseAdmin.from("provider_usage_syncs").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      period_start: isoDate(start),
+      period_end: isoDate(end),
+      usage_quantity: null,
+      usage_unit: "fixed",
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      raw_response: { plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+    });
+
+    await supabaseAdmin
+      .from("cost_entries")
+      .delete()
+      .eq("provider_id", conn.provider_id)
+      .eq("origin", "api")
+      .contains("metadata", { connection_id: conn.id, source: "supabase_fixed" });
+    await supabaseAdmin.from("cost_entries").insert({
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      description: `Supabase — ${planName} · ciclo ${isoDate(start)}→${isoDate(end)}`,
+      entry_date: isoDate(start),
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costBrl,
+      origin: "api",
+      metadata: { connection_id: conn.id, source: "supabase_fixed", plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+    });
+
+    try {
+      await supabaseAdmin.from("provider_billing_snapshots").insert({
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        plan_name: planName,
+        billing_cycle: "monthly",
+        cycle_start: isoDate(start),
+        cycle_end: isoDate(end),
+        included_quantity: null,
+        included_unit: "fixed",
+        used_quantity: null,
+        remaining_quantity: null,
+        cost_period_usd: costUsd,
+        projected_cost_usd: costUsd,
+        currency: "USD",
+        raw: { plan_name: planName, plan_monthly_usd: planMonthlyUsd },
+      });
+    } catch (e) {
+      console.warn("supabase billing snapshot failed", e);
+    }
+  }
+
   return {
-    status: "skipped",
-    records: 0,
-    message: "A API pública de billing do Supabase não está disponível. Cadastre o custo mensal manualmente em 'Custos' ou configure um billing export via webhook.",
+    status: costUsd > 0 ? "success" : "skipped",
+    records: costUsd > 0 ? 1 : 0,
+    message: costUsd > 0
+      ? `Supabase · ${planName} · US$ ${costUsd.toFixed(2)}/mês`
+      : "A API pública de billing do Supabase não está disponível. Cadastre o valor mensal do plano na conexão para que ele apareça no financeiro.",
+    meta: { plan_name: planName, plan_monthly_usd: planMonthlyUsd, cost_usd: costUsd },
   };
 }
 
