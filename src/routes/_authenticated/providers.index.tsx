@@ -902,7 +902,7 @@ function ProvidersPage() {
                   )}
                 </div>
 
-                {connectProvider && /gemini/i.test(connectProvider.name) ? (
+                {connectProvider && /google cloud/i.test(connectProvider.name) ? (
                   <GeminiAutoDiscover
                     saJson={connectForm.api_key}
                     config={connectForm.config}
@@ -924,6 +924,7 @@ function ProvidersPage() {
                     </div>
                   ))
                 )}
+
 
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setConnectOpen(false)}>Cancelar</Button>
