@@ -220,9 +220,15 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   const cfg = (conn.config ?? {}) as any;
   // Sync since last successful sync (or last 7 days).
   const now = new Date();
-  const since = conn.last_sync_at ? new Date(conn.last_sync_at) : new Date(now.getTime() - 7 * 86400_000);
-  const startTime = Math.floor(since.getTime() / 1000);
-  const endTime = Math.floor(now.getTime() / 1000);
+  // OpenAI Costs API requires day-aligned UTC timestamps and end_time strictly after start_time.
+  const endUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const sinceRaw = conn.last_sync_at ? new Date(conn.last_sync_at) : new Date(now.getTime() - 7 * 86400_000);
+  let startUtc = new Date(Date.UTC(sinceRaw.getUTCFullYear(), sinceRaw.getUTCMonth(), sinceRaw.getUTCDate()));
+  if (startUtc.getTime() >= endUtc.getTime()) {
+    startUtc = new Date(endUtc.getTime() - 86400_000);
+  }
+  const startTime = Math.floor(startUtc.getTime() / 1000);
+  const endTime = Math.floor(endUtc.getTime() / 1000);
 
   const url = new URL("https://api.openai.com/v1/organization/costs");
   url.searchParams.set("start_time", String(startTime));
