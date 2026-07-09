@@ -224,6 +224,7 @@ function ProviderDetailPage() {
   const isFirecrawl = providerName.toLowerCase() === "firecrawl";
   const isGemini = providerName.toLowerCase().includes("gemini");
   const isGCloud = providerName.toLowerCase().includes("google cloud");
+  const isOpenAI = providerName.toLowerCase() === "openai";
   const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
   const firecrawlUsage = useQuery({
     queryKey: ["firecrawl-usage", activeConnId],
