@@ -437,7 +437,8 @@ function ProviderDetailPage() {
 
         {isGemini && <GeminiUsageCard query={geminiUsage} />}
         {isGCloud && <GoogleCloudSnapshotCard query={gcloudSnapshot} />}
-        {!isFirecrawl && !isGemini && !isGCloud && <ComingSoonUsageCard meta={meta} />}
+        {isOpenAI && <OpenAIUsageCard query={openaiUsage} />}
+        {!isFirecrawl && !isGemini && !isGCloud && !isOpenAI && <ComingSoonUsageCard meta={meta} />}
 
 
 
