@@ -581,32 +581,48 @@ function ProvidersPage() {
         if (upErr) throw upErr;
       }
 
-      // First sync — best effort, never block the success feedback.
+      // Provisionamento inicial: custos + billing. Best effort.
       try {
-        const r: any = await runSync({ data: { connection_id: insertedConnection.id } });
-        return { providerId: connectProvider.id, syncMessage: r?.message, records: r?.records ?? 0, syncOk: true };
+        const r: any = await provision({ data: { connection_id: insertedConnection.id } });
+        const costs = r?.costs ?? {};
+        const billing = r?.billing ?? {};
+        const parts: string[] = [];
+        if (costs.records) parts.push(`${costs.records} lançamentos de custo`);
+        if (billing.invoices) parts.push(`${billing.invoices} faturas`);
+        if (billing.snapshots) parts.push(`${billing.snapshots} snapshots`);
+        if (billing.usage_rows) parts.push(`${billing.usage_rows} linhas de uso`);
+        const summary = parts.length ? parts.join(" · ") : (costs.message || billing.message || "Nenhum registro no período");
+        return {
+          providerId: connectProvider.id,
+          syncOk: !!(costs.ok || billing.ok),
+          summary,
+          costsMessage: costs.message,
+          billingMessage: billing.message,
+        };
       } catch (syncErr: any) {
         return {
           providerId: connectProvider.id,
-          syncMessage: String(syncErr?.message ?? syncErr),
-          records: 0,
           syncOk: false,
+          summary: String(syncErr?.message ?? syncErr),
         };
       }
     },
     onSuccess: (r) => {
       if (r?.syncOk) {
-        toast.success("Conexão criada e sincronizada", {
-          description: r.syncMessage ?? `${r.records} registros importados`,
-        });
+        toast.success("Conexão criada e provisionada", { description: r.summary });
       } else {
-        toast.warning("Conexão criada, mas o primeiro sync falhou", {
-          description: r?.syncMessage ?? "Você pode tentar novamente na página do fornecedor.",
+        toast.warning("Conexão criada, mas o provisionamento inicial falhou", {
+          description: r?.summary ?? "Você pode tentar novamente na página do fornecedor.",
         });
       }
       qc.invalidateQueries({ queryKey: ["providers"] });
       qc.invalidateQueries({ queryKey: ["providers-connections"] });
       qc.invalidateQueries({ queryKey: ["providers-costs"] });
+      qc.invalidateQueries({ queryKey: ["cost_entries"] });
+      qc.invalidateQueries({ queryKey: ["provider_invoices"] });
+      qc.invalidateQueries({ queryKey: ["billing"] });
+      qc.invalidateQueries({ queryKey: ["financial"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
       setConnectOpen(false);
       if (r?.providerId) navigate({ to: "/providers/$id", params: { id: r.providerId } });
     },
