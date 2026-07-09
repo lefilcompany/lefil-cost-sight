@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { discoverGcp } from "@/lib/gcp-discover.functions";
-import { runProviderSync, provisionConnection } from "@/lib/sync.functions";
+import { provisionConnection } from "@/lib/sync.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
