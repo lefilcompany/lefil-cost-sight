@@ -230,23 +230,39 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   const startTime = Math.floor(startUtc.getTime() / 1000);
   const endTime = Math.floor(endUtc.getTime() / 1000);
 
-  const url = new URL("https://api.openai.com/v1/organization/costs");
-  url.searchParams.set("start_time", String(startTime));
-  url.searchParams.set("end_time", String(endTime));
-  url.searchParams.set("bucket_width", "1d");
-  url.searchParams.set("limit", "180");
-
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
   if (cfg.org_id) headers["OpenAI-Organization"] = String(cfg.org_id);
 
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`OpenAI Costs API ${res.status}: ${await res.text()}`);
-  const json: any = await res.json();
+  // Fetch all pages of the OpenAI Costs API following has_more/next_page cursors.
+  async function fetchAllCostBuckets(params: Record<string, string>): Promise<any[]> {
+    const all: any[] = [];
+    let page: string | undefined = undefined;
+    // Hard safety cap to avoid infinite loops on unexpected API responses.
+    for (let i = 0; i < 200; i++) {
+      const u = new URL("https://api.openai.com/v1/organization/costs");
+      for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+      if (page) u.searchParams.set("page", page);
+      const r = await fetch(u, { headers });
+      if (!r.ok) throw new Error(`OpenAI Costs API ${r.status}: ${await r.text()}`);
+      const j: any = await r.json();
+      if (Array.isArray(j?.data)) all.push(...j.data);
+      if (!j?.has_more || !j?.next_page) break;
+      page = String(j.next_page);
+    }
+    return all;
+  }
 
-  const buckets: any[] = Array.isArray(json?.data) ? json.data : [];
+  const baseParams = {
+    start_time: String(startTime),
+    end_time: String(endTime),
+    bucket_width: "1d",
+    limit: "180",
+  };
+  const buckets = await fetchAllCostBuckets(baseParams);
+
   let totalUsd = 0;
   let inserted = 0;
 
