@@ -526,6 +526,7 @@ function ProvidersPage() {
   });
 
   const runSync = useServerFn(runProviderSync);
+  const provision = useServerFn(provisionConnection);
   const connect = useMutation({
     mutationFn: async () => {
       if (!connectProvider) throw new Error("Fornecedor inválido");
