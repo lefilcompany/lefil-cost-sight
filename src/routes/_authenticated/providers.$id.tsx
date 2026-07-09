@@ -298,7 +298,7 @@ function ProviderDetailPage() {
       since.setDate(since.getDate() - 30);
       const { data, error } = await supabase
         .from("provider_usage_daily")
-        .select("usage_date, model, endpoint, cost_usd")
+        .select("usage_date, model, endpoint, cost_usd, raw")
         .eq("provider_id", id)
         .gte("usage_date", since.toISOString().slice(0, 10))
         .order("usage_date", { ascending: false })
