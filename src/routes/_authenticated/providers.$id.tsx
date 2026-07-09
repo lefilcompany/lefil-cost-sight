@@ -290,6 +290,24 @@ function ProviderDetailPage() {
       return data;
     },
   });
+  const openaiUsage = useQuery({
+    queryKey: ["openai-usage-breakdown", id],
+    enabled: isOpenAI,
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data, error } = await supabase
+        .from("provider_usage_daily")
+        .select("usage_date, model, endpoint, cost_usd")
+        .eq("provider_id", id)
+        .gte("usage_date", since.toISOString().slice(0, 10))
+        .order("usage_date", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
 
 
 
