@@ -18,6 +18,14 @@ import {
   AlertCircle,
   Wallet,
   Activity,
+  ExternalLink,
+  Info,
+  Sparkles,
+  Cloud,
+  Server,
+  Mic,
+  Wrench,
+  BookOpen,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -40,6 +48,76 @@ import { getFirecrawlUsage } from "@/lib/firecrawl-usage.functions";
 import { fmtBRL, fmtNumber } from "@/lib/format";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { Progress } from "@/components/ui/progress";
+
+import firecrawlLogo from "@/assets/providers/firecrawl-wordmark.png.asset.json";
+import geminiLogo from "@/assets/providers/gemini.png.asset.json";
+import openaiLogo from "@/assets/providers/openai-logo.png.asset.json";
+import gcloudLogo from "@/assets/providers/gcloud.svg.asset.json";
+import elevenlabsLogo from "@/assets/providers/elevenlabs.svg.asset.json";
+import supabaseLogo from "@/assets/providers/supabase.svg.asset.json";
+
+type ProviderMeta = {
+  logo: string;
+  bg: string;
+  logoPadding?: string;
+  logoScale?: string;
+  category: string;
+  description: string;
+  website: string;
+  docs: string;
+  icon: any;
+  highlights: string[];
+};
+
+const PROVIDER_META: Record<string, ProviderMeta> = {
+  OpenAI: {
+    logo: openaiLogo.url, bg: "#111827", category: "AI · LLM",
+    description: "Modelos GPT, embeddings e Costs API. Ideal para chat, extração de dados e automações com IA.",
+    website: "https://openai.com", docs: "https://platform.openai.com/docs", icon: Sparkles,
+    highlights: ["Uso de tokens por modelo e projeto", "Costs API para custo diário em USD", "Chaves separadas por ambiente / cliente"],
+  },
+  "Google Gemini": {
+    logo: geminiLogo.url, bg: "#1f2937", logoPadding: "p-2", category: "AI · Multimodal",
+    description: "Gemini via Vertex AI. Eventos de uso (prompt/output/thinking tokens) com custo estimado.",
+    website: "https://ai.google.dev", docs: "https://ai.google.dev/gemini-api/docs", icon: Sparkles,
+    highlights: ["Eventos de uso por modelo e operação", "Custo estimado por request (USD)", "Integração com projetos Google Cloud"],
+  },
+  Firecrawl: {
+    logo: firecrawlLogo.url, bg: "#f97316", category: "Ferramenta · Scraping",
+    description: "Crawl / scrape com créditos mensais. Créditos, tokens e período de faturamento em tempo real.",
+    website: "https://firecrawl.dev", docs: "https://docs.firecrawl.dev", icon: Wrench,
+    highlights: ["Créditos e tokens do plano em tempo real", "Ciclo de faturamento detectado automaticamente", "Custo fixo mensal convertido em BRL"],
+  },
+  "Google Cloud": {
+    logo: gcloudLogo.url, bg: "#0f172a", category: "Cloud · Infra",
+    description: "Infra, BigQuery e serviços gerenciados. Billing via export do BigQuery da conta de cobrança.",
+    website: "https://cloud.google.com", docs: "https://cloud.google.com/billing/docs", icon: Cloud,
+    highlights: ["Snapshots periódicos de custo do ciclo", "Export de billing via BigQuery", "Limites e projeções por conexão"],
+  },
+  Supabase: {
+    logo: supabaseLogo.url, bg: "#0f1a17", category: "Backend · Postgres",
+    description: "Postgres, Auth, Storage e Realtime. Base gerenciada com RLS e Edge Functions.",
+    website: "https://supabase.com", docs: "https://supabase.com/docs", icon: Server,
+    highlights: ["Conexões e chaves por projeto", "Custo mensal do plano em BRL", "Integração de billing em breve"],
+  },
+  ElevenLabs: {
+    logo: elevenlabsLogo.url, bg: "#0a0a0a", logoPadding: "p-0", logoScale: "scale-[1.35]",
+    category: "Voz · TTS",
+    description: "Text-to-speech ultra-realista e clonagem de voz. Cobrança por caracteres consumidos.",
+    website: "https://elevenlabs.io", docs: "https://elevenlabs.io/docs", icon: Mic,
+    highlights: ["Custo mensal do plano", "Caracteres / segundos por conexão", "Integração de billing em breve"],
+  },
+};
+
+function metaFor(name: string): ProviderMeta {
+  return (
+    PROVIDER_META[name] ?? {
+      logo: "", bg: "#1f2937", category: "Fornecedor",
+      description: "Fornecedor conectado ao Quiwi.",
+      website: "", docs: "", icon: Info, highlights: [],
+    }
+  );
+}
 
 
 export const Route = createFileRoute("/_authenticated/providers/$id")({
@@ -141,7 +219,11 @@ function ProviderDetailPage() {
     },
   });
 
-  const isFirecrawl = (provider?.name ?? "").toLowerCase() === "firecrawl";
+  const providerName = provider?.name ?? "";
+  const meta = metaFor(providerName);
+  const isFirecrawl = providerName.toLowerCase() === "firecrawl";
+  const isGemini = providerName.toLowerCase().includes("gemini");
+  const isGCloud = providerName.toLowerCase().includes("google cloud");
   const activeConnId = connections.find((c) => c.status === "active")?.id ?? connections[0]?.id;
   const firecrawlUsage = useQuery({
     queryKey: ["firecrawl-usage", activeConnId],
@@ -150,6 +232,64 @@ function ProviderDetailPage() {
     refetchInterval: 60_000,
     retry: false,
   });
+
+  const geminiUsage = useQuery({
+    queryKey: ["gemini-usage-summary", id],
+    enabled: isGemini,
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data, error } = await supabase
+        .from("gemini_usage_events")
+        .select("model, total_tokens, prompt_tokens, output_tokens, estimated_cost, success, occurred_at")
+        .in("provider_connection_id", connections.map((c) => c.id))
+        .gte("occurred_at", since.toISOString())
+        .limit(5000);
+      if (error) throw error;
+      const rows = data ?? [];
+      const byModel = new Map<string, { requests: number; tokens: number; cost: number }>();
+      let totalTokens = 0, totalCost = 0, ok = 0, fail = 0;
+      for (const r of rows as any[]) {
+        const m = r.model ?? "—";
+        const cur = byModel.get(m) ?? { requests: 0, tokens: 0, cost: 0 };
+        cur.requests += 1;
+        cur.tokens += Number(r.total_tokens ?? 0);
+        cur.cost += Number(r.estimated_cost ?? 0);
+        byModel.set(m, cur);
+        totalTokens += Number(r.total_tokens ?? 0);
+        totalCost += Number(r.estimated_cost ?? 0);
+        if (r.success === false) fail += 1; else ok += 1;
+      }
+      return {
+        totalRequests: rows.length,
+        totalTokens,
+        totalCost,
+        successRate: rows.length ? (ok / rows.length) * 100 : 0,
+        failed: fail,
+        topModels: Array.from(byModel.entries())
+          .sort((a, b) => b[1].tokens - a[1].tokens)
+          .slice(0, 5)
+          .map(([model, v]) => ({ model, ...v })),
+      };
+    },
+  });
+
+  const gcloudSnapshot = useQuery({
+    queryKey: ["gcloud-snapshot", id],
+    enabled: isGCloud,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_billing_snapshots")
+        .select("*")
+        .eq("provider_id", id)
+        .order("captured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
 
 
 
@@ -260,6 +400,8 @@ function ProviderDetailPage() {
       }
     >
       <div className="space-y-6">
+        <ProviderHero meta={meta} name={providerName} connections={connections.length} activeConns={connections.filter(c => c.status === "active").length} />
+
         <div className="grid gap-3 md:grid-cols-4">
           <Kpi label="Conexões" value={fmtNumber(connections.length)} icon={<Plug className="h-4 w-4" />} />
           <Kpi label="Custo importado" value={fmtBRL(totalBrl)} icon={<Wallet className="h-4 w-4" />} />
@@ -273,6 +415,11 @@ function ProviderDetailPage() {
             onRefresh={() => firecrawlUsage.refetch()}
           />
         )}
+
+        {isGemini && <GeminiUsageCard query={geminiUsage} />}
+        {isGCloud && <GoogleCloudSnapshotCard query={gcloudSnapshot} />}
+        {!isFirecrawl && !isGemini && !isGCloud && <ComingSoonUsageCard meta={meta} />}
+
 
 
 
@@ -659,4 +806,203 @@ function UsageBlock({
     </div>
   );
 }
+
+function ProviderHero({
+  meta, name, connections, activeConns,
+}: { meta: ProviderMeta; name: string; connections: number; activeConns: number }) {
+  const Icon = meta.icon;
+  return (
+    <Card className="surface-elevated overflow-hidden border-border/60 p-0">
+      <div className="relative">
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(135deg, ${meta.bg} 0%, ${meta.bg}dd 55%, #000 100%)` }}
+        />
+        <div className="relative grid gap-6 p-6 md:grid-cols-[220px_1fr] md:items-center">
+          <div className={`relative mx-auto flex h-32 w-full items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm ring-1 ring-white/10 md:mx-0 ${meta.logoPadding ?? "p-6"}`}>
+            {meta.logo ? (
+              <img
+                src={meta.logo}
+                alt={name}
+                className={`max-h-full max-w-full object-contain ${meta.logoScale ?? ""}`}
+              />
+            ) : (
+              <Icon className="h-14 w-14 text-white/80" />
+            )}
+          </div>
+          <div className="min-w-0 text-white">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90 ring-1 ring-white/10">
+              <Icon className="h-3 w-3" /> {meta.category}
+            </div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">{name}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-white/80">{meta.description}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="gap-1 bg-white/10 text-white ring-1 ring-white/10">
+                <Plug className="h-3 w-3" /> {connections} conexão{connections === 1 ? "" : "ões"}
+              </Badge>
+              <Badge variant="secondary" className="gap-1 bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-400/30">
+                <CheckCircle2 className="h-3 w-3" /> {activeConns} ativa{activeConns === 1 ? "" : "s"}
+              </Badge>
+              {meta.website && (
+                <a href={meta.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1 text-xs text-white ring-1 ring-white/10 hover:bg-white/20">
+                  <ExternalLink className="h-3 w-3" /> Site oficial
+                </a>
+              )}
+              {meta.docs && (
+                <a href={meta.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1 text-xs text-white ring-1 ring-white/10 hover:bg-white/20">
+                  <BookOpen className="h-3 w-3" /> Documentação
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {meta.highlights.length > 0 && (
+        <div className="grid gap-2 border-t border-border/60 bg-muted/30 p-4 sm:grid-cols-3">
+          {meta.highlights.map((h) => (
+            <div key={h} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{h}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function GeminiUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
+  const d = query.data as any;
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Activity className="h-4 w-4" /> Uso do Gemini (últimos 30 dias)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Consultando eventos..." />
+        ) : query.error ? (
+          <p className="text-sm text-destructive">Falha ao carregar: {String((query.error as any)?.message ?? query.error)}</p>
+        ) : !d || d.totalRequests === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum evento de uso registrado nos últimos 30 dias. Instrumente o SDK para capturar eventos automaticamente.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <MiniStat label="Requests" value={fmtInt(d.totalRequests)} />
+              <MiniStat label="Tokens totais" value={fmtInt(d.totalTokens)} />
+              <MiniStat label="Custo estimado" value={`US$ ${d.totalCost.toFixed(2)}`} />
+              <MiniStat label="Taxa de sucesso" value={`${d.successRate.toFixed(1)}%`} />
+            </div>
+            {d.topModels.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Top modelos</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead className="text-right">Requests</TableHead>
+                      <TableHead className="text-right">Tokens</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {d.topModels.map((m: any) => (
+                      <TableRow key={m.model}>
+                        <TableCell className="text-xs font-medium">{m.model}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{fmtInt(m.requests)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{fmtInt(m.tokens)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{m.cost.toFixed(4)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GoogleCloudSnapshotCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
+  const s = query.data as any;
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Cloud className="h-4 w-4" /> Snapshot de billing Google Cloud
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Carregando snapshot..." />
+        ) : !s ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum snapshot capturado. Configure o export de billing via BigQuery na conexão para começar a coletar.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <MiniStat label="Ciclo" value={`${fmtDate(s.cycle_start)} → ${fmtDate(s.cycle_end)}`} />
+              <MiniStat label="Custo do ciclo" value={`US$ ${Number(s.cost_period_usd ?? 0).toFixed(2)}`} />
+              <MiniStat label="Projeção" value={s.projected_cost_usd ? `US$ ${Number(s.projected_cost_usd).toFixed(2)}` : "—"} />
+              <MiniStat label="Limite" value={s.hard_limit_usd ? `US$ ${Number(s.hard_limit_usd).toFixed(0)}` : "—"} />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Capturado {relTimeFromNow(s.captured_at)}. Plano: {s.plan_name ?? "—"}.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComingSoonUsageCard({ meta }: { meta: ProviderMeta }) {
+  return (
+    <Card className="surface-elevated border-dashed">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Info className="h-4 w-4" /> Integração de uso em breve
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          A busca automática de consumo deste fornecedor ainda não está disponível no Quiwi. Por enquanto, informe o
+          <strong className="text-foreground"> custo fixo mensal</strong> no cadastro da conexão para que o valor apareça nos relatórios.
+        </p>
+        {meta.docs && (
+          <a href={meta.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+            <BookOpen className="h-3 w-3" /> Consultar documentação oficial
+          </a>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 font-numeric text-lg font-semibold tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+function relTimeFromNow(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
 
