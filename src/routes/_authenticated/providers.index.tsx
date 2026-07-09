@@ -525,7 +525,6 @@ function ProvidersPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const runSync = useServerFn(runProviderSync);
   const provision = useServerFn(provisionConnection);
   const connect = useMutation({
     mutationFn: async () => {
