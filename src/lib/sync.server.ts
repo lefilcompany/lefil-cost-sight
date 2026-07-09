@@ -147,7 +147,7 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
       .delete()
       .eq("provider_id", conn.provider_id)
       .eq("origin", "api")
-      .contains("metadata", { connection_id: conn.id, source: "firecrawl_credits", billing_period_start: isoDate(start) });
+      .contains("metadata", { connection_id: conn.id, source: "firecrawl_credits" });
     await supabaseAdmin.from("cost_entries").insert({
       provider_id: conn.provider_id,
       platform_id: conn.platform_id,
