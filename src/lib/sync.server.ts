@@ -424,17 +424,133 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
     console.warn("openai project breakdown failed", e);
   }
 
+  // ------- Uso detalhado por endpoint (tokens, requests, cached, batch) -------
+  // Consulta cada endpoint /v1/organization/usage/* para popular tokens e requests.
+  const USAGE_ENDPOINTS = [
+    "completions",
+    "embeddings",
+    "images",
+    "audio_speeches",
+    "audio_transcriptions",
+    "moderations",
+    "vector_stores",
+    "code_interpreter_sessions",
+  ] as const;
 
+  async function fetchAllUsageBuckets(endpoint: string, params: Record<string, string>): Promise<any[]> {
+    const all: any[] = [];
+    let page: string | undefined = undefined;
+    for (let i = 0; i < 200; i++) {
+      const u = new URL(`https://api.openai.com/v1/organization/usage/${endpoint}`);
+      for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+      if (page) u.searchParams.set("page", page);
+      const r = await fetch(u, { headers });
+      if (!r.ok) throw new Error(`OpenAI Usage/${endpoint} ${r.status}: ${await r.text()}`);
+      const j: any = await r.json();
+      if (Array.isArray(j?.data)) all.push(...j.data);
+      if (!j?.has_more || !j?.next_page) break;
+      page = String(j.next_page);
+    }
+    return all;
+  }
+
+  let usageRowsCount = 0;
+  for (const endpoint of USAGE_ENDPOINTS) {
+    try {
+      const uBuckets = await fetchAllUsageBuckets(endpoint, {
+        start_time: String(startTime),
+        end_time: String(endTime),
+        bucket_width: "1d",
+        group_by: "model,project_id,batch",
+        limit: "180",
+      });
+      const rowsByKey = new Map<string, {
+        day: string; model: string; endpointKey: string;
+        input: number; output: number; requests: number; quantity: number;
+        raw: any[];
+      }>();
+      for (const b of uBuckets) {
+        const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
+        for (const r of b?.results ?? []) {
+          const model = String(r?.model ?? "unknown");
+          const projectId = String(r?.project_id ?? "");
+          const batch = r?.batch === true ? ":batch" : "";
+          const endpointKey = `${endpoint}${projectId ? `:${projectId}` : ""}${batch}`;
+          const input = Number(r?.input_tokens ?? 0) || 0;
+          const output = Number(r?.output_tokens ?? 0) || 0;
+          const requests = Number(r?.num_model_requests ?? 0) || 0;
+          // Endpoints não-texto usam contadores próprios (images, seconds, characters...).
+          const quantity =
+            Number(r?.images ?? r?.num_seconds ?? r?.characters ?? r?.num_sessions ?? r?.usage_bytes ?? 0) || 0;
+          if (input + output + requests + quantity === 0) continue;
+          const key = `${dayIso}::${model}::${endpointKey}`;
+          const cur = rowsByKey.get(key) ?? {
+            day: dayIso, model, endpointKey,
+            input: 0, output: 0, requests: 0, quantity: 0, raw: [],
+          };
+          cur.input += input;
+          cur.output += output;
+          cur.requests += requests;
+          cur.quantity += quantity;
+          cur.raw.push(r);
+          rowsByKey.set(key, cur);
+        }
+      }
+      const rows = Array.from(rowsByKey.values());
+      if (rows.length > 0) {
+        const unitByEndpoint: Record<string, string> = {
+          completions: "tokens",
+          embeddings: "tokens",
+          images: "images",
+          audio_speeches: "characters",
+          audio_transcriptions: "seconds",
+          moderations: "requests",
+          vector_stores: "bytes",
+          code_interpreter_sessions: "sessions",
+        };
+        const payload = rows.map((r) => ({
+          connection_id: conn.id,
+          provider_id: conn.provider_id,
+          platform_id: conn.platform_id,
+          usage_date: r.day,
+          model: r.model,
+          endpoint: r.endpointKey,
+          input_tokens: r.input,
+          output_tokens: r.output,
+          requests: r.requests,
+          quantity: r.quantity,
+          unit: unitByEndpoint[endpoint] ?? "units",
+          cost_usd: 0,
+          exchange_rate: rate,
+          cost_brl: 0,
+          raw: { source: `openai_usage_${endpoint}`, entries: r.raw },
+        }));
+        await supabaseAdmin
+          .from("provider_usage_daily")
+          .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+        usageRowsCount += rows.length;
+      }
+    } catch (e) {
+      console.warn(`openai usage/${endpoint} failed`, e);
+    }
+  }
 
   return {
     status: "success",
     records: inserted,
     message: inserted === 0
       ? "Nenhum custo novo no período"
-      : `${inserted} dias · US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} modelos` : ""}${projectRowsCount ? ` · ${projectRowsCount} projetos` : ""}`,
-    meta: { total_usd: totalUsd, buckets: buckets.length, detail_rows: detailRowsCount, project_rows: projectRowsCount },
+      : `${inserted} dias · US$ ${totalUsd.toFixed(2)}${detailRowsCount ? ` · ${detailRowsCount} modelos` : ""}${projectRowsCount ? ` · ${projectRowsCount} projetos` : ""}${usageRowsCount ? ` · ${usageRowsCount} usos` : ""}`,
+    meta: {
+      total_usd: totalUsd,
+      buckets: buckets.length,
+      detail_rows: detailRowsCount,
+      project_rows: projectRowsCount,
+      usage_rows: usageRowsCount,
+    },
   };
 }
+
 
 async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
   const { syncGeminiBilling } = await import("./gemini-billing.server");
