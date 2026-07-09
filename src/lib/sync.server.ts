@@ -230,23 +230,39 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   const startTime = Math.floor(startUtc.getTime() / 1000);
   const endTime = Math.floor(endUtc.getTime() / 1000);
 
-  const url = new URL("https://api.openai.com/v1/organization/costs");
-  url.searchParams.set("start_time", String(startTime));
-  url.searchParams.set("end_time", String(endTime));
-  url.searchParams.set("bucket_width", "1d");
-  url.searchParams.set("limit", "180");
-
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
   if (cfg.org_id) headers["OpenAI-Organization"] = String(cfg.org_id);
 
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`OpenAI Costs API ${res.status}: ${await res.text()}`);
-  const json: any = await res.json();
+  // Fetch all pages of the OpenAI Costs API following has_more/next_page cursors.
+  async function fetchAllCostBuckets(params: Record<string, string>): Promise<any[]> {
+    const all: any[] = [];
+    let page: string | undefined = undefined;
+    // Hard safety cap to avoid infinite loops on unexpected API responses.
+    for (let i = 0; i < 200; i++) {
+      const u = new URL("https://api.openai.com/v1/organization/costs");
+      for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+      if (page) u.searchParams.set("page", page);
+      const r = await fetch(u, { headers });
+      if (!r.ok) throw new Error(`OpenAI Costs API ${r.status}: ${await r.text()}`);
+      const j: any = await r.json();
+      if (Array.isArray(j?.data)) all.push(...j.data);
+      if (!j?.has_more || !j?.next_page) break;
+      page = String(j.next_page);
+    }
+    return all;
+  }
 
-  const buckets: any[] = Array.isArray(json?.data) ? json.data : [];
+  const baseParams = {
+    start_time: String(startTime),
+    end_time: String(endTime),
+    bucket_width: "1d",
+    limit: "180",
+  };
+  const buckets = await fetchAllCostBuckets(baseParams);
+
   let totalUsd = 0;
   let inserted = 0;
 
@@ -296,136 +312,118 @@ async function syncOpenAI(conn: any, rate: number): Promise<SyncOutcome> {
   // Reconsulta a Costs API agrupando por line_item para popular provider_usage_daily.
   let detailRowsCount = 0;
   try {
-    const detailUrl = new URL("https://api.openai.com/v1/organization/costs");
-    detailUrl.searchParams.set("start_time", String(startTime));
-    detailUrl.searchParams.set("end_time", String(endTime));
-    detailUrl.searchParams.set("bucket_width", "1d");
-    detailUrl.searchParams.set("group_by", "line_item");
-    detailUrl.searchParams.set("limit", "180");
-    const detailRes = await fetch(detailUrl, { headers });
-    if (detailRes.ok) {
-      const detailJson: any = await detailRes.json();
-      const dBuckets: any[] = Array.isArray(detailJson?.data) ? detailJson.data : [];
-      const rowsByKey = new Map<string, {
-        day: string; model: string; type: string; costUsd: number; raw: any[];
-      }>();
-      for (const b of dBuckets) {
-        const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
-        for (const r of b?.results ?? []) {
-          const lineItem = String(r?.line_item ?? "").trim();
-          if (!lineItem) continue;
-          const [rawModel, rawType] = lineItem.split(",").map((s: string) => s.trim());
-          const model = rawModel || "unknown";
-          const type = (rawType || "usage").toLowerCase().replace(/\s+/g, "_");
-          const amt = Number(r?.amount?.value ?? 0);
-          if (!Number.isFinite(amt) || amt <= 0) continue;
-          const key = `${dayIso}::${model}::${type}`;
-          const cur = rowsByKey.get(key) ?? { day: dayIso, model, type, costUsd: 0, raw: [] };
-          cur.costUsd += amt;
-          cur.raw.push(r);
-          rowsByKey.set(key, cur);
-        }
+    const dBuckets = await fetchAllCostBuckets({ ...baseParams, group_by: "line_item" });
+    const rowsByKey = new Map<string, {
+      day: string; model: string; type: string; costUsd: number; raw: any[];
+    }>();
+    for (const b of dBuckets) {
+      const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
+      for (const r of b?.results ?? []) {
+        const lineItem = String(r?.line_item ?? "").trim();
+        if (!lineItem) continue;
+        const [rawModel, rawType] = lineItem.split(",").map((s: string) => s.trim());
+        const model = rawModel || "unknown";
+        const type = (rawType || "usage").toLowerCase().replace(/\s+/g, "_");
+        const amt = Number(r?.amount?.value ?? 0);
+        if (!Number.isFinite(amt) || amt <= 0) continue;
+        const key = `${dayIso}::${model}::${type}`;
+        const cur = rowsByKey.get(key) ?? { day: dayIso, model, type, costUsd: 0, raw: [] };
+        cur.costUsd += amt;
+        cur.raw.push(r);
+        rowsByKey.set(key, cur);
       }
-      const detailRows = Array.from(rowsByKey.values());
-      if (detailRows.length > 0) {
-        const payload = detailRows.map((r) => ({
-          connection_id: conn.id,
-          provider_id: conn.provider_id,
-          platform_id: conn.platform_id,
-          usage_date: r.day,
-          model: r.model,
-          endpoint: r.type,
-          input_tokens: 0,
-          output_tokens: 0,
-          requests: 0,
-          quantity: 0,
-          unit: "usd",
-          cost_usd: r.costUsd,
-          exchange_rate: rate,
-          cost_brl: r.costUsd * rate,
-          raw: { source: "openai_costs_line_item", entries: r.raw },
-        }));
-        await supabaseAdmin
-          .from("provider_usage_daily")
-          .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
-        detailRowsCount = detailRows.length;
-      }
+    }
+    const detailRows = Array.from(rowsByKey.values());
+    if (detailRows.length > 0) {
+      const payload = detailRows.map((r) => ({
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        usage_date: r.day,
+        model: r.model,
+        endpoint: r.type,
+        input_tokens: 0,
+        output_tokens: 0,
+        requests: 0,
+        quantity: 0,
+        unit: "usd",
+        cost_usd: r.costUsd,
+        exchange_rate: rate,
+        cost_brl: r.costUsd * rate,
+        raw: { source: "openai_costs_line_item", entries: r.raw },
+      }));
+      await supabaseAdmin
+        .from("provider_usage_daily")
+        .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+      detailRowsCount = detailRows.length;
     }
   } catch (e) {
     console.warn("openai line_item breakdown failed", e);
   }
 
+
   // ------- Detalhamento por projeto (project_id) -------
   let projectRowsCount = 0;
   try {
-    const projUrl = new URL("https://api.openai.com/v1/organization/costs");
-    projUrl.searchParams.set("start_time", String(startTime));
-    projUrl.searchParams.set("end_time", String(endTime));
-    projUrl.searchParams.set("bucket_width", "1d");
-    projUrl.searchParams.set("group_by", "project_id");
-    projUrl.searchParams.set("limit", "180");
-    const projRes = await fetch(projUrl, { headers });
-    if (projRes.ok) {
-      const projJson: any = await projRes.json();
-      const pBuckets: any[] = Array.isArray(projJson?.data) ? projJson.data : [];
-      // Opcional: lista de projetos para mapear id -> nome
-      const projectNames = new Map<string, string>();
-      try {
-        const listRes = await fetch("https://api.openai.com/v1/organization/projects?limit=100", { headers });
-        if (listRes.ok) {
-          const listJson: any = await listRes.json();
-          for (const p of listJson?.data ?? []) {
-            if (p?.id) projectNames.set(String(p.id), String(p?.name ?? p.id));
-          }
+    const pBuckets = await fetchAllCostBuckets({ ...baseParams, group_by: "project_id" });
+    // Opcional: lista de projetos para mapear id -> nome
+    const projectNames = new Map<string, string>();
+    try {
+      const listRes = await fetch("https://api.openai.com/v1/organization/projects?limit=100", { headers });
+      if (listRes.ok) {
+        const listJson: any = await listRes.json();
+        for (const p of listJson?.data ?? []) {
+          if (p?.id) projectNames.set(String(p.id), String(p?.name ?? p.id));
         }
-      } catch { /* ignore */ }
+      }
+    } catch { /* ignore */ }
 
-      const rowsByKey = new Map<string, {
-        day: string; projectId: string; projectName: string; costUsd: number; raw: any[];
-      }>();
-      for (const b of pBuckets) {
-        const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
-        for (const r of b?.results ?? []) {
-          const projectId = String(r?.project_id ?? "").trim() || "unattributed";
-          const amt = Number(r?.amount?.value ?? 0);
-          if (!Number.isFinite(amt) || amt <= 0) continue;
-          const projectName = projectNames.get(projectId) ?? projectId;
-          const key = `${dayIso}::${projectId}`;
-          const cur = rowsByKey.get(key) ?? { day: dayIso, projectId, projectName, costUsd: 0, raw: [] };
-          cur.costUsd += amt;
-          cur.raw.push(r);
-          rowsByKey.set(key, cur);
-        }
+    const rowsByKey = new Map<string, {
+      day: string; projectId: string; projectName: string; costUsd: number; raw: any[];
+    }>();
+    for (const b of pBuckets) {
+      const dayIso = b?.start_time ? isoDate(new Date(b.start_time * 1000)) : isoDate(now);
+      for (const r of b?.results ?? []) {
+        const projectId = String(r?.project_id ?? "").trim() || "unattributed";
+        const amt = Number(r?.amount?.value ?? 0);
+        if (!Number.isFinite(amt) || amt <= 0) continue;
+        const projectName = projectNames.get(projectId) ?? projectId;
+        const key = `${dayIso}::${projectId}`;
+        const cur = rowsByKey.get(key) ?? { day: dayIso, projectId, projectName, costUsd: 0, raw: [] };
+        cur.costUsd += amt;
+        cur.raw.push(r);
+        rowsByKey.set(key, cur);
       }
-      const projectRows = Array.from(rowsByKey.values());
-      if (projectRows.length > 0) {
-        // model="__project__" reserva estas linhas apenas para agregações por projeto (não somam com model breakdown).
-        const payload = projectRows.map((r) => ({
-          connection_id: conn.id,
-          provider_id: conn.provider_id,
-          platform_id: conn.platform_id,
-          usage_date: r.day,
-          model: "__project__",
-          endpoint: r.projectId,
-          input_tokens: 0,
-          output_tokens: 0,
-          requests: 0,
-          quantity: 0,
-          unit: "usd",
-          cost_usd: r.costUsd,
-          exchange_rate: rate,
-          cost_brl: r.costUsd * rate,
-          raw: { source: "openai_costs_project", project_name: r.projectName, entries: r.raw },
-        }));
-        await supabaseAdmin
-          .from("provider_usage_daily")
-          .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
-        projectRowsCount = projectRows.length;
-      }
+    }
+    const projectRows = Array.from(rowsByKey.values());
+    if (projectRows.length > 0) {
+      // model="__project__" reserva estas linhas apenas para agregações por projeto (não somam com model breakdown).
+      const payload = projectRows.map((r) => ({
+        connection_id: conn.id,
+        provider_id: conn.provider_id,
+        platform_id: conn.platform_id,
+        usage_date: r.day,
+        model: "__project__",
+        endpoint: r.projectId,
+        input_tokens: 0,
+        output_tokens: 0,
+        requests: 0,
+        quantity: 0,
+        unit: "usd",
+        cost_usd: r.costUsd,
+        exchange_rate: rate,
+        cost_brl: r.costUsd * rate,
+        raw: { source: "openai_costs_project", project_name: r.projectName, entries: r.raw },
+      }));
+      await supabaseAdmin
+        .from("provider_usage_daily")
+        .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+      projectRowsCount = projectRows.length;
     }
   } catch (e) {
     console.warn("openai project breakdown failed", e);
   }
+
 
 
   return {
