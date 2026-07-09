@@ -74,8 +74,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Quiwi" },
       { name: "twitter:description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783518071516-quiwi-logo.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783518071516-quiwi-logo.webp" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
