@@ -807,3 +807,202 @@ function UsageBlock({
   );
 }
 
+function ProviderHero({
+  meta, name, connections, activeConns,
+}: { meta: ProviderMeta; name: string; connections: number; activeConns: number }) {
+  const Icon = meta.icon;
+  return (
+    <Card className="surface-elevated overflow-hidden border-border/60 p-0">
+      <div className="relative">
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(135deg, ${meta.bg} 0%, ${meta.bg}dd 55%, #000 100%)` }}
+        />
+        <div className="relative grid gap-6 p-6 md:grid-cols-[220px_1fr] md:items-center">
+          <div className={`relative mx-auto flex h-32 w-full items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm ring-1 ring-white/10 md:mx-0 ${meta.logoPadding ?? "p-6"}`}>
+            {meta.logo ? (
+              <img
+                src={meta.logo}
+                alt={name}
+                className={`max-h-full max-w-full object-contain ${meta.logoScale ?? ""}`}
+              />
+            ) : (
+              <Icon className="h-14 w-14 text-white/80" />
+            )}
+          </div>
+          <div className="min-w-0 text-white">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90 ring-1 ring-white/10">
+              <Icon className="h-3 w-3" /> {meta.category}
+            </div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">{name}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-white/80">{meta.description}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="gap-1 bg-white/10 text-white ring-1 ring-white/10">
+                <Plug className="h-3 w-3" /> {connections} conexão{connections === 1 ? "" : "ões"}
+              </Badge>
+              <Badge variant="secondary" className="gap-1 bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-400/30">
+                <CheckCircle2 className="h-3 w-3" /> {activeConns} ativa{activeConns === 1 ? "" : "s"}
+              </Badge>
+              {meta.website && (
+                <a href={meta.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1 text-xs text-white ring-1 ring-white/10 hover:bg-white/20">
+                  <ExternalLink className="h-3 w-3" /> Site oficial
+                </a>
+              )}
+              {meta.docs && (
+                <a href={meta.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1 text-xs text-white ring-1 ring-white/10 hover:bg-white/20">
+                  <BookOpen className="h-3 w-3" /> Documentação
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {meta.highlights.length > 0 && (
+        <div className="grid gap-2 border-t border-border/60 bg-muted/30 p-4 sm:grid-cols-3">
+          {meta.highlights.map((h) => (
+            <div key={h} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{h}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function GeminiUsageCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
+  const d = query.data as any;
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Activity className="h-4 w-4" /> Uso do Gemini (últimos 30 dias)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Consultando eventos..." />
+        ) : query.error ? (
+          <p className="text-sm text-destructive">Falha ao carregar: {String((query.error as any)?.message ?? query.error)}</p>
+        ) : !d || d.totalRequests === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum evento de uso registrado nos últimos 30 dias. Instrumente o SDK para capturar eventos automaticamente.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <MiniStat label="Requests" value={fmtInt(d.totalRequests)} />
+              <MiniStat label="Tokens totais" value={fmtInt(d.totalTokens)} />
+              <MiniStat label="Custo estimado" value={`US$ ${d.totalCost.toFixed(2)}`} />
+              <MiniStat label="Taxa de sucesso" value={`${d.successRate.toFixed(1)}%`} />
+            </div>
+            {d.topModels.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Top modelos</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead className="text-right">Requests</TableHead>
+                      <TableHead className="text-right">Tokens</TableHead>
+                      <TableHead className="text-right">Custo USD</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {d.topModels.map((m: any) => (
+                      <TableRow key={m.model}>
+                        <TableCell className="text-xs font-medium">{m.model}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{fmtInt(m.requests)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{fmtInt(m.tokens)}</TableCell>
+                        <TableCell className="text-right font-numeric text-xs">{m.cost.toFixed(4)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GoogleCloudSnapshotCard({ query }: { query: ReturnType<typeof useQuery<any, any>> }) {
+  const s = query.data as any;
+  return (
+    <Card className="surface-elevated">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Cloud className="h-4 w-4" /> Snapshot de billing Google Cloud
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {query.isLoading ? (
+          <LoadingState label="Carregando snapshot..." />
+        ) : !s ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum snapshot capturado. Configure o export de billing via BigQuery na conexão para começar a coletar.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <MiniStat label="Ciclo" value={`${fmtDate(s.cycle_start)} → ${fmtDate(s.cycle_end)}`} />
+              <MiniStat label="Custo do ciclo" value={`US$ ${Number(s.cost_period_usd ?? 0).toFixed(2)}`} />
+              <MiniStat label="Projeção" value={s.projected_cost_usd ? `US$ ${Number(s.projected_cost_usd).toFixed(2)}` : "—"} />
+              <MiniStat label="Limite" value={s.hard_limit_usd ? `US$ ${Number(s.hard_limit_usd).toFixed(0)}` : "—"} />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Capturado {relTimeFromNow(s.captured_at)}. Plano: {s.plan_name ?? "—"}.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComingSoonUsageCard({ meta }: { meta: ProviderMeta }) {
+  return (
+    <Card className="surface-elevated border-dashed">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-display text-base">
+          <Info className="h-4 w-4" /> Integração de uso em breve
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          A busca automática de consumo deste fornecedor ainda não está disponível no Quiwi. Por enquanto, informe o
+          <strong className="text-foreground"> custo fixo mensal</strong> no cadastro da conexão para que o valor apareça nos relatórios.
+        </p>
+        {meta.docs && (
+          <a href={meta.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+            <BookOpen className="h-3 w-3" /> Consultar documentação oficial
+          </a>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 font-numeric text-lg font-semibold tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+function relTimeFromNow(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
+
