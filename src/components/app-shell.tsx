@@ -137,6 +137,7 @@ export function AppShell({
           </main>
         </div>
       </div>
+      <GeminiAssistant />
     </SidebarProvider>
   );
 }
