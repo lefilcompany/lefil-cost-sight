@@ -318,6 +318,8 @@ function Dashboard() {
           </CardContent>
         </Card>
 
+        <GeminiSummaryCard />
+
         {/* Hero */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="relative overflow-hidden border-0 gradient-emerald p-0 text-[color:var(--color-gold-foreground)] lg:col-span-2">
