@@ -10,11 +10,21 @@ import quiwiLogo from "@/assets/quiwi-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar — Quiwi Cost Center" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : "",
+  }),
   component: AuthPage,
 });
 
+// Only same-origin relative paths are honored as post-login redirects.
+function safeNext(next: string | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -25,15 +35,24 @@ function AuthPage() {
         .select("status")
         .eq("id", data.session.user.id)
         .maybeSingle();
-      if (profile?.status === "active") navigate({ to: "/dashboard" });
-      else navigate({ to: "/pending" });
+      const target = safeNext(next);
+      if (profile?.status === "active") {
+        if (target) window.location.replace(target);
+        else navigate({ to: "/dashboard" });
+      } else {
+        navigate({ to: "/pending" });
+      }
     });
-  }, [navigate]);
+  }, [navigate, next]);
 
   const handleGoogle = async () => {
     setLoading(true);
+    const target = safeNext(next);
+    const redirect_uri = target
+      ? `${window.location.origin}/auth?next=${encodeURIComponent(target)}`
+      : window.location.origin;
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri,
       extraParams: { hd: "lefil.com.br", prompt: "select_account" },
     });
     if (result.error) {
@@ -41,6 +60,7 @@ function AuthPage() {
       toast.error(result.error.message);
     }
   };
+
 
   return (
     <div className="grid min-h-screen w-full bg-background lg:grid-cols-2">
