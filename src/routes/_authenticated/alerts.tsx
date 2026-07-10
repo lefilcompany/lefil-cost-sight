@@ -215,35 +215,7 @@ function AlertsPage() {
             ) : (
               <div className="divide-y divide-border/60">
                 {filtered.map((ev) => (
-                  <div key={ev.id} className="flex items-start gap-3 py-3">
-                    <SeverityDot severity={ev.severity} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate font-display text-sm font-semibold">{ev.title}</p>
-                        <StatusBadge status={ev.status} />
-                        {ev.scope_label && <Badge variant="outline" className="text-[10px]">{ev.scope_label}</Badge>}
-                      </div>
-                      {ev.message && <p className="mt-0.5 text-xs text-muted-foreground">{ev.message}</p>}
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {fmtDateTime(ev.created_at)}
-                        {ev.metric_value != null && ev.threshold != null && (
-                          <> · valor {fmtNumber(ev.metric_value, 1)} / limite {fmtNumber(ev.threshold, 1)}</>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {ev.status === "open" && (
-                        <Button size="sm" variant="outline" className="h-8" onClick={() => ack.mutate(ev.id)}>
-                          Reconhecer
-                        </Button>
-                      )}
-                      {ev.status !== "resolved" && (
-                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => resolve.mutate(ev.id)}>
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  <EventRow key={ev.id} ev={ev} onAck={() => ack.mutate(ev.id)} onResolve={() => resolve.mutate(ev.id)} />
                 ))}
               </div>
             )}
