@@ -11,7 +11,7 @@ export function GeminiSummaryCard() {
   const run = useServerFn(summarizeCosts);
   const mutation = useMutation({
     mutationFn: async () => {
-      const res: any = await run({ data: {} });
+      const res: any = await run();
       return res as { summary: string; generated_at: string };
     },
   });
