@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ragxyidkvznugjdiyegc.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "quiwi-cost-center-mcp",
+      "version": "0.1.0",
+      "title": "Quiwi Cost Center"
+    },
+    "tools": [
+      {
+        "name": "list_providers",
+        "title": "Listar fornecedores conectados",
+        "description": "Lista todos os fornecedores (OpenAI, Gemini, Firecrawl, Google Cloud, Supabase, ElevenLabs) conectados no Quiwi Cost Center, com status da conexão e data do último sync.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "costs_summary",
+        "title": "Resumo de custos por fornecedor",
+        "description": "Retorna o total de custos (USD e BRL) agregados por fornecedor no Quiwi Cost Center, dentro de um intervalo de dias (padrão 30). Use para responder perguntas como 'quanto gastei com OpenAI no último mês?'.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "days": {
+              "type": "integer",
+              "description": "Quantidade de dias a considerar a partir de hoje (ex.: 30). Padrão 30."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_alerts",
+        "title": "Listar alertas de custos",
+        "description": "Lista os alertas de custos configurados no Quiwi Cost Center (métrica, limite, canal, se estão habilitados e última avaliação).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
