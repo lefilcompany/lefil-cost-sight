@@ -404,3 +404,75 @@ function NewRuleDialog() {
     </Dialog>
   );
 }
+
+function EventRow({ ev, onAck, onResolve }: { ev: AlertEvent; onAck: () => void; onResolve: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const explain = useServerFn(explainAlert);
+  const mut = useMutation({
+    mutationFn: async () => {
+      const res: any = await explain({ data: { event_id: ev.id } });
+      return res.explanation as string;
+    },
+    onSuccess: (text) => {
+      setExplanation(text);
+      setOpen(true);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao explicar alerta"),
+  });
+
+  return (
+    <div className="py-3">
+      <div className="flex items-start gap-3">
+        <SeverityDot severity={ev.severity} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-display text-sm font-semibold">{ev.title}</p>
+            <StatusBadge status={ev.status} />
+            {ev.scope_label && <Badge variant="outline" className="text-[10px]">{ev.scope_label}</Badge>}
+          </div>
+          {ev.message && <p className="mt-0.5 text-xs text-muted-foreground">{ev.message}</p>}
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {fmtDateTime(ev.created_at)}
+            {ev.metric_value != null && ev.threshold != null && (
+              <> · valor {fmtNumber(ev.metric_value, 1)} / limite {fmtNumber(ev.threshold, 1)}</>
+            )}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1"
+            onClick={() => (explanation ? setOpen((v) => !v) : mut.mutate())}
+            disabled={mut.isPending}
+            title="Explicar com IA (Gemini)"
+          >
+            {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Explicar
+          </Button>
+          {ev.status === "open" && (
+            <Button size="sm" variant="outline" className="h-8" onClick={onAck}>
+              Reconhecer
+            </Button>
+          )}
+          {ev.status !== "resolved" && (
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={onResolve}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+            </Button>
+          )}
+        </div>
+      </div>
+      {open && explanation && (
+        <div className="ml-6 mt-2 rounded-lg border border-border/60 bg-muted/40 p-3">
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Sparkles className="h-3 w-3" /> Análise Gemini
+          </div>
+          <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1">
+            <ReactMarkdown>{explanation}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
