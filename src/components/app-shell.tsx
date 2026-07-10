@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { GeminiAssistant } from "@/components/gemini-assistant";
 
 const CRUMBS: Record<string, string> = {
   dashboard: "Painel geral",
@@ -136,6 +137,7 @@ export function AppShell({
           </main>
         </div>
       </div>
+      <GeminiAssistant />
     </SidebarProvider>
   );
 }

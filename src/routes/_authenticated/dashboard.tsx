@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate } from "@/lib/format";
 import { useAutoSync } from "@/hooks/use-auto-sync";
+import { GeminiSummaryCard } from "@/components/gemini-summary";
 
 
 const PERIODS = ["7d", "30d", "90d", "month", "prev-month", "ytd"] as const;
@@ -316,6 +317,8 @@ function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        <GeminiSummaryCard />
 
         {/* Hero */}
         <div className="grid gap-4 lg:grid-cols-3">
