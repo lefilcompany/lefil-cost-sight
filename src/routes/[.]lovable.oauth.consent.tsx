@@ -108,7 +108,7 @@ function Consent() {
       <div className="rounded-lg border bg-card p-4 text-sm">
         <div className="font-medium">Permissões solicitadas</div>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-          {scopes.map((s) => (
+          {scopes.map((s: string) => (
             <li key={s}>{scopeLabel(s)}</li>
           ))}
           <li>Chamar as ferramentas MCP habilitadas neste app enquanto você estiver conectado.</li>
