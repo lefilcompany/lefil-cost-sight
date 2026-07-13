@@ -56,7 +56,7 @@ export const callMonitorNewsTool = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const mn = await import("./monitor-news.server");
     const result = await mn.callMcpTool(context.userId, data.name, data.args ?? {});
-    return { result, payload: mn.extractPayload(result) };
+    return JSON.parse(JSON.stringify({ result, payload: mn.extractPayload(result) })) as any;
   });
 
 // Import Monitor News workspaces as Quiwi clients.
