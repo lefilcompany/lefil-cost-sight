@@ -58,3 +58,25 @@ export const disconnectMonitorNewsFn = createServerFn({ method: "POST" })
     await disconnectMonitorNews();
     return { ok: true };
   });
+
+export const listMonitorNewsWorkspacesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { listWorkspacesFromMcp } = await import("./monitor-news.server");
+    return listWorkspacesFromMcp();
+  });
+
+export const importMonitorNewsWorkspacesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { external_ids: string[] }) => {
+    if (!data || !Array.isArray(data.external_ids) || data.external_ids.length === 0) {
+      throw new Error("Selecione ao menos um workspace.");
+    }
+    return { external_ids: data.external_ids.map(String) };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { importMonitorNewsWorkspaces } = await import("./monitor-news.server");
+    return importMonitorNewsWorkspaces(data.external_ids, context.userId);
+  });
