@@ -39,6 +39,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import { getUsdRate } from "@/lib/sync.functions";
+import {
+  startMonitorNewsOauth,
+  getMonitorNewsStatus,
+  syncMonitorNewsFn,
+  disconnectMonitorNewsFn,
+} from "@/lib/monitor-news.functions";
 
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
