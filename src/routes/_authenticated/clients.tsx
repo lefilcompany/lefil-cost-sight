@@ -702,12 +702,13 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
           <Newspaper className="h-4 w-4" /> Importar do Monitor News
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl flex flex-col max-h-[90vh] p-0 gap-0">
+        <DialogHeader className="flex-none px-6 pt-6 pb-3 border-b border-border/60">
           <DialogTitle className="flex items-center gap-2 font-display">
             <Newspaper className="h-4 w-4" /> Workspaces do Monitor News
           </DialogTitle>
         </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-3">
 
         {query.isLoading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
