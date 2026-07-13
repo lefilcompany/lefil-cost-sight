@@ -277,20 +277,28 @@ function ClientsPage() {
       eyebrow="Cadastros"
       title="Clientes"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Novo cliente
-            </Button>
-          </DialogTrigger>
-          <ClientDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
+        <div className="flex flex-wrap items-center gap-2">
+          <MonitorNewsImportButton
+            onImported={() => {
+              qc.invalidateQueries({ queryKey: ["clients"] });
+              qc.invalidateQueries({ queryKey: ["clients-costs"] });
+            }}
           />
-        </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Novo cliente
+              </Button>
+            </DialogTrigger>
+            <ClientDialog
+              editing={editing}
+              form={form}
+              setForm={setForm}
+              onSubmit={() => save.mutate()}
+              pending={save.isPending}
+            />
+          </Dialog>
+        </div>
       }
     >
       <div className="space-y-6">
