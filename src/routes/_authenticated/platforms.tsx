@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Factory,
   Home,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
