@@ -528,7 +528,7 @@ function PlatformCard({
           <img
             src={platform.image_url}
             alt={platform.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain p-2"
             loading="lazy"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = "none";
@@ -657,7 +657,7 @@ function PlatformDialog({
           <img
             src={form.image_url}
             alt="Prévia"
-            className="h-11 w-11 shrink-0 rounded-lg object-cover shadow-sm"
+            className="h-11 w-11 shrink-0 rounded-lg object-contain bg-muted p-1 shadow-sm"
             onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
           />
         ) : (
