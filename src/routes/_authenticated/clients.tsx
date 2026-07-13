@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
@@ -17,6 +18,9 @@ import {
   Building2,
   UserCircle2,
   BadgeCheck,
+  Newspaper,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +41,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
+import {
+  listMonitorNewsWorkspacesFn,
+  importMonitorNewsWorkspacesFn,
+} from "@/lib/monitor-news.functions";
 
 const STATUSES = ["active", "inactive"] as const;
 
