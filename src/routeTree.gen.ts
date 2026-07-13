@@ -14,6 +14,7 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MonitorNewsCallbackRouteImport } from './routes/monitor-news.callback'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedSyncsRouteImport } from './routes/_authenticated/syncs'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -58,6 +59,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitorNewsCallbackRoute = MonitorNewsCallbackRouteImport.update({
+  id: '/monitor-news/callback',
+  path: '/monitor-news/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/monitor-news/callback': typeof MonitorNewsCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/monitor-news/callback': typeof MonitorNewsCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/monitor-news/callback': typeof MonitorNewsCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/syncs'
     | '/users'
+    | '/monitor-news/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/clients/$id'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/syncs'
     | '/users'
+    | '/monitor-news/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/clients/$id'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
     | '/_authenticated/users'
+    | '/monitor-news/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/clients/$id'
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  MonitorNewsCallbackRoute: typeof MonitorNewsCallbackRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
@@ -393,6 +406,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitor-news/callback': {
+      id: '/monitor-news/callback'
+      path: '/monitor-news/callback'
+      fullPath: '/monitor-news/callback'
+      preLoaderRoute: typeof MonitorNewsCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/users': {
@@ -598,6 +618,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  MonitorNewsCallbackRoute: MonitorNewsCallbackRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
