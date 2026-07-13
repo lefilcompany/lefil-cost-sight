@@ -758,14 +758,23 @@ function PlatformDialog({
         </div>
 
         <div className="col-span-2 space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Imagem da plataforma (URL)</label>
-          <input
-            className={inputCls}
-            placeholder="https://... (usada como capa do card)"
-            value={form.image_url ?? ""}
-            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-          />
+          <label className="text-xs font-medium text-muted-foreground">Imagem da plataforma</label>
+          <div className="flex gap-2">
+            <input
+              className={inputCls}
+              placeholder="https://... ou envie um arquivo →"
+              value={form.image_url ?? ""}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            />
+            <ImageUploadButton
+              onUploaded={(url) => setForm({ ...form, image_url: url })}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Cole uma URL pública ou envie um arquivo (PNG, JPG, WEBP, SVG · até 5MB).
+          </p>
         </div>
+
 
         <div className="col-span-2 space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Descrição curta</label>
