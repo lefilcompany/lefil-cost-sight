@@ -717,9 +717,27 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
         ) : query.isError || query.data?.ok === false ? (
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
             <p className="font-medium text-destructive">Não foi possível listar os workspaces.</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground">
               {String((query.error as any)?.message ?? query.data?.message ?? "Verifique a conexão do Monitor News em Configurações.")}
             </p>
+            {Array.isArray(query.data?.tools) && query.data.tools.length > 0 ? (
+              <div className="mt-3 rounded border border-border/60 bg-background/40 p-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Tools reportadas pelo MCP:</p>
+                <ul className="mt-1 space-y-0.5 text-[11px] font-mono">
+                  {query.data.tools.map((n: string) => (
+                    <li key={n}>• {n}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => query.refetch()}
+            >
+              Tentar novamente
+            </Button>
           </div>
         ) : (
           <>
