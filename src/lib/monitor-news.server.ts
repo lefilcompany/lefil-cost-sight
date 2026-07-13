@@ -434,16 +434,67 @@ function pickNumber(o: any, keys: string[]): number | null {
 // -----------------------------
 // Sync — chamado pelo botão e pelo cron
 // -----------------------------
-export async function syncMonitorNews(triggeredByUser?: string) {
+type SyncMode =
+  | { kind: "existing_only" }
+  | { kind: "selected"; externalIds: string[] };
+
+export async function listWorkspacesFromMcp() {
+  const client = await connectMcp();
+  const tools = await client.listTools();
+  const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
+  const workspacesTool = pickTool(
+    tools,
+    [/workspace|tenant|team|account|organization|org/i],
+    [/list/i, /all/i],
+  );
+  if (!workspacesTool) {
+    return { ok: false as const, message: "Nenhuma tool de workspaces disponível.", tools: toolNames, workspaces: [] };
+  }
+  const wsRes = await client.callTool(workspacesTool.name, {});
+  const raw = coerceList(extractJson(wsRes));
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: existing } = await supabaseAdmin
+    .from("clients")
+    .select("id, external_id, name")
+    .eq("external_source", "monitor_news");
+  const existingMap = new Map<string, { id: string; name: string }>();
+  for (const c of existing ?? []) if (c.external_id) existingMap.set(String(c.external_id), { id: c.id, name: c.name });
+
+  const workspaces = raw
+    .map((w: any) => {
+      const external_id = pickId(w);
+      if (!external_id) return null;
+      const name = pickName(w);
+      const match = existingMap.get(external_id);
+      return {
+        external_id,
+        name,
+        already_imported: !!match,
+        client_id: match?.id ?? null,
+        raw: w,
+      };
+    })
+    .filter(Boolean) as Array<{
+      external_id: string;
+      name: string;
+      already_imported: boolean;
+      client_id: string | null;
+      raw: any;
+    }>;
+
+  return { ok: true as const, tools: toolNames, workspace_tool: workspacesTool.name, workspaces };
+}
+
+async function syncCore(mode: SyncMode, triggeredByUser?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Cria log inicial
   const { data: logRow } = await supabaseAdmin
     .from("sync_logs")
     .insert({
       started_at: new Date().toISOString(),
       status: "started",
-      metadata: { job: "monitor-news", triggered_by: triggeredByUser ?? "cron" },
+      metadata: { job: "monitor-news", mode: mode.kind, triggered_by: triggeredByUser ?? "cron" },
     })
     .select()
     .single();
@@ -467,7 +518,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
     const tools = await client.listTools();
     const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
 
-    // 1) workspaces
     const workspacesTool = pickTool(
       tools,
       [/workspace|tenant|team|account|organization|org/i],
@@ -482,7 +532,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       return { ok: false, message: "Nenhuma tool de workspaces disponível.", tools: toolNames };
     }
 
-    // 2) créditos/uso
     const usageTool = pickTool(
       tools,
       [/credit|usage|billing|cost|balance|consumption/i],
@@ -492,7 +541,20 @@ export async function syncMonitorNews(triggeredByUser?: string) {
     const wsRes = await client.callTool(workspacesTool.name, {});
     const workspaces = coerceList(extractJson(wsRes));
 
-    // taxa USD→BRL corrente
+    const { data: existingClients } = await supabaseAdmin
+      .from("clients")
+      .select("id, external_id")
+      .eq("external_source", "monitor_news");
+    const existingIds = new Set((existingClients ?? []).map((c) => String(c.external_id)));
+
+    const selectedSet = mode.kind === "selected" ? new Set(mode.externalIds) : null;
+    const targets = workspaces.filter((w: any) => {
+      const id = pickId(w);
+      if (!id) return false;
+      if (selectedSet) return selectedSet.has(id);
+      return existingIds.has(id);
+    });
+
     const { data: rateRow } = await supabaseAdmin
       .from("system_settings")
       .select("value")
@@ -500,7 +562,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       .maybeSingle();
     const usdRate = Number((rateRow?.value as any)?.rate) || 1;
 
-    // plataforma Monitor News (upsert por nome)
     const { data: existingPlatform } = await supabaseAdmin
       .from("platforms")
       .select("*")
@@ -523,7 +584,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       platformId = newPlat.id;
     }
 
-    // provider "Monitor News" (para associar cost_entries a um provider)
     const { data: existingProv } = await supabaseAdmin
       .from("providers")
       .select("id")
@@ -545,12 +605,11 @@ export async function syncMonitorNews(triggeredByUser?: string) {
     let usageRows = 0;
     const perWorkspace: any[] = [];
 
-    for (const w of workspaces) {
+    for (const w of targets) {
       const externalId = pickId(w);
       if (!externalId) continue;
       const wsName = pickName(w);
 
-      // upsert client
       const { data: existingClient } = await supabaseAdmin
         .from("clients")
         .select("id")
@@ -561,12 +620,7 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       if (clientId) {
         await supabaseAdmin
           .from("clients")
-          .update({
-            name: wsName,
-            company: wsName,
-            metadata: w,
-            status: "active",
-          })
+          .update({ name: wsName, company: wsName, metadata: w, status: "active" })
           .eq("id", clientId);
       } else {
         const { data: newClient, error: cErr } = await supabaseAdmin
@@ -586,7 +640,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       }
       clientsUpserted++;
 
-      // uso/custos por workspace (best-effort)
       if (!usageTool) continue;
       let usage: any = null;
       const attempts: Record<string, any>[] = [
@@ -618,7 +671,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
 
       const costBrl = Number((costUsd * usdRate).toFixed(2));
 
-      // grava cost_entry do dia (upsert por (client_id, entry_date, provider_id, origin))
       const { data: existingEntry } = await supabaseAdmin
         .from("cost_entries")
         .select("id")
@@ -654,7 +706,6 @@ export async function syncMonitorNews(triggeredByUser?: string) {
         await supabaseAdmin.from("cost_entries").insert(entryPayload);
       }
 
-      // provider_usage_daily
       const { data: existingUsage } = await supabaseAdmin
         .from("provider_usage_daily")
         .select("id")
@@ -708,6 +759,7 @@ export async function syncMonitorNews(triggeredByUser?: string) {
       records_imported: usageRows,
       metadata: {
         job: "monitor-news",
+        mode: mode.kind,
         tools: toolNames,
         picked: {
           workspaces_tool: workspacesTool?.name,
@@ -734,4 +786,12 @@ export async function syncMonitorNews(triggeredByUser?: string) {
     await finalize({ status: "error", error_message: String(err?.message ?? err) });
     return { ok: false, message: String(err?.message ?? err) };
   }
+}
+
+export async function syncMonitorNews(triggeredByUser?: string) {
+  return syncCore({ kind: "existing_only" }, triggeredByUser);
+}
+
+export async function importMonitorNewsWorkspaces(externalIds: string[], triggeredByUser?: string) {
+  return syncCore({ kind: "selected", externalIds }, triggeredByUser);
 }
