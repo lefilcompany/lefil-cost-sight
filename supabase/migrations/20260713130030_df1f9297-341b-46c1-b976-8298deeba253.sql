@@ -1,0 +1,1 @@
+UPDATE public.profiles SET status='active', approved_at=now() WHERE email='emanuel.rodrigues@lefil.com.br';
