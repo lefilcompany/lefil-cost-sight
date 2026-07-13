@@ -28,12 +28,11 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
+    const routeAfterSession = async (userId: string) => {
       const { data: profile } = await supabase
         .from("profiles")
         .select("status")
-        .eq("id", data.session.user.id)
+        .eq("id", userId)
         .maybeSingle();
       const target = safeNext(next);
       if (profile?.status === "active") {
@@ -42,7 +41,20 @@ function AuthPage() {
       } else {
         navigate({ to: "/pending" });
       }
+    };
+
+    // 1) Session already present on mount
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) void routeAfterSession(data.session.user.id);
     });
+
+    // 2) Session arrives after mount (popup / web_message flow used in preview)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+        void routeAfterSession(session.user.id);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate, next]);
 
   const handleGoogle = async () => {
@@ -59,6 +71,8 @@ function AuthPage() {
       setLoading(false);
       toast.error(result.error.message);
     }
+    // On success via popup, onAuthStateChange handles the redirect.
+    // On full-page redirect flow, the browser has already navigated away.
   };
 
 
