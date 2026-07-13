@@ -657,7 +657,7 @@ function PlatformDialog({
           <img
             src={form.image_url}
             alt="Prévia"
-            className="h-11 w-11 shrink-0 rounded-lg object-cover shadow-sm"
+            className="h-11 w-11 shrink-0 rounded-lg object-contain bg-muted p-1 shadow-sm"
             onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
           />
         ) : (
