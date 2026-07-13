@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, getRequest } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(context: any) {
@@ -12,11 +12,7 @@ async function assertAdmin(context: any) {
 
 function originFromRequest(): string {
   try {
-    // TanStack Start: getRequest is available inside handlers
-    // Fallback to env if not
-    const req = (globalThis as any).Request
-      ? (require("@tanstack/react-start").getRequest?.() as Request | undefined)
-      : undefined;
+    const req = getRequest();
     if (req) return new URL(req.url).origin;
   } catch {}
   return process.env.APP_URL || "https://lefil-cost-sight.lovable.app";
