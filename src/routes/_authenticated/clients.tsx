@@ -639,15 +639,33 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
   const [filter, setFilter] = useState("");
   const list = useServerFn(listMonitorNewsWorkspacesFn);
   const importFn = useServerFn(importMonitorNewsWorkspacesFn);
+  const debugFn = useServerFn(debugMonitorNewsToolsFn);
 
   const query = useQuery({
     queryKey: ["monitor-news-workspaces"],
-    queryFn: async () => (await list({} as any)) as any,
+    queryFn: async () => {
+      const res = (await list({} as any)) as any;
+      if (res?.ok === false) {
+        const err = new Error(res?.message || "Falha ao listar workspaces via MCP.") as any;
+        err.tools = Array.isArray(res?.tools) ? res.tools : undefined;
+        throw err;
+      }
+      return res;
+    },
     enabled: open,
     staleTime: 30_000,
+    retry: false,
   });
 
-  const workspaces: WorkspaceRow[] = (query.data?.workspaces ?? []) as WorkspaceRow[];
+  const debugMut = useMutation({
+    mutationFn: async () => (await debugFn({} as any)) as any,
+    onSuccess: (r: any) => {
+      const names = (r?.tools ?? []).map((t: any) => t?.name).filter(Boolean);
+      if (names.length === 0) toast.message("MCP não retornou nenhuma tool.");
+      else toast.success(`Tools MCP: ${names.join(", ")}`);
+    },
+    onError: (e: any) => toast.error(e?.message || String(e)),
+  });
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
