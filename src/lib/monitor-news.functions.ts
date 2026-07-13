@@ -204,15 +204,17 @@ export const importMonitorNewsWorkspaces = createServerFn({ method: "POST" })
       }
     }
 
-    return {
-      imported,
-      updated,
-      workspaces: summary,
-      toolNames,
-      workspacesTool,
-      creditsTool,
-      costsTool,
-    };
+    return JSON.parse(
+      JSON.stringify({
+        imported,
+        updated,
+        workspaces: summary,
+        toolNames,
+        workspacesTool,
+        creditsTool,
+        costsTool,
+      }),
+    ) as any;
   });
 
 function buildArgs(workspaceId: string): Record<string, unknown> {
