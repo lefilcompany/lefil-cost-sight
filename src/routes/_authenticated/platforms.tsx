@@ -41,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
+import { MonitorNewsCard } from "@/components/monitor-news-card";
 
 const STATUSES = ["active", "inactive"] as const;
 const ENVIRONMENTS = ["production", "internal"] as const;
@@ -331,6 +332,11 @@ function PlatformsPage() {
           <Kpi label="Uso interno" value={fmtNumber(stats.internal)} icon={<Home className="h-4 w-4" />} />
           <Kpi label="Custo total (BRL)" value={fmtBRL(stats.totalBrl)} icon={<Wallet className="h-4 w-4" />} />
         </div>
+
+        {/* Monitor News (MCP) — integração de plataforma via Model Context Protocol */}
+        <MonitorNewsCard />
+
+
 
         {/* Presets */}
         {presets.length > 0 && (
