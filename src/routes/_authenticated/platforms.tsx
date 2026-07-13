@@ -803,3 +803,70 @@ function PlatformDialog({
     </DialogContent>
   );
 }
+
+function ImageUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const inputId = "platform-image-file-" + Math.random().toString(36).slice(2, 8);
+
+  async function handleFile(file: File) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 5MB)");
+      return;
+    }
+    const okTypes = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"];
+    if (!okTypes.includes(file.type)) {
+      toast.error("Formato não suportado. Use PNG, JPG, WEBP, SVG ou GIF.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("platform-images")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      // Bucket privado — usa URL assinada de longa duração (10 anos)
+      const { data, error: signErr } = await supabase.storage
+        .from("platform-images")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signErr) throw signErr;
+      if (!data?.signedUrl) throw new Error("Falha ao gerar URL");
+      onUploaded(data.signedUrl);
+      toast.success("Imagem enviada");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha no upload");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.currentTarget.value = "";
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() => document.getElementById(inputId)?.click()}
+        className="h-9 shrink-0 gap-1.5"
+      >
+        <Upload className={`h-4 w-4 ${busy ? "animate-pulse" : ""}`} />
+        {busy ? "Enviando..." : "Enviar arquivo"}
+      </Button>
+    </>
+  );
+}
+
