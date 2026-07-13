@@ -297,7 +297,11 @@ function SettingsPage() {
               </p>
               <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs">
                 Total de configurações: <span className="font-numeric font-semibold text-foreground">{settings.length}</span>
-              </div>
+        </div>
+
+        <MonitorNewsCard />
+
+
             </CardContent>
           </Card>
         </div>
