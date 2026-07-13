@@ -43,7 +43,7 @@ export const listMonitorNewsTools = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const mn = await import("./monitor-news.server");
     const tools = await mn.listMcpTools(context.userId);
-    return { tools };
+    return { tools: JSON.parse(JSON.stringify(tools)) as unknown[] } as any;
   });
 
 export const callMonitorNewsTool = createServerFn({ method: "POST" })
