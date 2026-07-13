@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
+import { MonitorNewsPanel } from "@/components/monitor-news-panel";
 
 const STATUSES = ["active", "inactive"] as const;
 
@@ -286,6 +287,7 @@ function ClientsPage() {
       }
     >
       <div className="space-y-6">
+        <MonitorNewsPanel />
         {/* KPIs */}
         <div className="grid gap-3 md:grid-cols-4">
           <Kpi label="Total" value={fmtNumber(stats.total)} icon={<Users className="h-4 w-4" />} />
