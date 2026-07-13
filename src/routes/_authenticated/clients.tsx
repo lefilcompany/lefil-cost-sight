@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
@@ -17,6 +18,9 @@ import {
   Building2,
   UserCircle2,
   BadgeCheck,
+  Newspaper,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +41,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
+import {
+  listMonitorNewsWorkspacesFn,
+  importMonitorNewsWorkspacesFn,
+} from "@/lib/monitor-news.functions";
 
 const STATUSES = ["active", "inactive"] as const;
 
@@ -269,20 +277,28 @@ function ClientsPage() {
       eyebrow="Cadastros"
       title="Clientes"
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Novo cliente
-            </Button>
-          </DialogTrigger>
-          <ClientDialog
-            editing={editing}
-            form={form}
-            setForm={setForm}
-            onSubmit={() => save.mutate()}
-            pending={save.isPending}
+        <div className="flex flex-wrap items-center gap-2">
+          <MonitorNewsImportButton
+            onImported={() => {
+              qc.invalidateQueries({ queryKey: ["clients"] });
+              qc.invalidateQueries({ queryKey: ["clients-costs"] });
+            }}
           />
-        </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Novo cliente
+              </Button>
+            </DialogTrigger>
+            <ClientDialog
+              editing={editing}
+              form={form}
+              setForm={setForm}
+              onSubmit={() => save.mutate()}
+              pending={save.isPending}
+            />
+          </Dialog>
+        </div>
       }
     >
       <div className="space-y-6">
@@ -605,6 +621,181 @@ function ClientDialog({
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+type WorkspaceRow = {
+  external_id: string;
+  name: string;
+  already_imported: boolean;
+  client_id: string | null;
+  raw: any;
+};
+
+function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState("");
+  const list = useServerFn(listMonitorNewsWorkspacesFn);
+  const importFn = useServerFn(importMonitorNewsWorkspacesFn);
+
+  const query = useQuery({
+    queryKey: ["monitor-news-workspaces"],
+    queryFn: async () => (await list({} as any)) as any,
+    enabled: open,
+    staleTime: 30_000,
+  });
+
+  const workspaces: WorkspaceRow[] = (query.data?.workspaces ?? []) as WorkspaceRow[];
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return workspaces;
+    return workspaces.filter((w) => `${w.name} ${w.external_id}`.toLowerCase().includes(q));
+  }, [workspaces, filter]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () => {
+    const importable = filtered.filter((w) => !w.already_imported).map((w) => w.external_id);
+    setSelected((prev) => {
+      const allSel = importable.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSel) importable.forEach((id) => next.delete(id));
+      else importable.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const importMut = useMutation({
+    mutationFn: async () => {
+      const ids = Array.from(selected);
+      if (ids.length === 0) throw new Error("Selecione ao menos um workspace.");
+      return (await importFn({ data: { external_ids: ids } })) as any;
+    },
+    onSuccess: (res: any) => {
+      if (res?.ok === false) {
+        toast.error(res?.message || "Falha na importação");
+        return;
+      }
+      toast.success(`${res?.clients ?? 0} workspace(s) importado(s).`);
+      setSelected(new Set());
+      setOpen(false);
+      onImported();
+    },
+    onError: (e: any) => toast.error(e?.message || String(e)),
+  });
+
+  const importableCount = filtered.filter((w) => !w.already_imported).length;
+  const allSelected = importableCount > 0 && filtered.filter((w) => !w.already_imported).every((w) => selected.has(w.external_id));
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSelected(new Set()); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-1.5">
+          <Newspaper className="h-4 w-4" /> Importar do Monitor News
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <Newspaper className="h-4 w-4" /> Workspaces do Monitor News
+          </DialogTitle>
+        </DialogHeader>
+
+        {query.isLoading ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+            Buscando workspaces via MCP...
+          </div>
+        ) : query.isError || query.data?.ok === false ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium text-destructive">Não foi possível listar os workspaces.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {String((query.error as any)?.message ?? query.data?.message ?? "Verifique a conexão do Monitor News em Configurações.")}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Filtrar workspaces..."
+                  className="h-9 pl-9 text-sm"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleAll}
+                disabled={importableCount === 0}
+                className="h-9"
+              >
+                {allSelected ? "Desmarcar todos" : "Selecionar todos"}
+              </Button>
+            </div>
+
+            <div className="max-h-[380px] overflow-y-auto rounded-md border border-border/60 divide-y divide-border/60">
+              {filtered.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Nenhum workspace encontrado.</div>
+              ) : (
+                filtered.map((w) => {
+                  const disabled = w.already_imported;
+                  const checked = selected.has(w.external_id);
+                  return (
+                    <label
+                      key={w.external_id}
+                      className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/40 ${disabled ? "opacity-70" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={disabled || checked}
+                        disabled={disabled}
+                        onChange={() => toggle(w.external_id)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{w.name}</p>
+                        <p className="truncate text-[11px] text-muted-foreground font-numeric">{w.external_id}</p>
+                      </div>
+                      {disabled && (
+                        <Badge variant="secondary" className="gap-1 bg-emerald-600/15 text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3" /> Já cadastrado
+                        </Badge>
+                      )}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {selected.size} selecionado(s) · {importableCount} disponível(is) · {workspaces.length} total
+            </p>
+          </>
+        )}
+
+        <DialogFooter className="mt-2">
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={() => importMut.mutate()}
+            disabled={selected.size === 0 || importMut.isPending}
+            className="gap-1.5"
+          >
+            {importMut.isPending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Importando...</>) : (<>Importar {selected.size > 0 ? `(${selected.size})` : ""}</>)}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
