@@ -81,7 +81,7 @@ export async function ensureOAuthClient(redirectUri: string): Promise<MnClient> 
     client_id: json.client_id,
     client_secret_ciphertext: json.client_secret ? encryptSecret(json.client_secret) : null,
     token_endpoint_auth_method: authMethod,
-    registration_response: json as unknown as Record<string, unknown>,
+    registration_response: json as never,
   });
 
   return {
