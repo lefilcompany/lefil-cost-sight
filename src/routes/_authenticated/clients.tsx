@@ -44,6 +44,7 @@ import { fmtBRL, fmtNumber } from "@/lib/format";
 import {
   listMonitorNewsWorkspacesFn,
   importMonitorNewsWorkspacesFn,
+  debugMonitorNewsToolsFn,
 } from "@/lib/monitor-news.functions";
 
 const STATUSES = ["active", "inactive"] as const;
@@ -638,15 +639,36 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
   const [filter, setFilter] = useState("");
   const list = useServerFn(listMonitorNewsWorkspacesFn);
   const importFn = useServerFn(importMonitorNewsWorkspacesFn);
+  const debugFn = useServerFn(debugMonitorNewsToolsFn);
 
   const query = useQuery({
     queryKey: ["monitor-news-workspaces"],
-    queryFn: async () => (await list({} as any)) as any,
+    queryFn: async () => {
+      const res = (await list({} as any)) as any;
+      if (res?.ok === false) {
+        const err = new Error(res?.message || "Falha ao listar workspaces via MCP.") as any;
+        err.tools = Array.isArray(res?.tools) ? res.tools : undefined;
+        throw err;
+      }
+      return res;
+    },
     enabled: open,
     staleTime: 30_000,
+    retry: false,
+  });
+
+  const debugMut = useMutation({
+    mutationFn: async () => (await debugFn({} as any)) as any,
+    onSuccess: (r: any) => {
+      const names = (r?.tools ?? []).map((t: any) => t?.name).filter(Boolean);
+      if (names.length === 0) toast.message("MCP não retornou nenhuma tool.");
+      else toast.success(`Tools MCP: ${names.join(", ")}`);
+    },
+    onError: (e: any) => toast.error(e?.message || String(e)),
   });
 
   const workspaces: WorkspaceRow[] = (query.data?.workspaces ?? []) as WorkspaceRow[];
+
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -710,35 +732,49 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-3">
 
-        {query.isLoading ? (
+        {query.isPending || query.isFetching ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
             Buscando workspaces via MCP...
           </div>
-        ) : query.isError || query.data?.ok === false ? (
+        ) : query.isError ? (
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
             <p className="font-medium text-destructive">Não foi possível listar os workspaces.</p>
             <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground">
-              {String((query.error as any)?.message ?? query.data?.message ?? "Verifique a conexão do Monitor News em Configurações.")}
+              {String((query.error as any)?.message ?? "Verifique a conexão do Monitor News em Configurações.")}
             </p>
-            {Array.isArray(query.data?.tools) && query.data.tools.length > 0 ? (
+            {Array.isArray((query.error as any)?.tools) && (query.error as any).tools.length > 0 ? (
               <div className="mt-3 rounded border border-border/60 bg-background/40 p-2">
                 <p className="text-[11px] font-medium text-muted-foreground">Tools reportadas pelo MCP:</p>
                 <ul className="mt-1 space-y-0.5 text-[11px] font-mono">
-                  {query.data.tools.map((n: string) => (
+                  {(query.error as any).tools.map((n: string) => (
                     <li key={n}>• {n}</li>
                   ))}
                 </ul>
               </div>
             ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => query.refetch()}
-            >
-              Tentar novamente
-            </Button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => query.refetch()}
+                disabled={query.isFetching}
+                className="gap-1.5"
+              >
+                {query.isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Tentar novamente
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => debugMut.mutate()}
+                disabled={debugMut.isPending}
+                className="gap-1.5"
+              >
+                {debugMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Ver tools disponíveis
+              </Button>
+            </div>
           </div>
         ) : (
           <>
