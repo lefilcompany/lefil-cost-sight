@@ -250,13 +250,17 @@ function normalizeWorkspaces(payload: unknown): NormalizedWorkspace[] {
         (obj.title as string | undefined) ??
         (obj.workspace_name as string | undefined) ??
         String(id);
-      return {
+      const ws: NormalizedWorkspace = {
         id: String(id),
         name,
-        company: (obj.company as string | undefined) ?? (obj.organization as string | undefined) ?? null,
+        company:
+          (obj.company as string | undefined) ??
+          (obj.organization as string | undefined) ??
+          null,
         status: (obj.status as string | undefined) ?? "active",
         raw: obj,
-      } satisfies NormalizedWorkspace;
+      };
+      return ws;
     })
     .filter((v): v is NormalizedWorkspace => v !== null);
 }
