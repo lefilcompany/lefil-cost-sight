@@ -44,6 +44,7 @@ import { fmtBRL, fmtNumber } from "@/lib/format";
 import {
   listMonitorNewsWorkspacesFn,
   importMonitorNewsWorkspacesFn,
+  debugMonitorNewsToolsFn,
 } from "@/lib/monitor-news.functions";
 
 const STATUSES = ["active", "inactive"] as const;
