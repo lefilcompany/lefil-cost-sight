@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, Send, X, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Send, X, Loader2, RefreshCw, EyeOff } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,30 @@ const WELCOME: Msg = {
     "Olá! Sou o assistente Quiwi com Gemini. Pergunte sobre custos, fornecedores, alertas ou tendências dos últimos 30 dias. Exemplos:\n\n- Quanto gastei com OpenAI este mês?\n- Quais fornecedores mais cresceram?\n- Explique meus alertas abertos.",
 };
 
+const HIDDEN_KEY = "quiwi.assistant.hidden";
+
 export function GeminiAssistant() {
   const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const ask = useServerFn(askAssistant);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem(HIDDEN_KEY) === "1");
+    } catch {}
+  }, []);
+
+  function toggleHidden(next: boolean) {
+    setHidden(next);
+    if (next) setOpen(false);
+    try {
+      localStorage.setItem(HIDDEN_KEY, next ? "1" : "0");
+    } catch {}
+  }
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -45,16 +62,40 @@ export function GeminiAssistant() {
     }
   }
 
+  if (hidden) {
+    return (
+      <button
+        onClick={() => toggleHidden(false)}
+        className="fixed bottom-3 right-3 z-40 grid h-8 w-8 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground shadow-sm backdrop-blur transition hover:text-foreground"
+        aria-label="Mostrar assistente Gemini"
+        title="Mostrar assistente"
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+
   return (
     <>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-40 flex h-12 items-center gap-2 rounded-full bg-[color:var(--color-gold)] px-4 text-sm font-semibold text-[color:var(--color-gold-foreground)] shadow-lg transition hover:brightness-110"
-        aria-label="Assistente Gemini"
-      >
-        <Sparkles className="h-4 w-4" />
-        {open ? "Fechar assistente" : "Assistente IA"}
-      </button>
+      <div className="fixed bottom-5 right-5 z-40 flex items-center gap-1.5">
+        <button
+          onClick={() => toggleHidden(true)}
+          className="grid h-8 w-8 place-items-center rounded-full border border-border/60 bg-background/90 text-muted-foreground shadow-sm transition hover:text-foreground"
+          aria-label="Esconder assistente"
+          title="Esconder assistente"
+        >
+          <EyeOff className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex h-12 items-center gap-2 rounded-full bg-[color:var(--color-gold)] px-4 text-sm font-semibold text-[color:var(--color-gold-foreground)] shadow-lg transition hover:brightness-110"
+          aria-label="Assistente Gemini"
+        >
+          <Sparkles className="h-4 w-4" />
+          {open ? "Fechar assistente" : "Assistente IA"}
+        </button>
+      </div>
+
 
       {open && (
         <div className="fixed bottom-20 right-5 z-40 flex h-[560px] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-border/70 bg-background shadow-2xl">
