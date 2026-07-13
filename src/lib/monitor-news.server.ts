@@ -438,19 +438,89 @@ type SyncMode =
   | { kind: "existing_only" }
   | { kind: "selected"; externalIds: string[] };
 
+export async function debugMonitorNewsTools() {
+  const client = await connectMcp();
+  const tools = await client.listTools();
+  return {
+    ok: true as const,
+    tools: tools.map((t: any) => ({
+      name: t?.name,
+      title: t?.title ?? null,
+      description: t?.description ?? null,
+      inputSchema: t?.inputSchema ?? null,
+    })),
+  };
+}
+
+async function callToolTolerant(client: McpClient, name: string) {
+  const attempts: any[] = [{}, { limit: 100 }, { page: 1, per_page: 100 }, { pageSize: 100 }];
+  let lastErr: any;
+  for (const args of attempts) {
+    try {
+      const r = await client.callTool(name, args);
+      return { result: r, args };
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("tool call failed");
+}
+
 export async function listWorkspacesFromMcp() {
   const client = await connectMcp();
   const tools = await client.listTools();
   const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
-  const workspacesTool = pickTool(
-    tools,
-    [/workspace|tenant|team|account|organization|org/i],
-    [/list/i, /all/i],
-  );
-  if (!workspacesTool) {
-    return { ok: false as const, message: "Nenhuma tool de workspaces disponível.", tools: toolNames, workspaces: [] };
+
+  const candidatePatterns = [
+    /workspace/i,
+    /tenant/i,
+    /organi[sz]ation/i,
+    /\bteam\b/i,
+    /\baccount\b/i,
+    /\bclient/i,
+    /customer/i,
+    /project/i,
+    /\bsite\b/i,
+  ];
+
+  const listy = tools.filter((t: any) => /list|all|index|search|get/i.test(String(t?.name ?? "")));
+  const pool = listy.length ? listy : tools;
+
+  let workspacesTool: any = null;
+  for (const p of candidatePatterns) {
+    workspacesTool =
+      pool.find((t: any) => p.test(String(t?.name ?? ""))) ||
+      pool.find((t: any) => p.test(String(t?.description ?? "")));
+    if (workspacesTool) break;
   }
-  const wsRes = await client.callTool(workspacesTool.name, {});
+
+  if (!workspacesTool) {
+    return {
+      ok: false as const,
+      message:
+        "Nenhuma tool de workspaces reconhecida no MCP do Monitor News. Tools disponíveis: " +
+        toolNames.join(", "),
+      tools: toolNames,
+      tool_details: tools.map((t: any) => ({ name: t?.name, description: t?.description })),
+      workspaces: [],
+    };
+  }
+
+  let wsRes: any;
+  let usedArgs: any = {};
+  try {
+    const r = await callToolTolerant(client, workspacesTool.name);
+    wsRes = r.result;
+    usedArgs = r.args;
+  } catch (e: any) {
+    return {
+      ok: false as const,
+      message: `Falha ao chamar ${workspacesTool.name}: ${e?.message ?? e}`,
+      tools: toolNames,
+      workspaces: [],
+    };
+  }
+
   const raw = coerceList(extractJson(wsRes));
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -483,7 +553,25 @@ export async function listWorkspacesFromMcp() {
       raw: any;
     }>;
 
-  return { ok: true as const, tools: toolNames, workspace_tool: workspacesTool.name, workspaces };
+  if (workspaces.length === 0) {
+    return {
+      ok: false as const,
+      message:
+        `A tool "${workspacesTool.name}" respondeu, mas não foi possível extrair workspaces da resposta. ` +
+        `Amostra: ${JSON.stringify(extractJson(wsRes) ?? wsRes).slice(0, 500)}`,
+      tools: toolNames,
+      workspace_tool: workspacesTool.name,
+      used_args: usedArgs,
+      workspaces: [],
+    };
+  }
+
+  return {
+    ok: true as const,
+    tools: toolNames,
+    workspace_tool: workspacesTool.name,
+    workspaces,
+  };
 }
 
 async function syncCore(mode: SyncMode, triggeredByUser?: string) {
