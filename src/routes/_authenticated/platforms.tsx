@@ -332,6 +332,11 @@ function PlatformsPage() {
           <Kpi label="Custo total (BRL)" value={fmtBRL(stats.totalBrl)} icon={<Wallet className="h-4 w-4" />} />
         </div>
 
+        {/* Monitor News (MCP) — integração de plataforma via Model Context Protocol */}
+        <MonitorNewsCard />
+
+
+
         {/* Presets */}
         {presets.length > 0 && (
           <Card className="surface-elevated">
