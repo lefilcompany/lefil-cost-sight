@@ -41,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtNumber } from "@/lib/format";
+import { MonitorNewsCard } from "@/components/monitor-news-card";
 
 const STATUSES = ["active", "inactive"] as const;
 const ENVIRONMENTS = ["production", "internal"] as const;
