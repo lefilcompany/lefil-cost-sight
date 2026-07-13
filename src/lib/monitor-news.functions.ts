@@ -67,6 +67,14 @@ export const listMonitorNewsWorkspacesFn = createServerFn({ method: "POST" })
     return listWorkspacesFromMcp();
   });
 
+export const debugMonitorNewsToolsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { debugMonitorNewsTools } = await import("./monitor-news.server");
+    return debugMonitorNewsTools();
+  });
+
 export const importMonitorNewsWorkspacesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { external_ids: string[] }) => {
