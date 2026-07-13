@@ -67,7 +67,7 @@ export function AppShell({
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl">
             <SidebarTrigger className="h-8 w-8" />
             <nav className="hidden items-center gap-1.5 text-[12px] text-muted-foreground md:flex">

@@ -296,7 +296,7 @@ function SyncsPage() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-border/60">
+            <div className="overflow-x-auto rounded-lg border border-border/60">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
