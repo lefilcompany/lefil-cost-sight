@@ -293,7 +293,8 @@ function SettingsPage() {
                 Total de configurações: <span className="font-numeric font-semibold text-foreground">{settings.length}</span>
         </div>
 
-        <MonitorNewsCard />
+
+
 
 
             </CardContent>
