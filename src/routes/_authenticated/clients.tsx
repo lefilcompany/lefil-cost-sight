@@ -667,6 +667,9 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
     onError: (e: any) => toast.error(e?.message || String(e)),
   });
 
+  const workspaces: WorkspaceRow[] = (query.data?.workspaces ?? []) as WorkspaceRow[];
+
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return workspaces;
