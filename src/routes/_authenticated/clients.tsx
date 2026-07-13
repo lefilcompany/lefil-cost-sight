@@ -763,7 +763,7 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
               </Button>
             </div>
 
-            <div className="max-h-[380px] overflow-y-auto rounded-md border border-border/60 divide-y divide-border/60">
+            <div className="rounded-md border border-border/60 divide-y divide-border/60">
               {filtered.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">Nenhum workspace encontrado.</div>
               ) : (
@@ -802,8 +802,9 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
             </p>
           </>
         )}
+        </div>
 
-        <DialogFooter className="mt-2">
+        <DialogFooter className="flex-none border-t border-border/60 px-6 py-3">
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => importMut.mutate()}
@@ -814,6 +815,7 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
           </Button>
         </DialogFooter>
       </DialogContent>
+
     </Dialog>
   );
 }
