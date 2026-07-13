@@ -247,7 +247,10 @@ export type Database = {
           cnpj: string | null
           company: string | null
           created_at: string
+          external_id: string | null
+          external_source: string | null
           id: string
+          metadata: Json
           name: string
           organization_id: string
           owner_user_id: string | null
@@ -259,7 +262,10 @@ export type Database = {
           cnpj?: string | null
           company?: string | null
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           id?: string
+          metadata?: Json
           name: string
           organization_id?: string
           owner_user_id?: string | null
@@ -271,7 +277,10 @@ export type Database = {
           cnpj?: string | null
           company?: string | null
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           id?: string
+          metadata?: Json
           name?: string
           organization_id?: string
           owner_user_id?: string | null
@@ -861,6 +870,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monitor_news_connections: {
+        Row: {
+          access_token_ciphertext: string
+          client_id: string
+          connected_at: string
+          expires_at: string | null
+          refresh_token_ciphertext: string | null
+          scope: string | null
+          token_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_ciphertext: string
+          client_id: string
+          connected_at?: string
+          expires_at?: string | null
+          refresh_token_ciphertext?: string | null
+          scope?: string | null
+          token_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_ciphertext?: string
+          client_id?: string
+          connected_at?: string
+          expires_at?: string | null
+          refresh_token_ciphertext?: string | null
+          scope?: string | null
+          token_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      monitor_news_oauth_clients: {
+        Row: {
+          client_id: string
+          client_secret_ciphertext: string | null
+          created_at: string
+          id: string
+          redirect_uri: string
+          registration_response: Json | null
+          token_endpoint_auth_method: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          client_secret_ciphertext?: string | null
+          created_at?: string
+          id?: string
+          redirect_uri: string
+          registration_response?: Json | null
+          token_endpoint_auth_method?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          client_secret_ciphertext?: string | null
+          created_at?: string
+          id?: string
+          redirect_uri?: string
+          registration_response?: Json | null
+          token_endpoint_auth_method?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monitor_news_oauth_states: {
+        Row: {
+          code_verifier: string
+          created_at: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier: string
+          created_at?: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          code_verifier?: string
+          created_at?: string
+          redirect_uri?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       organization_invitations: {
         Row: {
