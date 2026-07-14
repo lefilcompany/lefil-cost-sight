@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import scrollbarsCss from "../scrollbars.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
@@ -67,18 +68,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Quiwi" },
-      { name: "description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
+      {
+        name: "description",
+        content:
+          "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel.",
+      },
       { property: "og:title", content: "Quiwi" },
-      { property: "og:description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
+      {
+        property: "og:description",
+        content:
+          "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Quiwi" },
-      { name: "twitter:description", content: "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp" },
+      {
+        name: "twitter:description",
+        content:
+          "Monitore, atribua e otimize os custos de IA e infraestrutura das plataformas Quiwi em um único painel.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/FdCKT4b1kEgtFjcgi3FUc3BezZH2/social-images/social-1783599036233-UVA.webp",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: scrollbarsCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
