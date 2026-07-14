@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   Plus,
@@ -880,23 +880,35 @@ function MonitorNewsRefresh({ onDone }: { onDone: () => void }) {
   const [period, setPeriod] = useState<(typeof MN_PERIODS)[number]["value"]>("current_month");
   const sync = useServerFn(syncMonitorNewsFn);
   const mut = useMutation({
-    mutationFn: async () => (await sync({ data: { period } })) as any,
-    onSuccess: (res: any) => {
+    mutationFn: async (p: (typeof MN_PERIODS)[number]["value"]) =>
+      (await sync({ data: { period: p } })) as any,
+    onSuccess: (res: any, p) => {
       if (res?.ok === false) {
         toast.error(res?.message || "Falha ao atualizar custos");
         return;
       }
-      const label = MN_PERIODS.find((p) => p.value === period)?.label ?? period;
+      const label = MN_PERIODS.find((x) => x.value === p)?.label ?? p;
       toast.success(`Custos do Monitor News atualizados (${label}) · ${res?.clients ?? 0} workspace(s)`);
       onDone();
     },
     onError: (e: any) => toast.error(e?.message || String(e)),
   });
+
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    mut.mutate(period);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
+
   return (
     <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 p-1 pl-2">
       <Newspaper className="h-3.5 w-3.5 text-muted-foreground" />
       <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Período</span>
-      <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+      <Select value={period} onValueChange={(v) => setPeriod(v as any)} disabled={mut.isPending}>
         <SelectTrigger className="h-8 w-[160px] border-transparent bg-transparent text-sm shadow-none focus:ring-0">
           <SelectValue />
         </SelectTrigger>
@@ -911,14 +923,15 @@ function MonitorNewsRefresh({ onDone }: { onDone: () => void }) {
         variant="outline"
         className="h-8 gap-1.5"
         disabled={mut.isPending}
-        onClick={() => mut.mutate()}
+        onClick={() => mut.mutate(period)}
         title="Atualizar custos dos workspaces já importados"
       >
         {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        Atualizar custos
+        Atualizar
       </Button>
     </div>
   );
 }
+
 
 
