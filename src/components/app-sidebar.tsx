@@ -98,15 +98,6 @@ export function AppSidebar() {
             alt="Quiwi"
             className="h-8 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
           />
-          <div className="ml-auto min-w-0 text-right group-data-[collapsible=icon]:hidden">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">
-              Cost Sight
-            </p>
-            <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] font-medium text-sidebar-foreground/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-lime)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-lime)_18%,transparent)]" />
-              FinOps ativo
-            </div>
-          </div>
         </div>
       </SidebarHeader>
 
