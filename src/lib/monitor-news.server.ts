@@ -539,7 +539,7 @@ export async function listWorkspacesFromMcp() {
 }
 
 
-async function syncCore(mode: SyncMode, triggeredByUser?: string) {
+async function syncCore(mode: SyncMode, triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: logRow } = await supabaseAdmin
@@ -547,11 +547,12 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
     .insert({
       started_at: new Date().toISOString(),
       status: "started",
-      metadata: { job: "monitor-news", mode: mode.kind, triggered_by: triggeredByUser ?? "cron" },
+      metadata: { job: "monitor-news", mode: mode.kind, period, triggered_by: triggeredByUser ?? "cron" },
     })
     .select()
     .single();
   const logId = logRow?.id;
+
   const startedMs = Date.now();
 
   async function finalize(patch: Record<string, any>) {
