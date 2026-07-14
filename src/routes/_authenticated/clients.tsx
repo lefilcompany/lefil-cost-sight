@@ -292,6 +292,12 @@ function ClientsPage() {
       title="Clientes"
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          <MonitorNewsRefresh
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["clients"] });
+              qc.invalidateQueries({ queryKey: ["clients-costs"] });
+            }}
+          />
           <MonitorNewsImportButton
             onImported={() => {
               qc.invalidateQueries({ queryKey: ["clients"] });
@@ -314,6 +320,7 @@ function ClientsPage() {
           </Dialog>
         </div>
       }
+
     >
       <div className="space-y-6">
         {/* KPIs */}
