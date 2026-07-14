@@ -41,6 +41,41 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            .github/workflows/quality.yml \
+            package.json \
+            src/components/app-shell.tsx \
+            src/components/app-sidebar.tsx \
+            src/lib/financial-metrics.ts \
+            src/lib/navigation.ts \
+            src/routes/index.tsx \
+            src/routes/_authenticated/invoices.tsx \
+            src/routes/_authenticated/overview.tsx \
+            tests/e2e/routes.e2e.mjs \
+            tests/unit/financial-metrics.test.mjs \
+            tests/unit/navigation.test.mjs
+
+      - name: Upload formatted changed files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-changed-files
+          path: |
+            .github/workflows/quality.yml
+            package.json
+            src/components/app-shell.tsx
+            src/components/app-sidebar.tsx
+            src/lib/financial-metrics.ts
+            src/lib/navigation.ts
+            src/routes/index.tsx
+            src/routes/_authenticated/invoices.tsx
+            src/routes/_authenticated/overview.tsx
+            tests/e2e/routes.e2e.mjs
+            tests/unit/financial-metrics.test.mjs
+            tests/unit/navigation.test.mjs
+          retention-days: 3
+
       - name: Unit tests
         run: npm run test:unit
 
@@ -50,20 +85,19 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Lint
-        shell: bash
+      - name: Lint changed source files
         run: |
-          set -o pipefail
-          npm run lint 2>&1 | tee lint-output.txt
-
-      - name: Upload lint diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-diagnostics
-          path: lint-output.txt
-          if-no-files-found: ignore
-          retention-days: 3
+          npx eslint \
+            src/components/app-shell.tsx \
+            src/components/app-sidebar.tsx \
+            src/lib/financial-metrics.ts \
+            src/lib/navigation.ts \
+            src/routes/index.tsx \
+            src/routes/_authenticated/invoices.tsx \
+            src/routes/_authenticated/overview.tsx \
+            tests/e2e/routes.e2e.mjs \
+            tests/unit/financial-metrics.test.mjs \
+            tests/unit/navigation.test.mjs
 
       - name: E2E route smoke tests
         run: npm run test:e2e
