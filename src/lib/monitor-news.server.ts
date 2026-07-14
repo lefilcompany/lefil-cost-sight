@@ -823,6 +823,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
       metadata: {
         job: "monitor-news",
         mode: mode.kind,
+        period,
         picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
         clients_upserted: clientsUpserted,
         usage_rows: usageRows,
@@ -834,6 +835,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
       ok: true,
       clients: clientsUpserted,
       usage_rows: usageRows,
+      period,
       tools: ["workspaces_list", "costs_list", "costs_get"],
       picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
       per_workspace: perWorkspace,
@@ -845,10 +847,11 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
 }
 
 
-export async function syncMonitorNews(triggeredByUser?: string) {
-  return syncCore({ kind: "existing_only" }, triggeredByUser);
+export async function syncMonitorNews(triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
+  return syncCore({ kind: "existing_only" }, triggeredByUser, period);
 }
 
-export async function importMonitorNewsWorkspaces(externalIds: string[], triggeredByUser?: string) {
-  return syncCore({ kind: "selected", externalIds }, triggeredByUser);
+export async function importMonitorNewsWorkspaces(externalIds: string[], triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
+  return syncCore({ kind: "selected", externalIds }, triggeredByUser, period);
 }
+
