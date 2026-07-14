@@ -1,0 +1,67 @@
+/* Global scrollbar theme for the document and every native overflow container. */
+:root {
+  --app-scrollbar-size: 10px;
+  --app-scrollbar-thumb: var(--sidebar-scroll-thumb);
+  --app-scrollbar-thumb-hover: var(--sidebar-scroll-thumb-hover);
+  --app-scrollbar-track: color-mix(in oklab, var(--background) 92%, var(--sidebar-accent));
+}
+
+.dark {
+  --app-scrollbar-track: color-mix(in oklab, var(--background) 90%, var(--sidebar-accent));
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+:where(html, body, *) {
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+  scrollbar-width: thin;
+}
+
+:where(html, body, *)::-webkit-scrollbar {
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
+}
+
+:where(html, body, *)::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--app-scrollbar-track);
+}
+
+:where(html, body, *)::-webkit-scrollbar-thumb {
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--app-scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+:where(html, body, *)::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+:where(html, body, *)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+:where(html, body, *)::-webkit-scrollbar-button,
+:where(html, body, *)::-webkit-scrollbar-button:single-button,
+:where(html, body, *)::-webkit-scrollbar-button:vertical:start:decrement,
+:where(html, body, *)::-webkit-scrollbar-button:vertical:end:increment,
+:where(html, body, *)::-webkit-scrollbar-button:horizontal:start:decrement,
+:where(html, body, *)::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none;
+  width: 0;
+  height: 0;
+  border: 0;
+  background: transparent;
+  -webkit-appearance: none;
+}
