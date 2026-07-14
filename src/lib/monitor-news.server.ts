@@ -592,10 +592,9 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
     });
 
     // 2) Custos (tool oficial: costs_list — retorna todos os workspaces do usuário)
-    // Period "current_month" = desde o dia 1 do mês atual.
     const costsByWs = new Map<string, any>();
     try {
-      const costsRes = await client.callTool("costs_list", { period: "current_month" });
+      const costsRes = await client.callTool("costs_list", { period });
       const costsPayload = extractJson(costsRes);
       const costsRows: any[] = Array.isArray(costsPayload?.workspaces)
         ? costsPayload.workspaces
@@ -609,6 +608,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
     } catch (e) {
       // costs_list falhou — cai no fallback per-workspace via costs_get
     }
+
 
     const { data: rateRow } = await supabaseAdmin
       .from("system_settings")
