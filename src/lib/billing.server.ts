@@ -12,50 +12,11 @@ export type BillingOutcome = {
   meta?: Record<string, any>;
 };
 
-async function fetchUsdBrlRateRemote(): Promise<number | null> {
-  try {
-    const res = await fetch(
-      "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json",
-      { headers: { Accept: "application/json" } },
-    );
-    if (res.ok) {
-      const json: any = await res.json();
-      const row = Array.isArray(json) ? json[0] : null;
-      const val = Number(row?.valor?.replace?.(",", ".") ?? row?.valor);
-      if (Number.isFinite(val) && val > 0) return val;
-    }
-  } catch {}
-  try {
-    const res = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
-    if (res.ok) {
-      const json: any = await res.json();
-      const bid = Number(json?.USDBRL?.bid);
-      if (Number.isFinite(bid) && bid > 0) return bid;
-    }
-  } catch {}
-  return null;
-}
+import { getUsdBrlRate } from "./usd-rate.server";
 
 async function fetchUsdBrlRate(): Promise<number> {
-  // Respect manual override — never overwrite it.
-  const { data: existing } = await supabaseAdmin
-    .from("system_settings")
-    .select("value")
-    .eq("key", "usd_brl_rate")
-    .maybeSingle();
-  const current = (existing?.value as any) ?? null;
-  if (current?.manual === true && Number.isFinite(Number(current.rate)) && Number(current.rate) > 0) {
-    return Number(current.rate);
-  }
-  const fetched = await fetchUsdBrlRateRemote();
-  if (fetched) {
-    await supabaseAdmin
-      .from("system_settings")
-      .upsert({ key: "usd_brl_rate", value: { rate: fetched, updated_at: new Date().toISOString() } });
-    return fetched;
-  }
-  if (current?.rate && Number(current.rate) > 0) return Number(current.rate);
-  return 5.0;
+  const { rate } = await getUsdBrlRate();
+  return rate;
 }
 
 async function getConnectionKey(connectionId: string, fallbackEnv?: string): Promise<string | null> {
