@@ -610,12 +610,8 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
     }
 
 
-    const { data: rateRow } = await supabaseAdmin
-      .from("system_settings")
-      .select("value")
-      .eq("key", "usd_brl_rate")
-      .maybeSingle();
-    const usdRate = Number((rateRow?.value as any)?.rate) || 1;
+    const { getUsdBrlRate } = await import("./usd-rate.server");
+    const { rate: usdRate } = await getUsdBrlRate();
 
     const { data: existingPlatform } = await supabaseAdmin
       .from("platforms")
