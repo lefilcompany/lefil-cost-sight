@@ -53,9 +53,11 @@ jobs:
             src/routes/index.tsx \
             src/routes/_authenticated/invoices.tsx \
             src/routes/_authenticated/overview.tsx \
+            src/styles.css \
             tests/e2e/routes.e2e.mjs \
             tests/unit/financial-metrics.test.mjs \
-            tests/unit/navigation.test.mjs
+            tests/unit/navigation.test.mjs \
+            tests/unit/sidebar-design.test.mjs
 
       - name: Upload formatted changed files
         uses: actions/upload-artifact@v4
@@ -71,9 +73,11 @@ jobs:
             src/routes/index.tsx
             src/routes/_authenticated/invoices.tsx
             src/routes/_authenticated/overview.tsx
+            src/styles.css
             tests/e2e/routes.e2e.mjs
             tests/unit/financial-metrics.test.mjs
             tests/unit/navigation.test.mjs
+            tests/unit/sidebar-design.test.mjs
           retention-days: 3
 
       - name: Unit tests
@@ -97,7 +101,8 @@ jobs:
             src/routes/_authenticated/overview.tsx \
             tests/e2e/routes.e2e.mjs \
             tests/unit/financial-metrics.test.mjs \
-            tests/unit/navigation.test.mjs
+            tests/unit/navigation.test.mjs \
+            tests/unit/sidebar-design.test.mjs
 
       - name: E2E route smoke tests
         run: npm run test:e2e

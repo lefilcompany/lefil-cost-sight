@@ -50,12 +50,12 @@ export function AppSidebar() {
   const isActive = (url: string) => pathname === url || pathname.startsWith(`${url}/`);
 
   const Section = ({ label, items }: { label: string; items: NavigationItem[] }) => (
-    <SidebarGroup>
-      <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+    <SidebarGroup className="px-2.5 py-1 group-data-[collapsible=icon]:px-1.5">
+      <SidebarGroupLabel className="h-7 px-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
         {label}
       </SidebarGroupLabel>
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="gap-1.5">
           {items.map((item) => {
             const Icon = ICONS[item.icon] ?? LayoutDashboard;
             return (
@@ -64,11 +64,16 @@ export function AppSidebar() {
                   asChild
                   isActive={isActive(item.url)}
                   tooltip={item.title}
-                  className="group/link h-9 rounded-lg data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-[inset_0_0_0_1px_var(--color-sidebar-border)]"
+                  className="group/link relative h-10 rounded-xl px-2.5 text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent/65 hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-[0_12px_28px_-18px_var(--color-sidebar-primary)] group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-1.5"
                 >
                   <Link to={item.url} title={item.description}>
-                    <Icon className="text-muted-foreground group-data-[active=true]/link:text-[color:var(--color-gold)]" />
-                    <span className="text-[13px] font-medium tracking-tight">{item.title}</span>
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/35 transition-colors group-hover/link:bg-sidebar-accent group-data-[active=true]/link:border-[color:var(--color-lime)]/25 group-data-[active=true]/link:bg-[color:var(--color-lime)]">
+                      <Icon className="size-4 text-sidebar-foreground/65 transition-colors group-hover/link:text-sidebar-accent-foreground group-data-[active=true]/link:text-[color:var(--color-lime-foreground)]" />
+                    </span>
+                    <span className="text-[12px] font-semibold tracking-[-0.01em] group-data-[collapsible=icon]:hidden">
+                      {item.title}
+                    </span>
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[color:var(--color-lime)] opacity-0 shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-lime)_16%,transparent)] transition-opacity group-data-[active=true]/link:opacity-100 group-data-[collapsible=icon]:hidden" />
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -80,36 +85,54 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex h-12 items-center gap-3 px-2 py-2.5">
+    <Sidebar variant="floating" collapsible="icon" className="app-sidebar">
+      <SidebarHeader className="p-3 pb-2 group-data-[collapsible=icon]:p-1.5">
+        <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/30 px-3 shadow-[0_10px_30px_-24px_var(--color-sidebar-primary)] backdrop-blur-sm group-data-[collapsible=icon]:min-h-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <img
             src={quiwiIcon.url}
             alt="Quiwi"
-            className="hidden h-10 w-10 shrink-0 rounded-lg object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
+            className="hidden h-9 w-9 shrink-0 rounded-xl object-contain shadow-[inset_0_0_0_1px_var(--color-sidebar-border)] group-data-[collapsible=icon]:block"
           />
           <img
             src={quiwiLogo.url}
             alt="Quiwi"
-            className="block h-10 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
+            className="h-8 w-auto shrink-0 object-contain group-data-[collapsible=icon]:hidden"
           />
+          <div className="ml-auto min-w-0 text-right group-data-[collapsible=icon]:hidden">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">
+              Cost Sight
+            </p>
+            <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] font-medium text-sidebar-foreground/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-lime)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-lime)_18%,transparent)]" />
+              FinOps ativo
+            </div>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-1 py-2">
-        {NAVIGATION_SECTIONS.map((section) => (
-          <Section key={section.label} label={section.label} items={section.items} />
-        ))}
+      <SidebarContent className="sidebar-scrollarea gap-0 px-1 pb-3 pt-1">
+        <nav aria-label="Navegação principal" className="flex flex-col gap-1">
+          {NAVIGATION_SECTIONS.map((section) => (
+            <Section key={section.label} label={section.label} items={section.items} />
+          ))}
+        </nav>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3 group-data-[collapsible=icon]:hidden">
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-3">
-          <div className="flex items-center gap-2 text-[color:var(--color-gold)]">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Próxima decisão</span>
+      <SidebarFooter className="p-3 pt-2 group-data-[collapsible=icon]:hidden">
+        <div className="sidebar-decision-card relative overflow-hidden rounded-2xl border border-sidebar-border/80 p-3.5">
+          <div className="relative flex items-center gap-2 text-sidebar-accent-foreground">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[color:var(--color-lime)] text-[color:var(--color-lime-foreground)] shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/50">
+                Próxima decisão
+              </span>
+              <span className="mt-0.5 block text-[11px] font-semibold text-sidebar-foreground">Fechamento do mês</span>
+            </div>
           </div>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-            Revise projeções, custos sem alocação e faturas pendentes antes do fechamento do mês.
+          <p className="relative mt-2.5 text-[10px] leading-relaxed text-sidebar-foreground/60">
+            Revise projeções, custos sem alocação e faturas pendentes.
           </p>
         </div>
       </SidebarFooter>
