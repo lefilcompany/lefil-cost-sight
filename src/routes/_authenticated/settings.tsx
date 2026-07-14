@@ -251,6 +251,9 @@ function SettingsPage() {
                 <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
                   Atualizada em {rateUpdatedAt ? fmtDateTime(rateUpdatedAt) : "—"}
                 </div>
+                <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Fonte: <span className="text-foreground/80">{sourceLabel}</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
