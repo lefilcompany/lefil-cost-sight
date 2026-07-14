@@ -55,11 +55,11 @@ function PendingPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/auth", search: { next: "" } });
   };
 
   useEffect(() => {
-    if (state.kind === "no-session") navigate({ to: "/auth" });
+    if (state.kind === "no-session") navigate({ to: "/auth", search: { next: "" } });
   }, [state.kind, navigate]);
 
   const isBlocked = state.kind === "blocked";
