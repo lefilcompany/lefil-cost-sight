@@ -434,9 +434,13 @@ function pickNumber(o: any, keys: string[]): number | null {
 // -----------------------------
 // Sync — chamado pelo botão e pelo cron
 // -----------------------------
+export const MONITOR_NEWS_PERIODS = ["24h", "7d", "30d", "current_month", "90d", "all"] as const;
+export type MonitorNewsPeriod = (typeof MONITOR_NEWS_PERIODS)[number];
+
 type SyncMode =
   | { kind: "existing_only" }
   | { kind: "selected"; externalIds: string[] };
+
 
 export async function debugMonitorNewsTools() {
   const client = await connectMcp();
@@ -535,7 +539,7 @@ export async function listWorkspacesFromMcp() {
 }
 
 
-async function syncCore(mode: SyncMode, triggeredByUser?: string) {
+async function syncCore(mode: SyncMode, triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: logRow } = await supabaseAdmin
@@ -543,11 +547,12 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
     .insert({
       started_at: new Date().toISOString(),
       status: "started",
-      metadata: { job: "monitor-news", mode: mode.kind, triggered_by: triggeredByUser ?? "cron" },
+      metadata: { job: "monitor-news", mode: mode.kind, period, triggered_by: triggeredByUser ?? "cron" },
     })
     .select()
     .single();
   const logId = logRow?.id;
+
   const startedMs = Date.now();
 
   async function finalize(patch: Record<string, any>) {
@@ -587,10 +592,9 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
     });
 
     // 2) Custos (tool oficial: costs_list — retorna todos os workspaces do usuário)
-    // Period "current_month" = desde o dia 1 do mês atual.
     const costsByWs = new Map<string, any>();
     try {
-      const costsRes = await client.callTool("costs_list", { period: "current_month" });
+      const costsRes = await client.callTool("costs_list", { period });
       const costsPayload = extractJson(costsRes);
       const costsRows: any[] = Array.isArray(costsPayload?.workspaces)
         ? costsPayload.workspaces
@@ -604,6 +608,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
     } catch (e) {
       // costs_list falhou — cai no fallback per-workspace via costs_get
     }
+
 
     const { data: rateRow } = await supabaseAdmin
       .from("system_settings")
@@ -696,8 +701,9 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
         try {
           const u = await client.callTool("costs_get", {
             workspace_id: externalId,
-            period: "current_month",
+            period,
           });
+
           usage = extractJson(u);
         } catch (e: any) {
           perWorkspace.push({
@@ -746,7 +752,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
         metadata: {
           workspace_id: externalId,
           workspace_name: wsName,
-          period: "current_month",
+          period,
           credits_used: creditsUsed,
           credits_included: creditsIncluded,
           credits_remaining: creditsRemaining,
@@ -817,6 +823,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       metadata: {
         job: "monitor-news",
         mode: mode.kind,
+        period,
         picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
         clients_upserted: clientsUpserted,
         usage_rows: usageRows,
@@ -828,6 +835,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       ok: true,
       clients: clientsUpserted,
       usage_rows: usageRows,
+      period,
       tools: ["workspaces_list", "costs_list", "costs_get"],
       picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
       per_workspace: perWorkspace,
@@ -839,10 +847,11 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
 }
 
 
-export async function syncMonitorNews(triggeredByUser?: string) {
-  return syncCore({ kind: "existing_only" }, triggeredByUser);
+export async function syncMonitorNews(triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
+  return syncCore({ kind: "existing_only" }, triggeredByUser, period);
 }
 
-export async function importMonitorNewsWorkspaces(externalIds: string[], triggeredByUser?: string) {
-  return syncCore({ kind: "selected", externalIds }, triggeredByUser);
+export async function importMonitorNewsWorkspaces(externalIds: string[], triggeredByUser?: string, period: MonitorNewsPeriod = "current_month") {
+  return syncCore({ kind: "selected", externalIds }, triggeredByUser, period);
 }
+

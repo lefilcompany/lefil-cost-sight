@@ -21,8 +21,10 @@ import {
   Newspaper,
   CheckCircle2,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -45,7 +47,18 @@ import {
   listMonitorNewsWorkspacesFn,
   importMonitorNewsWorkspacesFn,
   debugMonitorNewsToolsFn,
+  syncMonitorNewsFn,
 } from "@/lib/monitor-news.functions";
+
+const MN_PERIODS: { value: "24h" | "7d" | "30d" | "current_month" | "90d" | "all"; label: string }[] = [
+  { value: "24h", label: "Últimas 24h" },
+  { value: "7d", label: "Últimos 7 dias" },
+  { value: "30d", label: "Últimos 30 dias" },
+  { value: "current_month", label: "Mês atual" },
+  { value: "90d", label: "Últimos 90 dias" },
+  { value: "all", label: "Tudo" },
+];
+
 
 const STATUSES = ["active", "inactive"] as const;
 
@@ -279,6 +292,12 @@ function ClientsPage() {
       title="Clientes"
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          <MonitorNewsRefresh
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["clients"] });
+              qc.invalidateQueries({ queryKey: ["clients-costs"] });
+            }}
+          />
           <MonitorNewsImportButton
             onImported={() => {
               qc.invalidateQueries({ queryKey: ["clients"] });
@@ -301,6 +320,7 @@ function ClientsPage() {
           </Dialog>
         </div>
       }
+
     >
       <div className="space-y-6">
         {/* KPIs */}
@@ -855,4 +875,50 @@ function MonitorNewsImportButton({ onImported }: { onImported: () => void }) {
     </Dialog>
   );
 }
+
+function MonitorNewsRefresh({ onDone }: { onDone: () => void }) {
+  const [period, setPeriod] = useState<(typeof MN_PERIODS)[number]["value"]>("current_month");
+  const sync = useServerFn(syncMonitorNewsFn);
+  const mut = useMutation({
+    mutationFn: async () => (await sync({ data: { period } })) as any,
+    onSuccess: (res: any) => {
+      if (res?.ok === false) {
+        toast.error(res?.message || "Falha ao atualizar custos");
+        return;
+      }
+      const label = MN_PERIODS.find((p) => p.value === period)?.label ?? period;
+      toast.success(`Custos do Monitor News atualizados (${label}) · ${res?.clients ?? 0} workspace(s)`);
+      onDone();
+    },
+    onError: (e: any) => toast.error(e?.message || String(e)),
+  });
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 p-1 pl-2">
+      <Newspaper className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Período</span>
+      <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+        <SelectTrigger className="h-8 w-[160px] border-transparent bg-transparent text-sm shadow-none focus:ring-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {MN_PERIODS.map((p) => (
+            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 gap-1.5"
+        disabled={mut.isPending}
+        onClick={() => mut.mutate()}
+        title="Atualizar custos dos workspaces já importados"
+      >
+        {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        Atualizar custos
+      </Button>
+    </div>
+  );
+}
+
 
