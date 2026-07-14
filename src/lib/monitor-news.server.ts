@@ -701,8 +701,9 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
         try {
           const u = await client.callTool("costs_get", {
             workspace_id: externalId,
-            period: "current_month",
+            period,
           });
+
           usage = extractJson(u);
         } catch (e: any) {
           perWorkspace.push({
