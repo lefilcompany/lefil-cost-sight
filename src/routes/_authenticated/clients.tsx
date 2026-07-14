@@ -47,7 +47,18 @@ import {
   listMonitorNewsWorkspacesFn,
   importMonitorNewsWorkspacesFn,
   debugMonitorNewsToolsFn,
+  syncMonitorNewsFn,
 } from "@/lib/monitor-news.functions";
+
+const MN_PERIODS: { value: "24h" | "7d" | "30d" | "current_month" | "90d" | "all"; label: string }[] = [
+  { value: "24h", label: "Últimas 24h" },
+  { value: "7d", label: "Últimos 7 dias" },
+  { value: "30d", label: "Últimos 30 dias" },
+  { value: "current_month", label: "Mês atual" },
+  { value: "90d", label: "Últimos 90 dias" },
+  { value: "all", label: "Tudo" },
+];
+
 
 const STATUSES = ["active", "inactive"] as const;
 
