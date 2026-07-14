@@ -42,13 +42,22 @@ export const getMonitorNewsStatus = createServerFn({ method: "GET" })
     };
   });
 
+const PERIODS = ["24h", "7d", "30d", "current_month", "90d", "all"] as const;
+type Period = (typeof PERIODS)[number];
+
 export const syncMonitorNewsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((data: { period?: Period } | undefined) => {
+    const p = data?.period;
+    if (p && !PERIODS.includes(p)) throw new Error("Período inválido.");
+    return { period: (p ?? "current_month") as Period };
+  })
+  .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { syncMonitorNews } = await import("./monitor-news.server");
-    return syncMonitorNews(context.userId);
+    return syncMonitorNews(context.userId, data.period);
   });
+
 
 export const disconnectMonitorNewsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
