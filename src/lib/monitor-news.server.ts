@@ -434,9 +434,13 @@ function pickNumber(o: any, keys: string[]): number | null {
 // -----------------------------
 // Sync — chamado pelo botão e pelo cron
 // -----------------------------
+export const MONITOR_NEWS_PERIODS = ["24h", "7d", "30d", "current_month", "90d", "all"] as const;
+export type MonitorNewsPeriod = (typeof MONITOR_NEWS_PERIODS)[number];
+
 type SyncMode =
   | { kind: "existing_only" }
   | { kind: "selected"; externalIds: string[] };
+
 
 export async function debugMonitorNewsTools() {
   const client = await connectMcp();
