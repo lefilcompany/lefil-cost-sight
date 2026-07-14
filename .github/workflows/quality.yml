@@ -50,9 +50,11 @@ jobs:
             src/components/app-sidebar.tsx \
             src/lib/financial-metrics.ts \
             src/lib/navigation.ts \
+            src/routes/__root.tsx \
             src/routes/index.tsx \
             src/routes/_authenticated/invoices.tsx \
             src/routes/_authenticated/overview.tsx \
+            src/scrollbars.css \
             src/styles.css \
             tests/e2e/routes.e2e.mjs \
             tests/unit/financial-metrics.test.mjs \
@@ -70,9 +72,11 @@ jobs:
             src/components/app-sidebar.tsx
             src/lib/financial-metrics.ts
             src/lib/navigation.ts
+            src/routes/__root.tsx
             src/routes/index.tsx
             src/routes/_authenticated/invoices.tsx
             src/routes/_authenticated/overview.tsx
+            src/scrollbars.css
             src/styles.css
             tests/e2e/routes.e2e.mjs
             tests/unit/financial-metrics.test.mjs
@@ -96,6 +100,7 @@ jobs:
             src/components/app-sidebar.tsx \
             src/lib/financial-metrics.ts \
             src/lib/navigation.ts \
+            src/routes/__root.tsx \
             src/routes/index.tsx \
             src/routes/_authenticated/invoices.tsx \
             src/routes/_authenticated/overview.tsx \
