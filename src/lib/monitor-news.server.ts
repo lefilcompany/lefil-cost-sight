@@ -752,7 +752,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
         metadata: {
           workspace_id: externalId,
           workspace_name: wsName,
-          period: "current_month",
+          period,
           credits_used: creditsUsed,
           credits_included: creditsIncluded,
           credits_remaining: creditsRemaining,
