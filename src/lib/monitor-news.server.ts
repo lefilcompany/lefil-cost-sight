@@ -468,60 +468,21 @@ async function callToolTolerant(client: McpClient, name: string) {
 
 export async function listWorkspacesFromMcp() {
   const client = await connectMcp();
-  const tools = await client.listTools();
-  const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
-
-  const candidatePatterns = [
-    /workspace/i,
-    /tenant/i,
-    /organi[sz]ation/i,
-    /\bteam\b/i,
-    /\baccount\b/i,
-    /\bclient/i,
-    /customer/i,
-    /project/i,
-    /\bsite\b/i,
-  ];
-
-  const listy = tools.filter((t: any) => /list|all|index|search|get/i.test(String(t?.name ?? "")));
-  const pool = listy.length ? listy : tools;
-
-  let workspacesTool: any = null;
-  for (const p of candidatePatterns) {
-    workspacesTool =
-      pool.find((t: any) => p.test(String(t?.name ?? ""))) ||
-      pool.find((t: any) => p.test(String(t?.description ?? "")));
-    if (workspacesTool) break;
-  }
-
-  if (!workspacesTool) {
-    return {
-      ok: false as const,
-      message:
-        "Nenhuma tool de workspaces reconhecida no MCP do Monitor News. Tools disponíveis: " +
-        toolNames.join(", "),
-      tools: toolNames,
-      tool_details: tools.map((t: any) => ({ name: t?.name, description: t?.description })),
-      workspaces: [],
-    };
-  }
 
   let wsRes: any;
-  let usedArgs: any = {};
   try {
-    const r = await callToolTolerant(client, workspacesTool.name);
-    wsRes = r.result;
-    usedArgs = r.args;
+    wsRes = await client.callTool("workspaces_list", { active: true });
   } catch (e: any) {
     return {
       ok: false as const,
-      message: `Falha ao chamar ${workspacesTool.name}: ${e?.message ?? e}`,
-      tools: toolNames,
+      message: `Falha ao chamar workspaces_list: ${e?.message ?? e}`,
+      tools: [] as string[],
       workspaces: [],
     };
   }
 
-  const raw = coerceList(extractJson(wsRes));
+  const payload = extractJson(wsRes);
+  const raw = Array.isArray(payload?.workspaces) ? payload.workspaces : coerceList(payload);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: existing } = await supabaseAdmin
@@ -529,7 +490,8 @@ export async function listWorkspacesFromMcp() {
     .select("id, external_id, name")
     .eq("external_source", "monitor_news");
   const existingMap = new Map<string, { id: string; name: string }>();
-  for (const c of existing ?? []) if (c.external_id) existingMap.set(String(c.external_id), { id: c.id, name: c.name });
+  for (const c of existing ?? [])
+    if (c.external_id) existingMap.set(String(c.external_id), { id: c.id, name: c.name });
 
   const workspaces = raw
     .map((w: any) => {
@@ -557,22 +519,21 @@ export async function listWorkspacesFromMcp() {
     return {
       ok: false as const,
       message:
-        `A tool "${workspacesTool.name}" respondeu, mas não foi possível extrair workspaces da resposta. ` +
-        `Amostra: ${JSON.stringify(extractJson(wsRes) ?? wsRes).slice(0, 500)}`,
-      tools: toolNames,
-      workspace_tool: workspacesTool.name,
-      used_args: usedArgs,
+        `workspaces_list respondeu, mas não foi possível extrair workspaces. Amostra: ${JSON.stringify(payload ?? wsRes).slice(0, 500)}`,
+      tools: ["workspaces_list"],
+      workspace_tool: "workspaces_list",
       workspaces: [],
     };
   }
 
   return {
     ok: true as const,
-    tools: toolNames,
-    workspace_tool: workspacesTool.name,
+    tools: ["workspaces_list"],
+    workspace_tool: "workspaces_list",
     workspaces,
   };
 }
+
 
 async function syncCore(mode: SyncMode, triggeredByUser?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
