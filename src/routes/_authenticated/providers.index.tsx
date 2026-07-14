@@ -361,7 +361,7 @@ function setDeepKey(obj: Record<string, any>, path: string, value: any) {
 
 function ProvidersPage() {
   const qc = useQueryClient();
-  const navigate = useNavigate({ from: "/providers" });
+  const navigate = useNavigate({ from: "/providers/" });
   const search = Route.useSearch();
 
   const { data: providers = [], isLoading } = useQuery({
