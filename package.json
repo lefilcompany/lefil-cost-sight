@@ -9,6 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test --experimental-strip-types tests/unit/*.test.mjs",
+    "test:e2e": "node --test tests/e2e/*.e2e.mjs",
+    "quality": "npm run lint && npm run typecheck && npm run test:unit && npm run build && npm run test:e2e",
     "format": "prettier --write ."
   },
   "dependencies": {

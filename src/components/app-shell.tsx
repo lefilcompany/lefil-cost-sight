@@ -1,23 +1,28 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Moon, Sun, LogOut, Search, ChevronRight, Bell } from "lucide-react";
-import { useRouterState, Link } from "@tanstack/react-router";
+import { Bell, ChevronRight, LogOut, Moon, Search, Sun } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
+import { getNavigationLabel } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { GeminiAssistant } from "@/components/gemini-assistant";
 
-const CRUMBS: Record<string, string> = {
-  dashboard: "Painel geral",
-  financial: "Financeiro",
-  platforms: "Plataformas",
-  providers: "Fornecedores",
+const SEGMENT_LABELS: Record<string, string> = {
+  overview: "Visão geral",
+  dashboard: "Visão geral",
+  financial: "Visão geral",
+  platforms: "Centros de custo",
+  providers: "Fornecedores e integrações",
   clients: "Clientes",
-  costs: "Custos",
-  syncs: "Sincronizações",
+  costs: "Lançamentos",
+  billing: "Consumo e planos",
+  invoices: "Faturas",
+  syncs: "Saúde dos dados",
   alerts: "Alertas",
+  users: "Equipe e acessos",
   settings: "Configurações",
 };
 
@@ -33,9 +38,9 @@ export function AppShell({
   actions?: ReactNode;
 }) {
   const { theme, toggle } = useTheme();
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const [email, setEmail] = useState<string>("");
-  const [openAlerts, setOpenAlerts] = useState<number>(0);
+  const pathname = useRouterState({ select: (router) => router.location.pathname });
+  const [email, setEmail] = useState("");
+  const [openAlerts, setOpenAlerts] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
@@ -50,18 +55,21 @@ export function AppShell({
         .eq("status", "open");
       if (!cancelled) setOpenAlerts(count ?? 0);
     };
-    load();
-    const ch = supabase
+
+    void load();
+    const channel = supabase
       .channel("app-shell-alerts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "alert_events" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "alert_events" }, () => void load())
       .subscribe();
+
     return () => {
       cancelled = true;
-      supabase.removeChannel(ch);
+      supabase.removeChannel(channel);
     };
   }, []);
 
   const segments = pathname.split("/").filter(Boolean);
+  const currentNavigationLabel = getNavigationLabel(pathname);
 
   return (
     <SidebarProvider>
@@ -71,16 +79,21 @@ export function AppShell({
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl">
             <SidebarTrigger className="h-8 w-8" />
             <nav className="hidden items-center gap-1.5 text-[12px] text-muted-foreground md:flex">
-              <Link to="/dashboard" className="hover:text-foreground">Quiwi</Link>
-              {segments.map((seg, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  <ChevronRight className="h-3 w-3 opacity-50" />
-                  <span className={i === segments.length - 1 ? "font-medium text-foreground" : ""}>
-                    {CRUMBS[seg] ?? seg}
+              <Link to="/overview" className="hover:text-foreground">Quiwi</Link>
+              {segments.map((segment, index) => {
+                const isLast = index === segments.length - 1;
+                const label = isLast && currentNavigationLabel
+                  ? currentNavigationLabel
+                  : SEGMENT_LABELS[segment] ?? segment;
+                return (
+                  <span key={`${segment}-${index}`} className="flex items-center gap-1.5">
+                    <ChevronRight className="h-3 w-3 opacity-50" />
+                    <span className={isLast ? "font-medium text-foreground" : ""}>{label}</span>
                   </span>
-                </span>
-              ))}
+                );
+              })}
             </nav>
+
             <div className="ml-auto flex items-center gap-2">
               <div className="hidden items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground md:flex">
                 <Search className="h-3.5 w-3.5" />
@@ -108,7 +121,13 @@ export function AppShell({
                 </div>
                 <span className="max-w-[140px] truncate text-[11px] text-muted-foreground">{email || "usuário"}</span>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => supabase.auth.signOut()} aria-label="Sair">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => supabase.auth.signOut()}
+                aria-label="Sair"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

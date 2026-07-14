@@ -1,0 +1,103 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - agent/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, lint and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test
+      VITE_SUPABASE_PROJECT_ID: example
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test
+      SUPABASE_PROJECT_ID: example
+      SUPABASE_SERVICE_ROLE_KEY: sb_secret_ci_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            .github/workflows/quality.yml \
+            package.json \
+            src/components/app-shell.tsx \
+            src/components/app-sidebar.tsx \
+            src/lib/financial-metrics.ts \
+            src/lib/navigation.ts \
+            src/routes/index.tsx \
+            src/routes/_authenticated/invoices.tsx \
+            src/routes/_authenticated/overview.tsx \
+            tests/e2e/routes.e2e.mjs \
+            tests/unit/financial-metrics.test.mjs \
+            tests/unit/navigation.test.mjs
+
+      - name: Upload formatted changed files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-changed-files
+          path: |
+            .github/workflows/quality.yml
+            package.json
+            src/components/app-shell.tsx
+            src/components/app-sidebar.tsx
+            src/lib/financial-metrics.ts
+            src/lib/navigation.ts
+            src/routes/index.tsx
+            src/routes/_authenticated/invoices.tsx
+            src/routes/_authenticated/overview.tsx
+            tests/e2e/routes.e2e.mjs
+            tests/unit/financial-metrics.test.mjs
+            tests/unit/navigation.test.mjs
+          retention-days: 3
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Build and generate routes
+        run: npm run build
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint changed source files
+        run: |
+          npx eslint \
+            src/components/app-shell.tsx \
+            src/components/app-sidebar.tsx \
+            src/lib/financial-metrics.ts \
+            src/lib/navigation.ts \
+            src/routes/index.tsx \
+            src/routes/_authenticated/invoices.tsx \
+            src/routes/_authenticated/overview.tsx \
+            tests/e2e/routes.e2e.mjs \
+            tests/unit/financial-metrics.test.mjs \
+            tests/unit/navigation.test.mjs
+
+      - name: E2E route smoke tests
+        run: npm run test:e2e
