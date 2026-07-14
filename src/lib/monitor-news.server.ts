@@ -468,60 +468,21 @@ async function callToolTolerant(client: McpClient, name: string) {
 
 export async function listWorkspacesFromMcp() {
   const client = await connectMcp();
-  const tools = await client.listTools();
-  const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
-
-  const candidatePatterns = [
-    /workspace/i,
-    /tenant/i,
-    /organi[sz]ation/i,
-    /\bteam\b/i,
-    /\baccount\b/i,
-    /\bclient/i,
-    /customer/i,
-    /project/i,
-    /\bsite\b/i,
-  ];
-
-  const listy = tools.filter((t: any) => /list|all|index|search|get/i.test(String(t?.name ?? "")));
-  const pool = listy.length ? listy : tools;
-
-  let workspacesTool: any = null;
-  for (const p of candidatePatterns) {
-    workspacesTool =
-      pool.find((t: any) => p.test(String(t?.name ?? ""))) ||
-      pool.find((t: any) => p.test(String(t?.description ?? "")));
-    if (workspacesTool) break;
-  }
-
-  if (!workspacesTool) {
-    return {
-      ok: false as const,
-      message:
-        "Nenhuma tool de workspaces reconhecida no MCP do Monitor News. Tools disponíveis: " +
-        toolNames.join(", "),
-      tools: toolNames,
-      tool_details: tools.map((t: any) => ({ name: t?.name, description: t?.description })),
-      workspaces: [],
-    };
-  }
 
   let wsRes: any;
-  let usedArgs: any = {};
   try {
-    const r = await callToolTolerant(client, workspacesTool.name);
-    wsRes = r.result;
-    usedArgs = r.args;
+    wsRes = await client.callTool("workspaces_list", { active: true });
   } catch (e: any) {
     return {
       ok: false as const,
-      message: `Falha ao chamar ${workspacesTool.name}: ${e?.message ?? e}`,
-      tools: toolNames,
+      message: `Falha ao chamar workspaces_list: ${e?.message ?? e}`,
+      tools: [] as string[],
       workspaces: [],
     };
   }
 
-  const raw = coerceList(extractJson(wsRes));
+  const payload = extractJson(wsRes);
+  const raw = Array.isArray(payload?.workspaces) ? payload.workspaces : coerceList(payload);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: existing } = await supabaseAdmin
@@ -529,7 +490,8 @@ export async function listWorkspacesFromMcp() {
     .select("id, external_id, name")
     .eq("external_source", "monitor_news");
   const existingMap = new Map<string, { id: string; name: string }>();
-  for (const c of existing ?? []) if (c.external_id) existingMap.set(String(c.external_id), { id: c.id, name: c.name });
+  for (const c of existing ?? [])
+    if (c.external_id) existingMap.set(String(c.external_id), { id: c.id, name: c.name });
 
   const workspaces = raw
     .map((w: any) => {
@@ -557,22 +519,21 @@ export async function listWorkspacesFromMcp() {
     return {
       ok: false as const,
       message:
-        `A tool "${workspacesTool.name}" respondeu, mas não foi possível extrair workspaces da resposta. ` +
-        `Amostra: ${JSON.stringify(extractJson(wsRes) ?? wsRes).slice(0, 500)}`,
-      tools: toolNames,
-      workspace_tool: workspacesTool.name,
-      used_args: usedArgs,
+        `workspaces_list respondeu, mas não foi possível extrair workspaces. Amostra: ${JSON.stringify(payload ?? wsRes).slice(0, 500)}`,
+      tools: ["workspaces_list"],
+      workspace_tool: "workspaces_list",
       workspaces: [],
     };
   }
 
   return {
     ok: true as const,
-    tools: toolNames,
-    workspace_tool: workspacesTool.name,
+    tools: ["workspaces_list"],
+    workspace_tool: "workspaces_list",
     workspaces,
   };
 }
+
 
 async function syncCore(mode: SyncMode, triggeredByUser?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -603,31 +564,13 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
 
   try {
     const client = await connectMcp();
-    const tools = await client.listTools();
-    const toolNames = tools.map((t: any) => t?.name).filter(Boolean);
 
-    const workspacesTool = pickTool(
-      tools,
-      [/workspace|tenant|team|account|organization|org/i],
-      [/list/i, /all/i],
-    );
-    if (!workspacesTool) {
-      await finalize({
-        status: "error",
-        error_message: "Nenhuma tool de workspaces encontrada",
-        metadata: { job: "monitor-news", tools: toolNames },
-      });
-      return { ok: false, message: "Nenhuma tool de workspaces disponível.", tools: toolNames };
-    }
-
-    const usageTool = pickTool(
-      tools,
-      [/credit|usage|billing|cost|balance|consumption/i],
-      [/workspace|tenant|team/i, /get|list|current/i],
-    );
-
-    const wsRes = await client.callTool(workspacesTool.name, {});
-    const workspaces = coerceList(extractJson(wsRes));
+    // 1) Workspaces (tool oficial: workspaces_list)
+    const wsRes = await client.callTool("workspaces_list", { active: true });
+    const wsPayload = extractJson(wsRes);
+    const workspaces: any[] = Array.isArray(wsPayload?.workspaces)
+      ? wsPayload.workspaces
+      : coerceList(wsPayload);
 
     const { data: existingClients } = await supabaseAdmin
       .from("clients")
@@ -642,6 +585,25 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       if (selectedSet) return selectedSet.has(id);
       return existingIds.has(id);
     });
+
+    // 2) Custos (tool oficial: costs_list — retorna todos os workspaces do usuário)
+    // Period "current_month" = desde o dia 1 do mês atual.
+    const costsByWs = new Map<string, any>();
+    try {
+      const costsRes = await client.callTool("costs_list", { period: "current_month" });
+      const costsPayload = extractJson(costsRes);
+      const costsRows: any[] = Array.isArray(costsPayload?.workspaces)
+        ? costsPayload.workspaces
+        : Array.isArray(costsPayload?.items)
+          ? costsPayload.items
+          : coerceList(costsPayload);
+      for (const c of costsRows) {
+        const id = pickId(c) || String(c?.workspace_id ?? "");
+        if (id) costsByWs.set(id, c);
+      }
+    } catch (e) {
+      // costs_list falhou — cai no fallback per-workspace via costs_get
+    }
 
     const { data: rateRow } = await supabaseAdmin
       .from("system_settings")
@@ -728,36 +690,38 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       }
       clientsUpserted++;
 
-      if (!usageTool) continue;
-      let usage: any = null;
-      const attempts: Record<string, any>[] = [
-        { workspace_id: externalId },
-        { workspaceId: externalId },
-        { workspace: externalId },
-        { id: externalId },
-        { tenant_id: externalId },
-      ];
-      let lastErr: any;
-      for (const args of attempts) {
+      // Obtém uso: primeiro do costs_list agregado, senão fallback costs_get
+      let usage: any = costsByWs.get(externalId) ?? null;
+      if (!usage) {
         try {
-          const u = await client.callTool(usageTool.name, args);
+          const u = await client.callTool("costs_get", {
+            workspace_id: externalId,
+            period: "current_month",
+          });
           usage = extractJson(u);
-          if (usage) break;
-        } catch (e) {
-          lastErr = e;
+        } catch (e: any) {
+          perWorkspace.push({
+            workspace: wsName,
+            external_id: externalId,
+            error: String(e?.message ?? e),
+          });
+          continue;
         }
       }
       if (!usage) {
-        perWorkspace.push({ workspace: wsName, external_id: externalId, error: String(lastErr?.message ?? "sem uso") });
+        perWorkspace.push({ workspace: wsName, external_id: externalId, error: "sem uso" });
         continue;
       }
 
-      const creditsUsed = pickNumber(usage, ["credits_used", "used_credits", "used", "consumption", "credits"]);
-      const creditsIncluded = pickNumber(usage, ["credits_included", "included_credits", "quota", "plan_credits", "limit"]);
-      const creditsRemaining = pickNumber(usage, ["credits_remaining", "remaining_credits", "remaining", "balance"]);
-      const costUsd = pickNumber(usage, ["cost_usd", "cost", "amount_usd", "total_usd", "usd"]) ?? 0;
-
-      const costBrl = Number((costUsd * usdRate).toFixed(2));
+      // Campos oficiais do Monitor News: credits_used, cost_usd, cost_brl (pode ser null),
+      // credits_included / credits_remaining (sempre null — cobrança é por conta, não workspace).
+      const creditsUsed = pickNumber(usage, ["credits_used"]);
+      const creditsIncluded = pickNumber(usage, ["credits_included"]);
+      const creditsRemaining = pickNumber(usage, ["credits_remaining"]);
+      const costUsd = pickNumber(usage, ["cost_usd"]) ?? 0;
+      const costBrlRaw = pickNumber(usage, ["cost_brl"]);
+      const costBrl =
+        costBrlRaw != null ? costBrlRaw : Number((costUsd * usdRate).toFixed(2));
 
       const { data: existingEntry } = await supabaseAdmin
         .from("cost_entries")
@@ -782,6 +746,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
         metadata: {
           workspace_id: externalId,
           workspace_name: wsName,
+          period: "current_month",
           credits_used: creditsUsed,
           credits_included: creditsIncluded,
           credits_remaining: creditsRemaining,
@@ -827,7 +792,10 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
         synced_at: new Date().toISOString(),
       };
       if (existingUsage) {
-        await supabaseAdmin.from("provider_usage_daily").update(usagePayload).eq("id", existingUsage.id);
+        await supabaseAdmin
+          .from("provider_usage_daily")
+          .update(usagePayload)
+          .eq("id", existingUsage.id);
       } else {
         await supabaseAdmin.from("provider_usage_daily").insert(usagePayload);
       }
@@ -839,6 +807,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
         credits_used: creditsUsed,
         credits_remaining: creditsRemaining,
         cost_usd: costUsd,
+        cost_brl: costBrl,
       });
     }
 
@@ -848,11 +817,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       metadata: {
         job: "monitor-news",
         mode: mode.kind,
-        tools: toolNames,
-        picked: {
-          workspaces_tool: workspacesTool?.name,
-          usage_tool: usageTool?.name,
-        },
+        picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
         clients_upserted: clientsUpserted,
         usage_rows: usageRows,
         per_workspace: perWorkspace.slice(0, 50),
@@ -863,11 +828,8 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
       ok: true,
       clients: clientsUpserted,
       usage_rows: usageRows,
-      tools: toolNames,
-      picked: {
-        workspaces_tool: workspacesTool?.name,
-        usage_tool: usageTool?.name ?? null,
-      },
+      tools: ["workspaces_list", "costs_list", "costs_get"],
+      picked: { workspaces_tool: "workspaces_list", costs_tool: "costs_list" },
       per_workspace: perWorkspace,
     };
   } catch (err: any) {
@@ -875,6 +837,7 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string) {
     return { ok: false, message: String(err?.message ?? err) };
   }
 }
+
 
 export async function syncMonitorNews(triggeredByUser?: string) {
   return syncCore({ kind: "existing_only" }, triggeredByUser);
