@@ -100,6 +100,17 @@ function SettingsPage() {
   const rateSetting = useMemo(() => settings.find((s) => s.key === "usd_brl_rate"), [settings]);
   const rateValue = (rateSetting?.value as any)?.rate;
   const rateUpdatedAt = (rateSetting?.value as any)?.updated_at ?? rateSetting?.updated_at;
+  const rateSource = (rateSetting?.value as any)?.source as string | undefined;
+  const rateManual = (rateSetting?.value as any)?.manual === true;
+  const sourceLabel = rateManual
+    ? "Manual (fixo pelo admin)"
+    : rateSource === "awesomeapi"
+      ? "AwesomeAPI (tempo real)"
+      : rateSource === "bcb"
+        ? "Banco Central (fallback)"
+        : rateSource === "fallback"
+          ? "Último valor conhecido"
+          : "—";
 
   const [rate, setRate] = useState("");
   useEffect(() => {
@@ -128,7 +139,7 @@ function SettingsPage() {
       if (!Number.isFinite(n)) throw new Error("Cotação deve ser um número");
       if (n <= 0) throw new Error("Cotação deve ser maior que zero");
       if (n > 1000) throw new Error("Cotação parece inválida (> 1000)");
-      const value = { rate: n, updated_at: new Date().toISOString(), manual: true };
+      const value = { rate: n, updated_at: new Date().toISOString(), manual: true, source: "manual" };
       const { error } = await supabase.from("system_settings").upsert({ key: "usd_brl_rate", value });
       if (error) throw error;
     },
@@ -142,7 +153,8 @@ function SettingsPage() {
   const fetchAuto = useMutation({
     mutationFn: async () => refreshRate({}),
     onSuccess: (res: any) => {
-      toast.success(`Cotação atualizada: ${res.rate}`);
+      const src = res?.source === "awesomeapi" ? "AwesomeAPI" : res?.source === "bcb" ? "Banco Central" : res?.source ?? "";
+      toast.success(`Cotação atualizada: R$ ${Number(res.rate).toFixed(4)} · ${src}`);
       qc.invalidateQueries({ queryKey: ["system_settings"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -238,6 +250,9 @@ function SettingsPage() {
                 </div>
                 <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
                   Atualizada em {rateUpdatedAt ? fmtDateTime(rateUpdatedAt) : "—"}
+                </div>
+                <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Fonte: <span className="text-foreground/80">{sourceLabel}</span>
                 </div>
               </div>
               <div className="space-y-2">
