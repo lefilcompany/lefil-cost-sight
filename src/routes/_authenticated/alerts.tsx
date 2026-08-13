@@ -557,6 +557,19 @@ function NotificationSettingsDialog() {
     return { sample, ruleUrl, email: buildEmailContent(sample, ruleUrl) };
   }, [previewMetric]);
 
+  const processQueue = useServerFn(processAlertNotificationQueue);
+  const queueMut = useMutation({
+    mutationFn: async () =>
+      (await processQueue()) as { processed: number; sent: number; pending: number; failed: number },
+    onSuccess: (res) => {
+      toast.success(
+        `Fila processada — ${res.sent} enviado(s), ${res.pending} aguardando retry, ${res.failed} falha(s)`,
+      );
+      qcSettings.invalidateQueries({ queryKey: ["alert-deliveries"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao processar fila"),
+  });
+
   const testMut = useMutation({
     mutationFn: async () =>
       (await test()) as { queued: number; sent: number; pending: number; failed: number },
