@@ -110,8 +110,17 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
 
 
   const run = useMutation({
-    mutationFn: () =>
-      runBackfill({ data: { connection_id: connectionId, period_start: start, period_end: end, purge } }),
+    mutationFn: () => {
+      if (runningJob) {
+        throw new Error(
+          "Já existe um backfill em execução nesta conexão para um período sobreposto. Aguarde a conclusão antes de tentar novamente.",
+        );
+      }
+      return runBackfill({
+        data: { connection_id: connectionId, period_start: start, period_end: end, purge },
+      });
+    },
+
     onSuccess: (res: any) => {
       const failed = (res?.steps ?? []).filter((s: any) => !s.ok).length;
       if (res?.status === "success") {
