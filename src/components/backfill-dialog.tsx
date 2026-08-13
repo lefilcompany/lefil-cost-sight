@@ -223,6 +223,18 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
             </span>
           </label>
 
+          <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+            <Checkbox checked={reconcile} onCheckedChange={(v) => setReconcile(Boolean(v))} className="mt-0.5" />
+            <span>
+              <span className="font-medium">Rodar reconciliação de custos ao concluir</span>
+              <span className="block text-xs text-muted-foreground">
+                Compara o custo estimado com faturas e snapshots confirmados nos meses do período e gera alertas quando a
+                divergência excede a tolerância configurada.
+              </span>
+            </span>
+          </label>
+
+
           {runningJob ? (
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
               <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
