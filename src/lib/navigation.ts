@@ -108,6 +108,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         description: "Credenciais de integração: criação, rotação, revogação e histórico.",
       },
       {
+        title: "Credenciais",
+        url: "/credentials",
+        icon: "PlugZap",
+        description: "Status de tokens e API keys por integração, com renovar, revogar e testar.",
+      },
+      {
         title: "Equipe e acessos",
         url: "/users",
         icon: "ShieldCheck",
