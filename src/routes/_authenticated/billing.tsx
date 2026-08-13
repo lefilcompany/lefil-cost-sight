@@ -494,12 +494,70 @@ function BillingPage() {
         <TabsContent value="invoices">
           <Card className="surface-elevated">
             <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   Faturas dos provedores (importadas via API ou cadastradas manualmente).
                 </p>
                 <ManualInvoiceDialog providers={providers} onSaved={() => qc.invalidateQueries({ queryKey: ["billing-invoices"] })} />
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="Buscar nº, fornecedor, origem..."
+                  value={invSearch}
+                  onChange={(e) => {
+                    setInvSearch(e.target.value);
+                    setInvPage(0);
+                  }}
+                  className="h-8 w-full sm:w-[240px] text-sm"
+                />
+                <Select
+                  value={invProvider}
+                  onValueChange={(v) => {
+                    setInvProvider(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[180px] text-sm"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os fornecedores</SelectItem>
+                    {providers.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={invStatus}
+                  onValueChange={(v) => {
+                    setInvStatus(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    {invStatusOptions.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={invMonth}
+                  onValueChange={(v) => {
+                    setInvMonth(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-sm"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os ciclos</SelectItem>
+                    {invMonthOptions.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="ml-auto text-xs text-muted-foreground">{filteredInvoices.length} fatura(s)</span>
+              </div>
+
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <Table>
                   <TableHeader>
