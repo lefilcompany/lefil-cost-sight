@@ -119,7 +119,7 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
         );
       }
       return runBackfill({
-        data: { connection_id: connectionId, period_start: start, period_end: end, purge },
+        data: { connection_id: connectionId, period_start: start, period_end: end, purge, reconcile },
       });
     },
 
@@ -132,10 +132,23 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
       } else {
         toast.warning(`Backfill finalizado com ${failed} etapa(s) com erro. Veja os logs abaixo.`);
       }
+      const rec = res?.reconciliation;
+      if (rec) {
+        if (rec.divergent > 0) {
+          toast.warning(
+            `Reconciliação: ${rec.divergent} mês(es) com divergência acima de ${rec.tolerance_pct}% · ${rec.created_events} alerta(s) gerado(s)`,
+          );
+        } else {
+          toast.success(`Reconciliação sem divergências acima de ${rec.tolerance_pct}%`);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["backfill-jobs", connectionId] });
       qc.invalidateQueries({ queryKey: ["conn-audit"] });
       qc.invalidateQueries({ queryKey: ["sync_logs"] });
+      qc.invalidateQueries({ queryKey: ["reconciliation"] });
+      qc.invalidateQueries({ queryKey: ["alert_events"] });
     },
+
     onError: (err: any) => toast.error(err?.message ?? "Falha ao executar o backfill"),
   });
 
