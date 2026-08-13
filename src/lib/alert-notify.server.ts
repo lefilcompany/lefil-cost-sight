@@ -36,7 +36,7 @@ export function ruleLink(ruleId: string): string {
   return `${baseUrl()}/alerts?rule=${encodeURIComponent(ruleId)}`;
 }
 
-function wants(channel: string, target: "slack" | "email"): boolean {
+export function wantsChannel(channel: string, target: "slack" | "email"): boolean {
   const c = (channel ?? "").toLowerCase();
   if (c === "all") return true;
   return c.includes(target);
@@ -46,9 +46,10 @@ export function slackConfigured(): boolean {
   return Boolean(process.env["SLACK_WEBHOOK_URL"]);
 }
 
-async function sendSlack(n: AlertNotification): Promise<"sent" | "skipped" | "failed"> {
+/** Uma tentativa de envio ao Slack. Nunca lança. */
+export async function attemptSlack(n: AlertNotification): Promise<{ ok: boolean; error?: string }> {
   const webhook = process.env["SLACK_WEBHOOK_URL"];
-  if (!webhook) return "skipped";
+  if (!webhook) return { ok: false, error: "SLACK_WEBHOOK_URL não configurado" };
 
   const payload = buildSlackPayload(n, ruleLink(n.ruleId));
 
@@ -59,17 +60,19 @@ async function sendSlack(n: AlertNotification): Promise<"sent" | "skipped" | "fa
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      console.error("[alert-notify] slack failed", res.status, await res.text().catch(() => ""));
-      return "failed";
+      const body = await res.text().catch(() => "");
+      console.error("[alert-notify] slack failed", res.status, body);
+      return { ok: false, error: `Slack HTTP ${res.status}: ${body.slice(0, 200)}` };
     }
-    return "sent";
+    return { ok: true };
   } catch (err: any) {
-    console.error("[alert-notify] slack error", err?.message ?? err);
-    return "failed";
+    const error = String(err?.message ?? err);
+    console.error("[alert-notify] slack error", error);
+    return { ok: false, error };
   }
 }
 
-async function recipients(): Promise<string[]> {
+export async function emailRecipients(): Promise<string[]> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("system_settings")
@@ -81,52 +84,64 @@ async function recipients(): Promise<string[]> {
   return [];
 }
 
-async function sendEmail(n: AlertNotification): Promise<"sent" | "skipped" | "failed"> {
-  const to = await recipients();
-  if (to.length === 0) return "skipped";
+/** Uma tentativa de envio de e-mail para um destinatário. Nunca lança. */
+export async function attemptEmail(
+  n: AlertNotification,
+  email: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!email || !email.includes("@")) return { ok: false, error: "destinatário inválido" };
 
   const { subject, body } = buildEmailContent(n, ruleLink(n.ruleId));
 
   try {
-    let ok = 0;
-    for (const email of to) {
-      const res = await fetch(`${baseUrl()}/lovable/email/transactional/send`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? ""}`,
+    const res = await fetch(`${baseUrl()}/lovable/email/transactional/send`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? ""}`,
+      },
+      body: JSON.stringify({
+        templateName: "alert-notification",
+        recipientEmail: email,
+        idempotencyKey: `alert-${n.ruleId}-${n.periodStart ?? ""}-${n.periodEnd ?? ""}-${email}`,
+        templateData: {
+          subject,
+          title: n.title,
+          body,
+          ruleName: n.ruleName,
+          periodLabel: n.periodLabel,
+          ruleUrl: ruleLink(n.ruleId),
         },
-        body: JSON.stringify({
-          templateName: "alert-notification",
-          recipientEmail: email,
-          idempotencyKey: `alert-${n.ruleId}-${n.periodStart ?? ""}-${n.periodEnd ?? ""}-${email}`,
-          templateData: {
-            subject,
-            title: n.title,
-            body,
-            ruleName: n.ruleName,
-            periodLabel: n.periodLabel,
-            ruleUrl: ruleLink(n.ruleId),
-          },
-        }),
-      });
-      if (res.ok) ok++;
-      else console.error("[alert-notify] email failed", res.status, await res.text().catch(() => ""));
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[alert-notify] email failed", res.status, text);
+      return { ok: false, error: `E-mail HTTP ${res.status}: ${text.slice(0, 200)}` };
     }
-    return ok > 0 ? "sent" : "failed";
+    return { ok: true };
   } catch (err: any) {
-    console.error("[alert-notify] email error", err?.message ?? err);
-    return "failed";
+    const error = String(err?.message ?? err);
+    console.error("[alert-notify] email error", error);
+    return { ok: false, error };
   }
 }
 
-/** Dispara as notificações configuradas para o canal da regra. Nunca lança. */
-export async function notifyAlert(n: AlertNotification): Promise<{ slack: string; email: string }> {
-  const [slack, email] = await Promise.all([
-    wants(n.channel, "slack") ? sendSlack(n) : Promise.resolve("skipped" as const),
-    wants(n.channel, "email") ? sendEmail(n) : Promise.resolve("skipped" as const),
-  ]);
-  return { slack, email };
+/**
+ * Enfileira as notificações do canal da regra e tenta enviar imediatamente.
+ * Falhas ficam na fila com retry (ver notification-queue.server.ts). Nunca lança.
+ */
+export async function notifyAlert(
+  n: AlertNotification,
+  meta: { alertEventId?: string | null; organizationId?: string | null } = {},
+): Promise<{ queued: number; sent: number; pending: number; failed: number }> {
+  try {
+    const { enqueueAndDeliver } = await import("@/lib/notification-queue.server");
+    return await enqueueAndDeliver(n, meta);
+  } catch (err: any) {
+    console.error("[alert-notify] notifyAlert error", err?.message ?? err);
+    return { queued: 0, sent: 0, pending: 0, failed: 0 };
+  }
 }
 
 /** Rótulo legível do período afetado por métrica. */
