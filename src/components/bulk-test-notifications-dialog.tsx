@@ -91,7 +91,9 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
         if (!v) {
           setResults(null);
           setTerm("");
+          setTargets([]);
         }
+
       }}
     >
       <DialogTrigger asChild>
