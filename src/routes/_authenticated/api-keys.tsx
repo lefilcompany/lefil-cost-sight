@@ -287,10 +287,10 @@ function ApiKeysPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard title="Total" value={String(kpis.total)} />
-          <KpiCard title="Ativas" value={String(kpis.active)} tone="good" />
-          <KpiCard title="Expirando em 30d" value={String(kpis.expiring)} tone={kpis.expiring ? "warn" : "neutral"} />
-          <KpiCard title="Revogadas" value={String(kpis.revoked)} tone={kpis.revoked ? "bad" : "neutral"} />
+          <KpiCard label="Total" value={String(kpis.total)} />
+          <KpiCard label="Ativas" value={String(kpis.active)} tone="good" />
+          <KpiCard label="Expirando em 30d" value={String(kpis.expiring)} tone={kpis.expiring ? "warn" : "neutral"} />
+          <KpiCard label="Revogadas" value={String(kpis.revoked)} tone={kpis.revoked ? "bad" : "neutral"} />
         </div>
 
         <Card>
