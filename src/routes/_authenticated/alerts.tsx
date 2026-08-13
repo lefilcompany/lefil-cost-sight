@@ -526,7 +526,9 @@ function RuleRow({ rule }: { rule: AlertRule }) {
 }
 
 function NotificationSettingsDialog() {
+  const qcSettings = useQueryClient();
   const [open, setOpen] = useState(false);
+
   const [emails, setEmails] = useState("");
   const [previewMetric, setPreviewMetric] = useState("monthly_cost");
   const [previewTab, setPreviewTab] = useState("slack");
