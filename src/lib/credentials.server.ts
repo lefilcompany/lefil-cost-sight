@@ -217,7 +217,7 @@ async function pingProvider(providerName: string, secret: string, cfg: Record<st
     case "Google Cloud": {
       const { parseServiceAccount, getGcpAccessToken, GCP_SCOPES } = await import("./gcp-auth.server");
       const sa = parseServiceAccount(secret);
-      const token = await getGcpAccessToken(sa, [GCP_SCOPES.bigquery ?? "https://www.googleapis.com/auth/bigquery"]);
+      const token = await getGcpAccessToken(sa, [GCP_SCOPES.bigqueryReadonly]);
       return { ok: Boolean(token), detail: `Token OAuth emitido para ${sa.client_email}.` };
     }
     case "ElevenLabs": {
