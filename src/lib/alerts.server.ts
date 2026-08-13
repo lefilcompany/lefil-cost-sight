@@ -2,6 +2,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyAlert, periodLabelFor } from "@/lib/alert-notify.server";
 import { buildCostEntriesReport } from "@/lib/alert-report.server";
+import { dedupeKeyFor, ruleSilenceState, suppressAsDuplicate } from "@/lib/alert-suppression.server";
 
 
 type Alert = {
@@ -14,11 +15,16 @@ type Alert = {
   threshold: number;
   channel: string;
   enabled: boolean;
+  muted?: boolean | null;
+  snoozed_until?: string | null;
+  dedupe_window_minutes?: number | null;
 };
 
 type EvalResult = {
   evaluated: number;
   triggered: number;
+  silenced: number;
+  deduped: number;
   events: Array<{ alert_id: string; title: string; value: number }>;
 };
 
@@ -59,17 +65,6 @@ async function labelForScope(scope: Alert["scope"], scopeId: string | null): Pro
   return (data as any)?.name ?? scope;
 }
 
-async function hasRecentOpenEvent(alertId: string, hours = 24): Promise<boolean> {
-  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
-  const { count } = await supabaseAdmin
-    .from("alert_events")
-    .select("id", { count: "exact", head: true })
-    .eq("alert_id", alertId)
-    .neq("status", "resolved")
-    .gte("created_at", since);
-  return (count ?? 0) > 0;
-}
-
 export async function evaluateAlerts(): Promise<EvalResult> {
   const { data: alerts, error } = await supabaseAdmin
     .from("cost_alerts")
@@ -85,10 +80,22 @@ export async function evaluateAlerts(): Promise<EvalResult> {
 
   const events: EvalResult["events"] = [];
   let evaluated = 0;
+  let silenced = 0;
+  let deduped = 0;
 
   for (const a of (alerts ?? []) as Alert[]) {
     evaluated++;
     try {
+      const silence = ruleSilenceState(a);
+      if (silence.silenced) {
+        silenced++;
+        await supabaseAdmin
+          .from("cost_alerts")
+          .update({ last_evaluated_at: new Date().toISOString() })
+          .eq("id", a.id);
+        continue;
+      }
+
       let value = 0;
       let title = "";
       let message = "";
@@ -135,17 +142,21 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         }
         // um evento por plataforma stale (com dedupe por alert+24h já falha se existir, aqui usaremos scope_id)
         for (const s of stale) {
-          const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-          const { count } = await supabaseAdmin
-            .from("alert_events")
-            .select("id", { count: "exact", head: true })
-            .eq("alert_id", a.id)
-            .eq("scope_id", s.id)
-            .neq("status", "resolved")
-            .gte("created_at", since);
-          if ((count ?? 0) > 0) continue;
+          const staleKey = dedupeKeyFor({ ruleId: a.id, scope: "platform", scopeId: s.id, severity: "warning" });
+          const dup = await suppressAsDuplicate({
+            alertId: a.id,
+            dedupeKey: staleKey,
+            windowMinutes: a.dedupe_window_minutes,
+            metricValue: s.days,
+          });
+          if (dup.suppressed) {
+            deduped++;
+            continue;
+          }
           const { data: staleEvent } = await supabaseAdmin.from("alert_events").insert({
             alert_id: a.id,
+            dedupe_key: staleKey,
+            last_occurred_at: new Date().toISOString(),
             severity: "warning",
             title: `Sem sincronização há ${Math.floor(s.days)}d`,
             message: `Plataforma "${s.name}" não sincroniza há ${Math.floor(s.days)} dias.`,
@@ -180,12 +191,24 @@ export async function evaluateAlerts(): Promise<EvalResult> {
       await supabaseAdmin.from("cost_alerts").update({ last_evaluated_at: new Date().toISOString() }).eq("id", a.id);
 
       if (!compare(value, a.comparison, a.threshold)) continue;
-      if (await hasRecentOpenEvent(a.id)) continue;
 
       const scopeLabel = await labelForScope(a.scope, a.scope_id);
       const severity = a.metric === "variance_pct" && value >= Number(a.threshold) * 2 ? "critical" : "warning";
+      const dedupeKey = dedupeKeyFor({ ruleId: a.id, scope: a.scope, scopeId: a.scope_id, severity });
+      const duplicate = await suppressAsDuplicate({
+        alertId: a.id,
+        dedupeKey,
+        windowMinutes: a.dedupe_window_minutes,
+        metricValue: value,
+      });
+      if (duplicate.suppressed) {
+        deduped++;
+        continue;
+      }
       const { data: insertedEvent } = await supabaseAdmin.from("alert_events").insert({
         alert_id: a.id,
+        dedupe_key: dedupeKey,
+        last_occurred_at: new Date().toISOString(),
         severity,
         title: `${a.name} — ${scopeLabel}`,
         message,
@@ -234,5 +257,5 @@ export async function evaluateAlerts(): Promise<EvalResult> {
     }
   }
 
-  return { evaluated, triggered: events.length, events };
+  return { evaluated, triggered: events.length, silenced, deduped, events };
 }
