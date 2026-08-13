@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtBRL, fmtUSD, fmtNumber, fmtDate, fmtDateTime } from "@/lib/format";
 import { runProviderSync } from "@/lib/sync.functions";
+import { BackfillDialog } from "@/components/backfill-dialog";
 
 export const Route = createFileRoute("/_authenticated/connections/$id")({
   head: () => ({
@@ -272,10 +273,13 @@ function ConnectionAuditPage() {
               {planName ? ` · Plano ${planName}` : ""} · Último sync {fmtDateTime(conn?.last_sync_at)}
             </p>
           </div>
-          <Button onClick={() => sync.mutate()} disabled={sync.isPending} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${sync.isPending ? "animate-spin" : ""}`} />
-            Sincronizar agora
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <BackfillDialog connectionId={id} />
+            <Button onClick={() => sync.mutate()} disabled={sync.isPending} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${sync.isPending ? "animate-spin" : ""}`} />
+              Sincronizar agora
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

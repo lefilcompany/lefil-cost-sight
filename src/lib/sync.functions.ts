@@ -61,3 +61,19 @@ export const provisionConnection = createServerFn({ method: "POST" })
 
     return results;
   });
+
+// Backfill sob demanda: reprocessa custos de uma conexão em um período,
+// registrando andamento e logs em sync_jobs.
+export const runConnectionBackfillFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { connection_id: string; period_start: string; period_end: string; purge?: boolean }) => data)
+  .handler(async ({ data, context }) => {
+    const { runConnectionBackfill } = await import("./backfill.server");
+    return runConnectionBackfill({
+      connectionId: data.connection_id,
+      periodStart: data.period_start,
+      periodEnd: data.period_end,
+      purge: data.purge ?? true,
+      initiatedBy: context.userId,
+    });
+  });
