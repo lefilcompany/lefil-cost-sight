@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Check, Copy, Eye, History, KeyRound, Plus, RefreshCw, ShieldOff, Timer } from "lucide-react";
+import { Check, Copy, Eye, History, KeyRound, Plus, RefreshCw, ShieldOff, Target, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +32,7 @@ import {
   rotateIntegrationApiKey,
   runIntegrationApiKeyRotation,
   updateIntegrationApiKeyRotation,
+  updateIntegrationApiKeyScope,
 } from "@/lib/api-keys.functions";
 import { Switch } from "@/components/ui/switch";
 
@@ -82,7 +83,11 @@ type ApiKey = {
   rotation_count: number;
   next_rotation_at: string | null;
   pending_secret_at: string | null;
+  scope_provider_ids: string[] | null;
+  scope_platform_ids: string[] | null;
 };
+
+type ScopeOption = { id: string; name: string };
 
 const ACTION_LABELS: Record<string, string> = {
   "api_key.created": "Chave criada",
@@ -90,6 +95,7 @@ const ACTION_LABELS: Record<string, string> = {
   "api_key.revoked": "Chave revogada",
   "api_key.used": "Chave utilizada",
   "api_key.auto_rotated": "Rotação automática executada",
+  "api_key.scope_updated": "Escopo atualizado",
 };
 
 function isExpired(key: ApiKey) {
@@ -324,6 +330,156 @@ function RotationDialog({
   );
 }
 
+function useScopeOptions() {
+  return useQuery({
+    queryKey: ["api-key-scope-options"],
+    queryFn: async () => {
+      const [providers, platforms] = await Promise.all([
+        supabase.from("providers").select("id, name").order("name"),
+        supabase.from("platforms").select("id, name").order("name"),
+      ]);
+      if (providers.error) throw providers.error;
+      if (platforms.error) throw platforms.error;
+      return {
+        providers: (providers.data ?? []) as ScopeOption[],
+        platforms: (platforms.data ?? []) as ScopeOption[],
+      };
+    },
+    staleTime: 60_000,
+  });
+}
+
+function ScopePicker({
+  options,
+  selected,
+  onToggle,
+  emptyLabel,
+}: {
+  options: ScopeOption[];
+  selected: string[];
+  onToggle: (id: string, checked: boolean) => void;
+  emptyLabel: string;
+}) {
+  if (!options.length) {
+    return <p className="text-xs text-muted-foreground">{emptyLabel}</p>;
+  }
+  return (
+    <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+      {options.map((option) => (
+        <label key={option.id} className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={selected.includes(option.id)}
+            onCheckedChange={(checked) => onToggle(option.id, Boolean(checked))}
+          />
+          <span className="truncate">{option.name}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function ScopeDialog({
+  apiKey,
+  onClose,
+  onSaved,
+}: {
+  apiKey: ApiKey | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const optionsQuery = useScopeOptions();
+  const [providerIds, setProviderIds] = useState<string[]>([]);
+  const [platformIds, setPlatformIds] = useState<string[]>([]);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  if (apiKey && loadedFor !== apiKey.id) {
+    setLoadedFor(apiKey.id);
+    setProviderIds(apiKey.scope_provider_ids ?? []);
+    setPlatformIds(apiKey.scope_platform_ids ?? []);
+  }
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateIntegrationApiKeyScope({
+        data: { id: apiKey!.id, scopeProviderIds: providerIds, scopePlatformIds: platformIds },
+      }),
+    onSuccess: () => {
+      toast.success("Escopo atualizado");
+      onSaved();
+    },
+    onError: (error: Error) => toast.error(error.message || "Falha ao salvar escopo"),
+  });
+
+  const toggle = (setter: typeof setProviderIds) => (id: string, checked: boolean) =>
+    setter((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
+
+  return (
+    <Dialog open={Boolean(apiKey)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col">
+        <DialogHeader>
+          <DialogTitle>Escopo de acesso</DialogTitle>
+          <DialogDescription>
+            Limite quais fornecedores e plataformas esta chave pode consultar. Sem seleção, o acesso é
+            liberado para todos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          {optionsQuery.isLoading ? (
+            <LoadingState />
+          ) : (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Fornecedores</Label>
+                  {providerIds.length ? (
+                    <Button variant="ghost" size="sm" onClick={() => setProviderIds([])}>
+                      Liberar todos
+                    </Button>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">Todos</Badge>
+                  )}
+                </div>
+                <ScopePicker
+                  options={optionsQuery.data?.providers ?? []}
+                  selected={providerIds}
+                  onToggle={toggle(setProviderIds)}
+                  emptyLabel="Nenhum fornecedor cadastrado."
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Plataformas</Label>
+                  {platformIds.length ? (
+                    <Button variant="ghost" size="sm" onClick={() => setPlatformIds([])}>
+                      Liberar todas
+                    </Button>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">Todas</Badge>
+                  )}
+                </div>
+                <ScopePicker
+                  options={optionsQuery.data?.platforms ?? []}
+                  selected={platformIds}
+                  onToggle={toggle(setPlatformIds)}
+                  emptyLabel="Nenhuma plataforma cadastrada."
+                />
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={save.isPending || !apiKey} onClick={() => save.mutate()}>
+            {save.isPending ? "Salvando…" : "Salvar escopo"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ApiKeysPage() {
   const queryClient = useQueryClient();
   const [secret, setSecret] = useState<{ value: string; title: string } | null>(null);
@@ -332,11 +488,23 @@ function ApiKeysPage() {
   const [confirmRevoke, setConfirmRevoke] = useState<ApiKey | null>(null);
   const [confirmRotate, setConfirmRotate] = useState<ApiKey | null>(null);
   const [rotationKey, setRotationKey] = useState<ApiKey | null>(null);
+  const [scopeKey, setScopeKey] = useState<ApiKey | null>(null);
 
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState("production");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [permissions, setPermissions] = useState<string[]>(["costs:read", "billing:read"]);
+  const [scopeProviderIds, setScopeProviderIds] = useState<string[]>([]);
+  const [scopePlatformIds, setScopePlatformIds] = useState<string[]>([]);
+  const scopeOptions = useScopeOptions();
+  const providerNames = useMemo(
+    () => new Map((scopeOptions.data?.providers ?? []).map((item) => [item.id, item.name])),
+    [scopeOptions.data],
+  );
+  const platformNames = useMemo(
+    () => new Map((scopeOptions.data?.platforms ?? []).map((item) => [item.id, item.name])),
+    [scopeOptions.data],
+  );
 
   const keysQuery = useQuery({
     queryKey: ["integration-api-keys"],
@@ -344,7 +512,7 @@ function ApiKeysPage() {
       const { data, error } = await supabase
         .from("integration_api_keys")
         .select(
-          "id, name, key_prefix, permissions, environment, status, expires_at, last_used_at, created_at, auto_rotate, rotate_before_days, rotation_interval_days, last_rotated_at, rotation_count, next_rotation_at, pending_secret_at",
+          "id, name, key_prefix, permissions, environment, status, expires_at, last_used_at, created_at, auto_rotate, rotate_before_days, rotation_interval_days, last_rotated_at, rotation_count, next_rotation_at, pending_secret_at, scope_provider_ids, scope_platform_ids",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -380,12 +548,16 @@ function ApiKeysPage() {
           environment: environment as "production" | "sandbox",
           permissions,
           expiresInDays: expiresInDays ? Number(expiresInDays) : null,
+          scopeProviderIds,
+          scopePlatformIds,
         },
       }),
     onSuccess: (result) => {
       setCreateOpen(false);
       setName("");
       setExpiresInDays("");
+      setScopeProviderIds([]);
+      setScopePlatformIds([]);
       setSecret({ value: result.secret, title: "Nova chave criada" });
       invalidate();
     },
@@ -467,6 +639,7 @@ function ApiKeysPage() {
                       <TableHead>Prefixo</TableHead>
                       <TableHead>Ambiente</TableHead>
                       <TableHead>Permissões</TableHead>
+                      <TableHead>Escopo</TableHead>
                       <TableHead>Último uso</TableHead>
                       <TableHead>Expira</TableHead>
                       <TableHead>Rotação automática</TableHead>
@@ -489,6 +662,29 @@ function ApiKeysPage() {
                                 {permission}
                               </Badge>
                             ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[220px] text-xs">
+                          <div className="flex flex-wrap gap-1">
+                            {(key.scope_provider_ids ?? []).length === 0 &&
+                            (key.scope_platform_ids ?? []).length === 0 ? (
+                              <Badge variant="secondary" className="text-[10px]">
+                                Acesso total
+                              </Badge>
+                            ) : (
+                              <>
+                                {(key.scope_provider_ids ?? []).map((id) => (
+                                  <Badge key={id} className="bg-primary/10 text-[10px] text-primary">
+                                    {providerNames.get(id) ?? "Fornecedor"}
+                                  </Badge>
+                                ))}
+                                {(key.scope_platform_ids ?? []).map((id) => (
+                                  <Badge key={id} variant="outline" className="text-[10px]">
+                                    {platformNames.get(id) ?? "Plataforma"}
+                                  </Badge>
+                                ))}
+                              </>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -537,6 +733,15 @@ function ApiKeysPage() {
                               size="sm"
                               className="gap-1"
                               disabled={key.status === "revoked"}
+                              onClick={() => setScopeKey(key)}
+                            >
+                              <Target className="h-3.5 w-3.5" /> Escopo
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
+                              disabled={key.status === "revoked"}
                               onClick={() => setRotationKey(key)}
                             >
                               <Timer className="h-3.5 w-3.5" /> Rotação automática
@@ -573,6 +778,15 @@ function ApiKeysPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ScopeDialog
+        apiKey={scopeKey}
+        onClose={() => setScopeKey(null)}
+        onSaved={() => {
+          setScopeKey(null);
+          invalidate();
+        }}
+      />
 
       <RotationDialog
         apiKey={rotationKey}
@@ -645,6 +859,34 @@ function ApiKeysPage() {
                   </label>
                 ))}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Escopo de fornecedores</Label>
+              <ScopePicker
+                options={scopeOptions.data?.providers ?? []}
+                selected={scopeProviderIds}
+                onToggle={(id, checked) =>
+                  setScopeProviderIds((prev) =>
+                    checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id),
+                  )
+                }
+                emptyLabel="Nenhum fornecedor cadastrado."
+              />
+              <p className="text-xs text-muted-foreground">Sem seleção: acesso a todos os fornecedores.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Escopo de plataformas</Label>
+              <ScopePicker
+                options={scopeOptions.data?.platforms ?? []}
+                selected={scopePlatformIds}
+                onToggle={(id, checked) =>
+                  setScopePlatformIds((prev) =>
+                    checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id),
+                  )
+                }
+                emptyLabel="Nenhuma plataforma cadastrada."
+              />
+              <p className="text-xs text-muted-foreground">Sem seleção: acesso a todas as plataformas.</p>
             </div>
           </div>
           <DialogFooter>
