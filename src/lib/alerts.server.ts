@@ -1,5 +1,7 @@
 // Server-only alert evaluation. Uses supabaseAdmin.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { notifyAlert, periodLabelFor } from "@/lib/alert-notify.server";
+
 
 type Alert = {
   id: string;
