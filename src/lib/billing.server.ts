@@ -13,6 +13,72 @@ export type BillingOutcome = {
 };
 
 import { getUsdBrlRate } from "./usd-rate.server";
+import { latestPeriodUsage, parsePeriods, type FirecrawlPeriod } from "./firecrawl-periods";
+
+/** Custo do ciclo: plano fixo mensal quando definido, senão preço por 1k créditos. */
+function periodCostUsd(period: FirecrawlPeriod, planMonthlyUsd: number, pricePer1k: number): number {
+  if (planMonthlyUsd > 0) return planMonthlyUsd;
+  if (pricePer1k > 0) return (period.used / 1000) * pricePer1k;
+  return 0;
+}
+
+/** Insere/atualiza uma fatura de fornecedor (dedupe por conexão + período + origem). */
+async function upsertProviderInvoice(row: {
+  connection_id: string;
+  provider_id: string;
+  platform_id: string | null;
+  invoice_number: string | null;
+  issued_at: string | null;
+  period_start: string;
+  period_end: string | null;
+  amount_usd: number;
+  exchange_rate: number;
+  status: string;
+  raw?: any;
+}): Promise<boolean> {
+  const payload = {
+    connection_id: row.connection_id,
+    provider_id: row.provider_id,
+    platform_id: row.platform_id,
+    invoice_number: row.invoice_number,
+    issued_at: row.issued_at,
+    period_start: row.period_start,
+    period_end: row.period_end,
+    amount_usd: row.amount_usd,
+    exchange_rate: row.exchange_rate,
+    amount_brl: row.amount_usd * row.exchange_rate,
+    status: row.status,
+    source: "api",
+    raw: row.raw ?? null,
+  };
+
+  const { data: existing } = await supabaseAdmin
+    .from("provider_invoices")
+    .select("id, status")
+    .eq("connection_id", row.connection_id)
+    .eq("period_start", row.period_start)
+    .eq("source", "api")
+    .maybeSingle();
+
+  if (existing?.id) {
+    // Não sobrescreve um status já revisado/pago manualmente.
+    const keepStatus = ["approved", "paid", "review", "cancelled", "canceled"].includes(
+      String(existing.status ?? "").toLowerCase(),
+    );
+    const { error } = await supabaseAdmin
+      .from("provider_invoices")
+      .update(keepStatus ? { ...payload, status: existing.status } : payload)
+      .eq("id", existing.id);
+    return !error;
+  }
+
+  const { error } = await supabaseAdmin.from("provider_invoices").insert(payload);
+  if (error) {
+    console.warn("[billing] upsertProviderInvoice falhou:", error.message);
+    return false;
+  }
+  return true;
+}
 
 async function fetchUsdBrlRate(): Promise<number> {
   const { rate } = await getUsdBrlRate();
@@ -187,19 +253,30 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
 
   const headers = { Authorization: `Bearer ${key}` };
 
-  // 1) Snapshot atual do plano
-  const usageRes = await fetch("https://api.firecrawl.dev/v2/team/credit-usage", { headers });
+  // 1) Snapshot atual do plano + histórico de ciclos
+  const [usageRes, histRes] = await Promise.all([
+    fetch("https://api.firecrawl.dev/v2/team/credit-usage", { headers }),
+    fetch("https://api.firecrawl.dev/v2/team/credit-usage/historical", { headers }),
+  ]);
   if (!usageRes.ok) throw new Error(`Firecrawl API ${usageRes.status}: ${await usageRes.text()}`);
   const usageJson: any = await usageRes.json();
-  const total = Number(usageJson?.data?.plan_credits ?? 0);
-  const remaining = Number(usageJson?.data?.remaining_credits ?? 0);
-  const used = Math.max(0, total - remaining);
+  const histJson: any = histRes.ok ? await histRes.json() : null;
+  // Campos reais da API v2 (camelCase); o saldo pode exceder o plano por rollover,
+  // então o consumo real vem de periods[].creditsUsed.
+  const total = Number(usageJson?.data?.planCredits ?? usageJson?.data?.plan_credits ?? 0);
+  const remaining = Number(
+    usageJson?.data?.remainingCredits ?? usageJson?.data?.remaining_credits ?? 0,
+  );
+  const periods = parsePeriods(histJson, "creditsUsed");
+  const used =
+    latestPeriodUsage(histJson, "creditsUsed") ?? Math.max(0, total - remaining);
 
   const cycle = monthCycle();
   const projected = cycle.daysElapsed > 0 ? (used / cycle.daysElapsed) * cycle.daysInCycle : used;
 
   const cfg = (conn.config ?? {}) as any;
   const planMonthlyUsd = Number(cfg.plan_monthly_usd ?? 0);
+  const pricePer1k = Number(cfg.usd_per_1k_credits ?? 0);
   const planLabel = cfg.plan_name
     ? String(cfg.plan_name)
     : total > 0 ? `${total} credits/mo` : "pay-as-you-go";
@@ -220,46 +297,65 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
     cost_period_usd: planMonthlyUsd > 0 ? planMonthlyUsd : null,
     projected_cost_usd: planMonthlyUsd > 0 ? planMonthlyUsd : null,
     currency: "USD",
-    raw: usageJson,
+    raw: { current: usageJson, historical: histJson },
   });
 
-  // 2) Uso histórico → usage_daily
+  // 2) Uso por ciclo → usage_daily (uma linha por ciclo, no 1º dia do período)
   let usageRows = 0;
-  try {
-    const histRes = await fetch(
-      "https://api.firecrawl.dev/v2/team/credit-usage/historical?byApiKey=false",
-      { headers },
-    );
-    if (histRes.ok) {
-      const histJson: any = await histRes.json();
-      const days: any[] = Array.isArray(histJson?.data) ? histJson.data : histJson?.data?.usage ?? [];
-      for (const d of days) {
-        const date = d?.date ?? d?.day ?? d?.timestamp;
-        const credits = Number(d?.credits ?? d?.creditsUsed ?? d?.usage ?? 0);
-        if (!date || credits <= 0) continue;
-        const iso = new Date(date).toISOString().slice(0, 10);
-        await upsertUsageDaily({
-          connection_id: conn.id,
-          provider_id: conn.provider_id,
-          platform_id: conn.platform_id,
-          usage_date: iso,
-          quantity: credits,
-          unit: "credits",
-          exchange_rate: rate,
-          raw: d,
-        });
-        usageRows += 1;
-      }
-    }
-  } catch {}
+  for (const period of periods) {
+    if (period.used <= 0) continue;
+    const iso = period.startDate.slice(0, 10);
+    const costUsd = periodCostUsd(period, planMonthlyUsd, pricePer1k);
+    await upsertUsageDaily({
+      connection_id: conn.id,
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      usage_date: iso,
+      model: planLabel,
+      endpoint: "credit_usage_period",
+      quantity: period.used,
+      unit: "credits",
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      raw: { source: "firecrawl_historical", ...period },
+    });
+    usageRows += 1;
+  }
+
+  // 3) Faturas por ciclo fechado → página de Faturas
+  let invoices = 0;
+  for (const period of periods) {
+    if (!period.endDate) continue; // ciclo em aberto ainda não virou fatura
+    const amountUsd = periodCostUsd(period, planMonthlyUsd, pricePer1k);
+    if (amountUsd <= 0) continue;
+    const periodStart = period.startDate.slice(0, 10);
+    const periodEnd = new Date(new Date(period.endDate).getTime() - 86400_000)
+      .toISOString()
+      .slice(0, 10);
+    const ok = await upsertProviderInvoice({
+      connection_id: conn.id,
+      provider_id: conn.provider_id,
+      platform_id: conn.platform_id,
+      invoice_number: `FIRECRAWL-${periodStart.slice(0, 7)}`,
+      issued_at: period.endDate.slice(0, 10),
+      period_start: periodStart,
+      period_end: periodEnd,
+      amount_usd: amountUsd,
+      exchange_rate: rate,
+      status: "received",
+      raw: { source: "firecrawl_historical", plan: planLabel, ...period },
+    });
+    if (ok) invoices += 1;
+  }
 
   return {
     status: "success",
-    message: `Plano: ${used}/${total} créditos (proj. ${projected.toFixed(0)})`,
+    message: `Plano: ${used}/${total} créditos (proj. ${projected.toFixed(0)}) · ${invoices} fatura(s)`,
     snapshots: 1,
     usage_rows: usageRows,
-    invoices: 0,
+    invoices,
     meta: { used, remaining, total, projected },
+
   };
 }
 
