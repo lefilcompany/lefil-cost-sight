@@ -246,8 +246,37 @@ function BillingPage() {
         {/* USO POR DIA/MODELO */}
         <TabsContent value="usage">
           <Card className="surface-elevated">
-            <CardContent className="pt-6">
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                  <Select
+                    value={usageProvider}
+                    onValueChange={(v) => {
+                      setUsageProvider(v);
+                      setUsagePage(0);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[200px] text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {providers.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {fetchingUsage && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>
+                    {usageTotal > 0
+                      ? `${usagePage * USAGE_PAGE_SIZE + 1}–${Math.min((usagePage + 1) * USAGE_PAGE_SIZE, usageTotal)} de ${fmtNumber(usageTotal)}`
+                      : "0 registros"}
+                  </span>
+                </div>
+              </div>
               <div className="overflow-hidden rounded-lg border border-border/60">
+
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
