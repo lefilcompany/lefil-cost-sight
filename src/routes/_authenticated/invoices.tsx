@@ -164,22 +164,68 @@ function InvoicesPage() {
         </div>
 
         <Card className="surface-elevated overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
-            <div>
-              <CardTitle className="text-base font-semibold">Documentos dos fornecedores</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Valores recebidos por API ou cadastrados manualmente na área de billing.</p>
+          <CardHeader className="gap-3 pb-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-semibold">Documentos dos fornecedores</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">Valores recebidos por API ou cadastrados manualmente na área de billing.</p>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {filtered.length} documento(s) · {fmtBRL(filteredTotal)}
+              </div>
             </div>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="received">Recebidas</SelectItem>
-                <SelectItem value="review">Em revisão</SelectItem>
-                <SelectItem value="approved">Aprovadas</SelectItem>
-                <SelectItem value="paid">Pagas</SelectItem>
-                <SelectItem value="overdue">Vencidas</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="Buscar por número, fornecedor, centro de custo..."
+                value={search}
+                onChange={(e) => resetPage(setSearch)(e.target.value)}
+                className="h-9 w-full sm:w-[280px]"
+              />
+              <Select value={status} onValueChange={resetPage(setStatus)}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="received">Recebidas</SelectItem>
+                  <SelectItem value="review">Em revisão</SelectItem>
+                  <SelectItem value="approved">Aprovadas</SelectItem>
+                  <SelectItem value="paid">Pagas</SelectItem>
+                  <SelectItem value="overdue">Vencidas</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={provider} onValueChange={resetPage(setProvider)}>
+                <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os fornecedores</SelectItem>
+                  {providerOptions.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={month} onValueChange={resetPage(setMonth)}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Competência" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os ciclos</SelectItem>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(status !== "all" || provider !== "all" || month !== "all" || search) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStatus("all");
+                    setProvider("all");
+                    setMonth("all");
+                    setSearch("");
+                    setPage(0);
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -187,40 +233,55 @@ function InvoicesPage() {
             ) : filtered.length === 0 ? (
               <div className="p-8"><EmptyState title="Nenhuma fatura encontrada" description="Ajuste o filtro ou importe as cobranças dos fornecedores." /></div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Emissão</TableHead>
-                      <TableHead>Fornecedor</TableHead>
-                      <TableHead>Centro de custo</TableHead>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Competência</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((invoice) => (
-                      <TableRow key={invoice.id}>
-                        <TableCell className="whitespace-nowrap text-xs">{invoice.issued_at ? fmtDate(invoice.issued_at) : "—"}</TableCell>
-                        <TableCell className="text-xs font-medium">{invoice.providers?.name ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{invoice.platforms?.name ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{invoice.invoice_number ?? "—"}</TableCell>
-                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                          {invoice.period_start ? fmtDate(invoice.period_start) : "—"} → {invoice.period_end ? fmtDate(invoice.period_end) : "—"}
-                        </TableCell>
-                        <TableCell><Badge variant="secondary" className={statusClass(invoice.status)}>{statusLabel(invoice.status)}</Badge></TableCell>
-                        <TableCell className="text-xs capitalize">{invoice.source}</TableCell>
-                        <TableCell className="text-right font-numeric text-sm">{fmtBRL(invoice.amount_brl)}</TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Emissão</TableHead>
+                        <TableHead>Fornecedor</TableHead>
+                        <TableHead>Centro de custo</TableHead>
+                        <TableHead>Número</TableHead>
+                        <TableHead>Competência</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Origem</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {pageRows.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="whitespace-nowrap text-xs">{invoice.issued_at ? fmtDate(invoice.issued_at) : "—"}</TableCell>
+                          <TableCell className="text-xs font-medium">{invoice.providers?.name ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{invoice.platforms?.name ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{invoice.invoice_number ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                            {invoice.period_start ? fmtDate(invoice.period_start) : "—"} → {invoice.period_end ? fmtDate(invoice.period_end) : "—"}
+                          </TableCell>
+                          <TableCell><Badge variant="secondary" className={statusClass(invoice.status)}>{statusLabel(invoice.status)}</Badge></TableCell>
+                          <TableCell className="text-xs capitalize">{invoice.source}</TableCell>
+                          <TableCell className="text-right font-numeric text-sm">{fmtBRL(invoice.amount_brl)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-4 py-3">
+                  <span className="mr-auto text-xs text-muted-foreground">
+                    {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={currentPage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Página {currentPage + 1} de {pageCount}</span>
+                  <Button variant="outline" size="sm" disabled={currentPage + 1 >= pageCount} onClick={() => setPage((p) => p + 1)}>
+                    Próxima
+                  </Button>
+                </div>
+              </>
             )}
           </CardContent>
+
         </Card>
       </div>
     </AppShell>
