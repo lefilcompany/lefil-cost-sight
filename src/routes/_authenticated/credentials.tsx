@@ -237,7 +237,7 @@ function CredentialsPage() {
   return (
     <AppShell
       title="Credenciais das integrações"
-      description="Status de cada token/API key, validade e ações de renovar, revogar e testar conexão."
+      eyebrow="Status de cada token/API key, validade e ações de renovar, revogar e testar conexão."
       actions={
         <Button
           variant="outline"
@@ -251,10 +251,11 @@ function CredentialsPage() {
     >
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard title="Credenciais saudáveis" value={String(kpis.healthy)} icon={CheckCircle2} />
-          <KpiCard title="Precisam de atenção" value={String(kpis.attention)} icon={Timer} />
-          <KpiCard title="Expiradas ou com erro" value={String(kpis.broken)} icon={AlertTriangle} />
-          <KpiCard title="Sem credencial" value={String(kpis.missing)} icon={KeyRound} />
+          <KpiCard label="Credenciais saudáveis" value={String(kpis.healthy)} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} />
+          <KpiCard label="Precisam de atenção" value={String(kpis.attention)} tone="warn" icon={<Timer className="h-4 w-4" />} />
+          <KpiCard label="Expiradas ou com erro" value={String(kpis.broken)} tone="bad" icon={<AlertTriangle className="h-4 w-4" />} />
+          <KpiCard label="Sem credencial" value={String(kpis.missing)} icon={<KeyRound className="h-4 w-4" />} />
+
         </div>
 
         <Card>
