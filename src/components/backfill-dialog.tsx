@@ -67,6 +67,8 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
   const [start, setStart] = useState(initial.start);
   const [end, setEnd] = useState(initial.end);
   const [purge, setPurge] = useState(true);
+  const [reconcile, setReconcile] = useState(true);
+
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["backfill-jobs", connectionId],
