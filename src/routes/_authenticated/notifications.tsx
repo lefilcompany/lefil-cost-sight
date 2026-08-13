@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, Mail, RefreshCw, Send, Slack } from
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { BulkTestNotificationsDialog } from "@/components/bulk-test-notifications-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
