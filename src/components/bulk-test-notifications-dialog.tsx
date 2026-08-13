@@ -68,7 +68,7 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.includes(r.id));
 
   const run = useMutation({
-    mutationFn: () => sendBulkTestAlertNotifications({ data: { rule_ids: selected } }),
+    mutationFn: () => sendBulkTestAlertNotifications({ data: { rule_ids: selected, targets } }),
     onSuccess: (res: any) => {
       setResults(res?.results ?? []);
       const t = res?.totals ?? {};
