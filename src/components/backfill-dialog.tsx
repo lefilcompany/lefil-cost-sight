@@ -67,6 +67,8 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
   const [start, setStart] = useState(initial.start);
   const [end, setEnd] = useState(initial.end);
   const [purge, setPurge] = useState(true);
+  const [reconcile, setReconcile] = useState(true);
+
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["backfill-jobs", connectionId],
@@ -117,7 +119,7 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
         );
       }
       return runBackfill({
-        data: { connection_id: connectionId, period_start: start, period_end: end, purge },
+        data: { connection_id: connectionId, period_start: start, period_end: end, purge, reconcile },
       });
     },
 
@@ -130,10 +132,23 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
       } else {
         toast.warning(`Backfill finalizado com ${failed} etapa(s) com erro. Veja os logs abaixo.`);
       }
+      const rec = res?.reconciliation;
+      if (rec) {
+        if (rec.divergent > 0) {
+          toast.warning(
+            `Reconciliação: ${rec.divergent} mês(es) com divergência acima de ${rec.tolerance_pct}% · ${rec.created_events} alerta(s) gerado(s)`,
+          );
+        } else {
+          toast.success(`Reconciliação sem divergências acima de ${rec.tolerance_pct}%`);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["backfill-jobs", connectionId] });
       qc.invalidateQueries({ queryKey: ["conn-audit"] });
       qc.invalidateQueries({ queryKey: ["sync_logs"] });
+      qc.invalidateQueries({ queryKey: ["reconciliation"] });
+      qc.invalidateQueries({ queryKey: ["alert_events"] });
     },
+
     onError: (err: any) => toast.error(err?.message ?? "Falha ao executar o backfill"),
   });
 
@@ -207,6 +222,18 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
               </span>
             </span>
           </label>
+
+          <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+            <Checkbox checked={reconcile} onCheckedChange={(v) => setReconcile(Boolean(v))} className="mt-0.5" />
+            <span>
+              <span className="font-medium">Rodar reconciliação de custos ao concluir</span>
+              <span className="block text-xs text-muted-foreground">
+                Compara o custo estimado com faturas e snapshots confirmados nos meses do período e gera alertas quando a
+                divergência excede a tolerância configurada.
+              </span>
+            </span>
+          </label>
+
 
           {runningJob ? (
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">

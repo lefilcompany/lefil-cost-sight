@@ -98,7 +98,7 @@ async function hasRecentEvent(connectionId: string, month: string): Promise<bool
 }
 
 export async function runReconciliation(
-  options: { months?: number } = {},
+  options: { months?: number; connectionIds?: string[] } = {},
 ): Promise<ReconciliationResult> {
   const months = Math.min(Math.max(options.months ?? 3, 1), 12);
   const tolerance = await getReconciliationTolerance();
@@ -106,11 +106,14 @@ export async function runReconciliation(
   const from = windows[0].start;
   const to = windows[windows.length - 1].end;
 
-  const { data: connections, error } = await supabaseAdmin
+  let connQuery = supabaseAdmin
     .from("provider_connections")
     .select("id, name, provider_id, platform_id, organization_id, status")
     .eq("status", "active");
+  if (options.connectionIds?.length) connQuery = connQuery.in("id", options.connectionIds);
+  const { data: connections, error } = await connQuery;
   if (error) throw error;
+
 
   const rows: ReconciliationRow[] = [];
 

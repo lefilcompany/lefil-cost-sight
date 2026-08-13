@@ -5,7 +5,17 @@ export type BackfillInput = {
   periodStart: string; // YYYY-MM-DD
   periodEnd: string; // YYYY-MM-DD
   purge?: boolean;
+  /** Roda a reconciliação estimado x confirmado ao final do backfill. */
+  reconcile?: boolean;
   initiatedBy?: string | null;
+};
+
+export type BackfillReconciliationSummary = {
+  tolerance_pct: number;
+  months: number;
+  checked: number;
+  divergent: number;
+  created_events: number;
 };
 
 export type BackfillResult = {
@@ -18,9 +28,22 @@ export type BackfillResult = {
   invoices: number;
   records_imported: number;
   steps: { step: string; ok: boolean; message?: string; records?: number }[];
+  reconciliation?: BackfillReconciliationSummary | null;
 };
 
+
 const DAY = 86_400_000;
+
+/** Quantos meses (1-12) a reconciliação precisa cobrir para incluir o período reprocessado. */
+function monthsBetween(periodStart: string, periodEnd: string) {
+  const now = new Date();
+  const [ys, ms] = periodStart.slice(0, 7).split("-").map(Number);
+  const spanFromStart = (now.getUTCFullYear() - (ys ?? now.getUTCFullYear())) * 12 + (now.getUTCMonth() + 1 - (ms ?? 1)) + 1;
+  const [ye, me] = periodEnd.slice(0, 7).split("-").map(Number);
+  const spanFromEnd = (now.getUTCFullYear() - (ye ?? now.getUTCFullYear())) * 12 + (now.getUTCMonth() + 1 - (me ?? 1)) + 1;
+  return Math.min(12, Math.max(1, spanFromStart, spanFromEnd));
+}
+
 
 /** Tempo máximo que um job de backfill pode ficar "running" antes de ser considerado travado. */
 const STALE_BACKFILL_MINUTES = 30;
@@ -77,7 +100,15 @@ async function findRunningBackfill(
  * sync_jobs para auditoria.
  */
 export async function runConnectionBackfill(input: BackfillInput): Promise<BackfillResult> {
-  const { connectionId, periodStart, periodEnd, purge = true, initiatedBy = null } = input;
+  const {
+    connectionId,
+    periodStart,
+    periodEnd,
+    purge = true,
+    reconcile = true,
+    initiatedBy = null,
+  } = input;
+
 
   const { data: conn, error: connErr } = await supabaseAdmin
     .from("provider_connections")
@@ -151,6 +182,8 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
   let usageRows = 0;
   let snapshots = 0;
   let invoices = 0;
+  let reconciliation: BackfillReconciliationSummary | null = null;
+
 
   const finish = async (status: BackfillResult["status"], errorMessage?: string) => {
     if (!job?.id) return;
@@ -266,6 +299,38 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
       });
     }
 
+    // Reconciliação automática ao final do backfill: compara estimado x confirmado
+    // no período reprocessado e gera alertas quando a divergência excede a tolerância.
+    if (reconcile) {
+      try {
+        const { runReconciliation } = await import("./reconciliation.server");
+        const months = monthsBetween(periodStart, periodEnd);
+        const r = await runReconciliation({ months, connectionIds: [conn.id] });
+        reconciliation = {
+          tolerance_pct: r.tolerance_pct,
+          months: r.months,
+          checked: r.rows.length,
+          divergent: r.divergent,
+          created_events: r.created_events,
+        };
+        steps.push({
+          step: "Reconciliação automática de custos",
+          ok: true,
+          records: r.rows.length,
+          message:
+            r.divergent > 0
+              ? `${r.divergent} mês(es) divergente(s) acima de ${r.tolerance_pct}% · ${r.created_events} alerta(s) gerado(s)`
+              : `Sem divergências acima de ${r.tolerance_pct}%`,
+        });
+      } catch (err: any) {
+        steps.push({
+          step: "Reconciliação automática de custos",
+          ok: false,
+          message: String(err?.message ?? err),
+        });
+      }
+    }
+
     const failed = steps.filter((s) => !s.ok).length;
     const status: BackfillResult["status"] = failed === 0 ? "success" : failed === steps.length ? "error" : "partial";
     await finish(status);
@@ -280,7 +345,9 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
       invoices,
       records_imported: usageRows + snapshots + invoices,
       steps,
+      reconciliation,
     };
+
   } catch (err: any) {
     const message = String(err?.message ?? err);
     await finish("error", message);
