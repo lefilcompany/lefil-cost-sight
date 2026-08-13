@@ -42,7 +42,24 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
     throw new Error("A data inicial deve ser anterior à data final");
   }
 
+  await releaseStaleBackfillLocks(conn.id);
+  const running = await findRunningBackfill(conn.id, periodStart, periodEnd);
+  if (running) {
+    const since = running.started_at ? new Date(running.started_at) : null;
+    const minutes = since ? Math.max(1, Math.round((Date.now() - since.getTime()) / 60_000)) : null;
+    const periodo =
+      running.period_start && running.period_end
+        ? ` para o período ${formatBr(running.period_start)} a ${formatBr(running.period_end)}`
+        : "";
+    throw new Error(
+      `Já existe um backfill em execução nesta conexão${periodo}` +
+        (minutes ? `, iniciado há ${minutes} min` : "") +
+        ". Aguarde a conclusão ou escolha um período que não se sobreponha antes de tentar novamente.",
+    );
+  }
+
   const startedAt = new Date();
+
   const { data: job } = await supabaseAdmin
     .from("sync_jobs")
     .insert({
