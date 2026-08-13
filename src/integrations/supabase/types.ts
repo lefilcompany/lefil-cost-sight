@@ -969,6 +969,8 @@ export type Database = {
           rotate_before_days: number
           rotation_count: number
           rotation_interval_days: number | null
+          scope_platform_ids: string[]
+          scope_provider_ids: string[]
           status: string
           updated_at: string
         }
@@ -992,6 +994,8 @@ export type Database = {
           rotate_before_days?: number
           rotation_count?: number
           rotation_interval_days?: number | null
+          scope_platform_ids?: string[]
+          scope_provider_ids?: string[]
           status?: string
           updated_at?: string
         }
@@ -1015,6 +1019,8 @@ export type Database = {
           rotate_before_days?: number
           rotation_count?: number
           rotation_interval_days?: number | null
+          scope_platform_ids?: string[]
+          scope_provider_ids?: string[]
           status?: string
           updated_at?: string
         }
