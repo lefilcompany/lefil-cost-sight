@@ -38,6 +38,10 @@ function wants(channel: string, target: "slack" | "email"): boolean {
 const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number.isFinite(n) ? n : 0);
 
+export function slackConfigured(): boolean {
+  return Boolean(process.env["SLACK_WEBHOOK_URL"]);
+}
+
 async function sendSlack(n: AlertNotification): Promise<"sent" | "skipped" | "failed"> {
   const webhook = process.env["SLACK_WEBHOOK_URL"];
   if (!webhook) return "skipped";
