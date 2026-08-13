@@ -9,6 +9,8 @@
 //      é proporcional ao consumo do ciclo inteiro);
 //   4. avançamos a marca d'água.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { buildUsageDailyRows } from "./usage-aggregation";
+
 
 const SETTING_PREFIX = "usage_backfill:";
 const FULL_WINDOW_DAYS = 180;
