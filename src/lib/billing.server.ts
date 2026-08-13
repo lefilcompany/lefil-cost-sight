@@ -172,11 +172,11 @@ export async function aggregateUsageDailyFromSnapshots(
   const { buildUsageDailyRows } = await import("./usage-aggregation");
   const payload = buildUsageDailyRows(snaps as any[], rate);
 
-
   if (payload.length === 0) return 0;
   const { error: upErr } = await supabaseAdmin
     .from("provider_usage_daily")
-    .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+    .upsert(payload as any[], { onConflict: "connection_id,usage_date,model,endpoint" });
+
   if (upErr) {
     console.warn("[billing] aggregateUsageDailyFromSnapshots upsert falhou:", upErr.message);
     return 0;
