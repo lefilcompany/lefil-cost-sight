@@ -22,6 +22,7 @@ import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedIntegrationsHealthRouteImport } from './routes/_authenticated/integrations-health'
 import { Route as AuthenticatedFinancialRouteImport } from './routes/_authenticated/financial'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCostsRouteImport } from './routes/_authenticated/costs'
@@ -112,6 +113,12 @@ const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedIntegrationsHealthRoute =
+  AuthenticatedIntegrationsHealthRouteImport.update({
+    id: '/integrations-health',
+    path: '/integrations-health',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinancialRoute = AuthenticatedFinancialRouteImport.update({
   id: '/financial',
   path: '/financial',
@@ -255,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
+  '/integrations-health': typeof AuthenticatedIntegrationsHealthRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -292,6 +300,7 @@ export interface FileRoutesByTo {
   '/costs': typeof AuthenticatedCostsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/financial': typeof AuthenticatedFinancialRoute
+  '/integrations-health': typeof AuthenticatedIntegrationsHealthRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -331,6 +340,7 @@ export interface FileRoutesById {
   '/_authenticated/costs': typeof AuthenticatedCostsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/financial': typeof AuthenticatedFinancialRoute
+  '/_authenticated/integrations-health': typeof AuthenticatedIntegrationsHealthRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/costs'
     | '/dashboard'
     | '/financial'
+    | '/integrations-health'
     | '/invoices'
     | '/notifications'
     | '/overview'
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/costs'
     | '/dashboard'
     | '/financial'
+    | '/integrations-health'
     | '/invoices'
     | '/notifications'
     | '/overview'
@@ -445,6 +457,7 @@ export interface FileRouteTypes {
     | '/_authenticated/costs'
     | '/_authenticated/dashboard'
     | '/_authenticated/financial'
+    | '/_authenticated/integrations-health'
     | '/_authenticated/invoices'
     | '/_authenticated/notifications'
     | '/_authenticated/overview'
@@ -582,6 +595,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/integrations-health': {
+      id: '/_authenticated/integrations-health'
+      path: '/integrations-health'
+      fullPath: '/integrations-health'
+      preLoaderRoute: typeof AuthenticatedIntegrationsHealthRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/financial': {
@@ -766,6 +786,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCostsRoute: typeof AuthenticatedCostsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinancialRoute: typeof AuthenticatedFinancialRoute
+  AuthenticatedIntegrationsHealthRoute: typeof AuthenticatedIntegrationsHealthRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
@@ -786,6 +807,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCostsRoute: AuthenticatedCostsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinancialRoute: AuthenticatedFinancialRoute,
+  AuthenticatedIntegrationsHealthRoute: AuthenticatedIntegrationsHealthRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
