@@ -90,6 +90,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         description: "Uso estimado x custo confirmado, com divergências sinalizadas.",
       },
       {
+        title: "Saúde das integrações",
+        url: "/integrations-health",
+        icon: "HeartPulse",
+        description: "Última sync, falhas recorrentes e credenciais a vencer.",
+      },
+      {
         title: "Saúde dos dados",
         url: "/syncs",
         icon: "RefreshCw",
