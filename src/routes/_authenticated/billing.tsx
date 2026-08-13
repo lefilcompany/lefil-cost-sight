@@ -344,8 +344,29 @@ function BillingPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={exporting !== null}
+                    onClick={() => handleExport("csv")}
+                  >
+                    {exporting === "csv" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={exporting !== null}
+                    onClick={() => handleExport("pdf")}
+                  >
+                    {exporting === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                    PDF
+                  </Button>
                   {fetchingUsage && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+
                   <span>
                     {usageTotal > 0
                       ? `${usagePage * USAGE_PAGE_SIZE + 1}–${Math.min((usagePage + 1) * USAGE_PAGE_SIZE, usageTotal)} de ${fmtNumber(usageTotal)}`
