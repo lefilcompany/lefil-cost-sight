@@ -1,3 +1,10 @@
+import {
+  buildEmailContent,
+  buildSlackPayload,
+  fmtBRLNotify as fmtBRL,
+  periodLabelFor as periodLabelForShared,
+} from "@/lib/alert-notify-format";
+
 // Server-only: envia notificações (Slack / e-mail) quando um alerta é disparado.
 // Slack: usa o webhook em SLACK_WEBHOOK_URL (Incoming Webhook).
 // E-mail: usa a rota interna de app emails quando a infraestrutura de e-mail estiver configurada.
@@ -35,9 +42,6 @@ function wants(channel: string, target: "slack" | "email"): boolean {
   return c.includes(target);
 }
 
-const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number.isFinite(n) ? n : 0);
-
 export function slackConfigured(): boolean {
   return Boolean(process.env["SLACK_WEBHOOK_URL"]);
 }
@@ -46,34 +50,7 @@ async function sendSlack(n: AlertNotification): Promise<"sent" | "skipped" | "fa
   const webhook = process.env["SLACK_WEBHOOK_URL"];
   if (!webhook) return "skipped";
 
-  const emoji = n.severity === "critical" ? ":rotating_light:" : n.severity === "info" ? ":information_source:" : ":warning:";
-  const payload = {
-    text: `${emoji} ${n.title}`,
-    blocks: [
-      { type: "header", text: { type: "plain_text", text: `${n.severity === "critical" ? "🚨" : "⚠️"} ${n.title}`.slice(0, 150) } },
-      { type: "section", text: { type: "mrkdwn", text: n.message } },
-      {
-        type: "section",
-        fields: [
-          { type: "mrkdwn", text: `*Regra:*\n${n.ruleName}` },
-          { type: "mrkdwn", text: `*Escopo:*\n${n.scopeLabel}` },
-          { type: "mrkdwn", text: `*Período afetado:*\n${n.periodLabel}` },
-          { type: "mrkdwn", text: `*Limite:*\n${fmtBRL(n.threshold)}` },
-        ],
-      },
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: { type: "plain_text", text: "Ver regra no Quiwi" },
-            url: ruleLink(n.ruleId),
-            style: n.severity === "critical" ? "danger" : "primary",
-          },
-        ],
-      },
-    ],
-  };
+  const payload = buildSlackPayload(n, ruleLink(n.ruleId));
 
   try {
     const res = await fetch(webhook, {
@@ -108,17 +85,7 @@ async function sendEmail(n: AlertNotification): Promise<"sent" | "skipped" | "fa
   const to = await recipients();
   if (to.length === 0) return "skipped";
 
-  const subject = `[Quiwi] ${n.severity === "critical" ? "Crítico" : "Atenção"}: ${n.title}`;
-  const body = [
-    n.message,
-    "",
-    `Regra: ${n.ruleName}`,
-    `Escopo: ${n.scopeLabel}`,
-    `Período afetado: ${n.periodLabel}`,
-    `Limite configurado: ${fmtBRL(n.threshold)}`,
-    "",
-    `Ver regra: ${ruleLink(n.ruleId)}`,
-  ].join("\n");
+  const { subject, body } = buildEmailContent(n, ruleLink(n.ruleId));
 
   try {
     let ok = 0;
@@ -167,17 +134,5 @@ export function periodLabelFor(
   metric: string,
   range: { start?: string; end?: string; days?: number },
 ): string {
-  const br = (d?: string) => (d ? d.split("-").reverse().join("/") : "—");
-  switch (metric) {
-    case "monthly_cost":
-      return `Mês corrente (${br(range.start)} a ${br(range.end)})`;
-    case "daily_cost":
-      return `Dia ${br(range.start)}`;
-    case "variance_pct":
-      return `Mês corrente vs. mês anterior (${br(range.start)} a ${br(range.end)})`;
-    case "no_sync_days":
-      return `Últimos ${Math.floor(range.days ?? 0)} dias sem sincronização`;
-    default:
-      return `${br(range.start)} a ${br(range.end)}`;
-  }
+  return periodLabelForShared(metric, range);
 }
