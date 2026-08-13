@@ -9,6 +9,8 @@
 //      é proporcional ao consumo do ciclo inteiro);
 //   4. avançamos a marca d'água.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { buildUsageDailyRows } from "./usage-aggregation";
+
 
 const SETTING_PREFIX = "usage_backfill:";
 const FULL_WINDOW_DAYS = 180;
@@ -76,58 +78,9 @@ const SNAP_COLUMNS =
 
 /** Deriva as linhas diárias de um conjunto de snapshots de um mesmo ciclo. */
 function buildRowsForCycle(snaps: Snap[], rate: number): any[] {
-  // último snapshot de cada dia (snapshots são acumulativos dentro do ciclo)
-  const lastPerDay = new Map<string, Snap>();
-  for (const s of snaps) lastPerDay.set(isoDay(new Date(s.captured_at)), s);
-  const days = Array.from(lastPerDay.keys()).sort();
-
-  const rows: { day: string; snap: Snap; qty: number }[] = [];
-  let prev: Snap | null = null;
-  for (const day of days) {
-    const s = lastPerDay.get(day)!;
-    const usedNow = Number(s.used_quantity ?? 0);
-    const usedPrev = prev ? Number(prev.used_quantity ?? 0) : 0;
-    let qty = usedNow - usedPrev;
-    if (!Number.isFinite(qty) || qty < 0) qty = 0;
-    rows.push({ day, snap: s, qty });
-    prev = s;
-  }
-
-  const cycleCost = rows.reduce((m, r) => Math.max(m, Number(r.snap.cost_period_usd ?? 0)), 0);
-  const cycleQty = rows.reduce((a, r) => a + r.qty, 0);
-
-  const payload: any[] = [];
-  for (const r of rows) {
-    const costUsd = cycleQty > 0 ? (cycleCost * r.qty) / cycleQty : 0;
-    if (r.qty <= 0 && costUsd <= 0) continue;
-    const s = r.snap;
-    payload.push({
-      connection_id: s.connection_id,
-      provider_id: s.provider_id,
-      platform_id: s.platform_id,
-      usage_date: r.day,
-      model: s.plan_name ? String(s.plan_name) : "plano",
-      endpoint: "billing_snapshot",
-      input_tokens: 0,
-      output_tokens: 0,
-      requests: 0,
-      quantity: r.qty,
-      unit: s.included_unit ?? null,
-      cost_usd: costUsd,
-      exchange_rate: rate,
-      cost_brl: costUsd * rate,
-      raw: {
-        source: "billing_snapshot_delta",
-        cycle_start: s.cycle_start,
-        cycle_end: s.cycle_end,
-        used_cycle_total: Number(s.used_quantity ?? 0),
-        cost_cycle_total: cycleCost,
-      },
-      synced_at: new Date().toISOString(),
-    });
-  }
-  return payload;
+  return buildUsageDailyRows(snaps as any[], rate) as any[];
 }
+
 
 /**
  * Processa apenas os períodos novos/alterados desde o último sync desta conexão.
