@@ -84,6 +84,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: "Administração",
     items: [
       {
+        title: "Reconciliação",
+        url: "/reconciliation",
+        icon: "Scale",
+        description: "Uso estimado x custo confirmado, com divergências sinalizadas.",
+      },
+      {
         title: "Saúde dos dados",
         url: "/syncs",
         icon: "RefreshCw",
