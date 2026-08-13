@@ -320,6 +320,28 @@ function BillingPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={usagePage === 0 || fetchingUsage}
+                  onClick={() => setUsagePage((p) => Math.max(0, p - 1))}
+                >
+                  Anterior
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Página {usagePage + 1} de {usagePageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={usagePage + 1 >= usagePageCount || fetchingUsage}
+                  onClick={() => setUsagePage((p) => p + 1)}
+                >
+                  Próxima
+                </Button>
+              </div>
+
             </CardContent>
           </Card>
         </TabsContent>
