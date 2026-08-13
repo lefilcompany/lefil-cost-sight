@@ -581,7 +581,7 @@ function MetricsDialog({ apiKey, onClose }: { apiKey: ApiKey | null; onClose: ()
                             name === "cost" ? fmtBRL(value) : fmtNumber(value)
                           }
                         />
-                        <Bar dataKey="requests" name="Solicitações" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="requests" name="Solicitações" fill="var(--color-primary)" radius={[3, 3, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
