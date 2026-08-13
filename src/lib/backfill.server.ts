@@ -125,6 +125,26 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
     .select("id")
     .single();
 
+  // Segunda checagem: se outro job entrou em execução ao mesmo tempo, desiste do nosso.
+  if (job?.id) {
+    const competitor = await findRunningBackfill(conn.id, periodStart, periodEnd, job.id);
+    if (competitor && (competitor.started_at ?? "") <= startedAt.toISOString()) {
+      await supabaseAdmin
+        .from("sync_jobs")
+        .update({
+          status: "cancelled",
+          finished_at: new Date().toISOString(),
+          error_code: "backfill_locked",
+          error_message: "Cancelado: outro backfill já estava em execução para esta conexão e período.",
+        })
+        .eq("id", job.id);
+      throw new Error(
+        "Outro backfill acabou de iniciar para esta conexão e período. Aguarde a conclusão antes de tentar novamente.",
+      );
+    }
+  }
+
+
   const steps: BackfillResult["steps"] = [];
   let deletedUsage = 0;
   let deletedEntries = 0;
