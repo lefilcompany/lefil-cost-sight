@@ -581,6 +581,27 @@ export type Database = {
           },
         ]
       }
+      cron_credentials: {
+        Row: {
+          created_at: string
+          name: string
+          secret: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          secret: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          secret?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dashboard_notes: {
         Row: {
           author_id: string | null
@@ -2148,6 +2169,7 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: undefined
       }
+      cron_secret: { Args: never; Returns: string }
       current_org_role: {
         Args: { _org: string }
         Returns: Database["public"]["Enums"]["org_role"]
@@ -2183,11 +2205,11 @@ export type Database = {
         Returns: boolean
       }
       run_evaluate_alerts_job: {
-        Args: { _apikey: string; _url: string }
+        Args: { _apikey?: string; _url: string }
         Returns: number
       }
       run_sync_billing_job: {
-        Args: { _apikey: string; _url: string }
+        Args: { _apikey?: string; _url: string }
         Returns: number
       }
       set_connection_api_key: {
