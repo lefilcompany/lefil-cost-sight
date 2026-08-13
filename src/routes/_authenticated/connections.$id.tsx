@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -283,25 +283,25 @@ function ConnectionAuditPage() {
             label="Consumo registrado (BRL)"
             value={fmtBRL(totals.brl)}
             icon={<Wallet className="h-4 w-4" />}
-            hint={`${fmtUSD(totals.usd)} em USD`}
+            sub={`${fmtUSD(totals.usd)} em USD`}
           />
           <Kpi
             label="Cotação média aplicada"
             value={totals.avgRate ? totals.avgRate.toFixed(4) : "—"}
             icon={<Calculator className="h-4 w-4" />}
-            hint="USD → BRL nas linhas de uso"
+            sub="USD → BRL nas linhas de uso"
           />
           <Kpi
             label="Quantidade / créditos"
             value={fmtNumber(totals.qty)}
             icon={<Database className="h-4 w-4" />}
-            hint={`${usage.length} linhas de uso`}
+            sub={`${usage.length} linhas de uso`}
           />
           <Kpi
             label="Divergências detectadas"
             value={fmtNumber(totals.mismatches.length)}
             icon={<Activity className="h-4 w-4" />}
-            hint="cost_usd × cotação ≠ cost_brl"
+            sub="cost_usd × cotação ≠ cost_brl"
           />
         </div>
 
@@ -356,9 +356,8 @@ function ConnectionAuditPage() {
                     </TableHeader>
                     <TableBody>
                       {logs.map((l) => (
-                        <>
+                        <Fragment key={l.id}>
                           <TableRow
-                            key={l.id}
                             className="cursor-pointer"
                             onClick={() => setOpenLog(openLog === l.id ? null : l.id)}
                           >
@@ -382,7 +381,7 @@ function ConnectionAuditPage() {
                             </TableCell>
                           </TableRow>
                           {openLog === l.id && (
-                            <TableRow key={`${l.id}-detail`}>
+                            <TableRow>
                               <TableCell colSpan={6} className="bg-muted/40">
                                 <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed">
                                   {JSON.stringify(l.metadata ?? {}, null, 2)}
@@ -390,7 +389,7 @@ function ConnectionAuditPage() {
                               </TableCell>
                             </TableRow>
                           )}
-                        </>
+                        </Fragment>
                       ))}
                     </TableBody>
                   </Table>
@@ -423,9 +422,8 @@ function ConnectionAuditPage() {
                       {snapshots.map((s) => {
                         const d = deltas.find((x) => x.id === s.id);
                         return (
-                          <>
+                          <Fragment key={s.id}>
                             <TableRow
-                              key={s.id}
                               className="cursor-pointer"
                               onClick={() => setOpenSnap(openSnap === s.id ? null : s.id)}
                             >
@@ -455,7 +453,7 @@ function ConnectionAuditPage() {
                               <TableCell className="text-right text-xs">{fmtUSD(s.cost_period_usd ?? 0)}</TableCell>
                             </TableRow>
                             {openSnap === s.id && (
-                              <TableRow key={`${s.id}-detail`}>
+                              <TableRow>
                                 <TableCell colSpan={7} className="bg-muted/40">
                                   <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed">
                                     {JSON.stringify(s.raw ?? {}, null, 2)}
@@ -463,7 +461,7 @@ function ConnectionAuditPage() {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </TableBody>
