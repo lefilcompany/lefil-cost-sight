@@ -216,7 +216,7 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
   let usageRows = 0;
   try {
     const histRes = await fetch(
-      "https://api.firecrawl.dev/v2/team/credit-usage-historical?byApiKey=false",
+      "https://api.firecrawl.dev/v2/team/credit-usage/historical?byApiKey=false",
       { headers },
     );
     if (histRes.ok) {
@@ -692,6 +692,18 @@ export async function runBillingSyncForConnection(connectionId: string) {
       };
     } else {
       out = await handler(conn, rate);
+    }
+
+    // Complementa/garante o uso diário a partir do histórico de snapshots
+    // (provedores de plano fixo não expõem histórico diário próprio).
+    try {
+      const derived = await aggregateUsageDailyFromSnapshots(conn.id, rate);
+      if (derived > 0) {
+        out.usage_rows += derived;
+        out.meta = { ...(out.meta ?? {}), usage_daily_from_snapshots: derived };
+      }
+    } catch (err: any) {
+      console.warn("[billing] agregação de uso diário falhou:", err?.message);
     }
 
     await supabaseAdmin
