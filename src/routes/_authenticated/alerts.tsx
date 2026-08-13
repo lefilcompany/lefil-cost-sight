@@ -74,6 +74,10 @@ type AlertRule = {
   channel: string;
   enabled: boolean;
   last_evaluated_at: string | null;
+  muted: boolean | null;
+  snoozed_until: string | null;
+  snooze_reason: string | null;
+  dedupe_window_minutes: number | null;
 };
 
 type AlertEvent = {
@@ -89,6 +93,8 @@ type AlertEvent = {
   scope_label: string | null;
   status: "open" | "acknowledged" | "resolved";
   created_at: string;
+  suppressed_count?: number | null;
+  last_occurred_at?: string | null;
 };
 
 const METRIC_LABEL: Record<string, string> = {
@@ -477,8 +483,39 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant="outline" className="border-border/60 text-muted-foreground">Resolvido</Badge>;
 }
 
+const DEDUPE_OPTIONS = [
+  { value: "0", label: "Sem deduplicação" },
+  { value: "60", label: "1 hora" },
+  { value: "360", label: "6 horas" },
+  { value: "720", label: "12 horas" },
+  { value: "1440", label: "24 horas" },
+  { value: "4320", label: "3 dias" },
+  { value: "10080", label: "7 dias" },
+];
+
+const SNOOZE_OPTIONS = [
+  { minutes: 60, label: "1 hora" },
+  { minutes: 240, label: "4 horas" },
+  { minutes: 1440, label: "24 horas" },
+  { minutes: 10080, label: "7 dias" },
+];
+
+function isSnoozed(rule: AlertRule): boolean {
+  return Boolean(rule.snoozed_until && new Date(rule.snoozed_until).getTime() > Date.now());
+}
+
 function RuleRow({ rule }: { rule: AlertRule }) {
   const qc = useQueryClient();
+  const snoozed = isSnoozed(rule);
+  const muted = Boolean(rule.muted);
+  const patch = useMutation({
+    mutationFn: async (values: Record<string, unknown>) => {
+      const { error } = await supabase.from("cost_alerts").update(values as any).eq("id", rule.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alert-rules"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
   const toggle = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("cost_alerts").update({ enabled: !rule.enabled }).eq("id", rule.id);
@@ -505,6 +542,16 @@ function RuleRow({ rule }: { rule: AlertRule }) {
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate font-display text-sm font-semibold">{rule.name}</p>
           {!rule.enabled && <Badge variant="outline" className="text-[10px]">Desativada</Badge>}
+          {muted && (
+            <Badge variant="secondary" className="gap-1 text-[10px] bg-muted text-muted-foreground">
+              <BellOff className="h-3 w-3" /> Silenciada
+            </Badge>
+          )}
+          {!muted && snoozed && (
+            <Badge variant="secondary" className="gap-1 text-[10px] bg-sky-500/15 text-sky-700 dark:text-sky-300">
+              <BellOff className="h-3 w-3" /> Snooze até {fmtDateTime(rule.snoozed_until!)}
+            </Badge>
+          )}
           {rule.channel && rule.channel !== "in_app" && (
             <Badge variant="secondary" className="text-[10px] capitalize">{CHANNEL_LABEL[rule.channel] ?? rule.channel}</Badge>
           )}
@@ -513,8 +560,60 @@ function RuleRow({ rule }: { rule: AlertRule }) {
           {METRIC_LABEL[rule.metric] ?? rule.metric} · escopo {rule.scope} · {rule.comparison}{" "}
           {isCurrency ? fmtBRL(rule.threshold) : `${rule.threshold}${rule.metric === "variance_pct" ? "%" : rule.metric === "no_sync_days" ? "d" : ""}`}
           {rule.last_evaluated_at && <> · avaliada em {fmtDateTime(rule.last_evaluated_at)}</>}
+          {" · dedupe "}
+          {Number(rule.dedupe_window_minutes ?? 1440) === 0
+            ? "desligado"
+            : (DEDUPE_OPTIONS.find((o) => o.value === String(rule.dedupe_window_minutes ?? 1440))?.label ??
+              `${rule.dedupe_window_minutes}min`)}
         </p>
       </div>
+      <Select
+        value={String(rule.dedupe_window_minutes ?? 1440)}
+        onValueChange={(v) => patch.mutate({ dedupe_window_minutes: Number(v) })}
+      >
+        <SelectTrigger className="h-8 w-[170px] text-xs" title="Janela de deduplicação">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {DEDUPE_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>Dedupe: {o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {snoozed || muted ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1"
+          onClick={() => patch.mutate({ muted: false, snoozed_until: null, snooze_reason: null })}
+        >
+          <BellRing className="h-3.5 w-3.5" /> Reativar
+        </Button>
+      ) : (
+        <Select
+          value=""
+          onValueChange={(v) => {
+            if (v === "mute") {
+              patch.mutate({ muted: true, snooze_reason: "Silenciada manualmente" });
+              toast.success("Regra silenciada");
+              return;
+            }
+            const until = new Date(Date.now() + Number(v) * 60000).toISOString();
+            patch.mutate({ snoozed_until: until, muted: false, snooze_reason: `Snooze de ${v} min` });
+            toast.success("Alertas dessa regra pausados");
+          }}
+        >
+          <SelectTrigger className="h-8 w-[150px] text-xs" title="Silenciar alertas dessa regra">
+            <span className="flex items-center gap-1.5"><BellOff className="h-3.5 w-3.5" /> Silenciar</span>
+          </SelectTrigger>
+          <SelectContent>
+            {SNOOZE_OPTIONS.map((o) => (
+              <SelectItem key={o.minutes} value={String(o.minutes)}>Pausar por {o.label}</SelectItem>
+            ))}
+            <SelectItem value="mute">Silenciar até reativar</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       <Button size="sm" variant="outline" className="h-8" onClick={() => toggle.mutate()}>
         {rule.enabled ? "Desativar" : "Ativar"}
       </Button>
@@ -853,6 +952,11 @@ function EventRow({ ev, onAck, onResolve }: { ev: AlertEvent; onAck: () => void;
             <p className="truncate font-display text-sm font-semibold">{ev.title}</p>
             <StatusBadge status={ev.status} />
             {ev.scope_label && <Badge variant="outline" className="text-[10px]">{ev.scope_label}</Badge>}
+            {Number(ev.suppressed_count ?? 0) > 0 && (
+              <Badge variant="secondary" className="text-[10px]" title="Repetições agrupadas por deduplicação">
+                +{ev.suppressed_count} repetição(ões)
+              </Badge>
+            )}
           </div>
           {ev.message && <p className="mt-0.5 text-xs text-muted-foreground">{ev.message}</p>}
           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -860,6 +964,7 @@ function EventRow({ ev, onAck, onResolve }: { ev: AlertEvent; onAck: () => void;
             {ev.metric_value != null && ev.threshold != null && (
               <> · valor {fmtNumber(ev.metric_value, 1)} / limite {fmtNumber(ev.threshold, 1)}</>
             )}
+            {ev.last_occurred_at && <> · última repetição em {fmtDateTime(ev.last_occurred_at)}</>}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
