@@ -25,7 +25,7 @@ type Rule = {
   name: string;
   metric: string;
   channel: string;
-  is_active: boolean | null;
+  enabled: boolean | null;
 };
 
 type BulkResult = {
@@ -50,7 +50,7 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cost_alerts")
-        .select("id, name, metric, channel, is_active")
+        .select("id, name, metric, channel, enabled")
         .order("name", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Rule[];
@@ -151,7 +151,7 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{r.name}</span>
-                        {r.is_active === false && <Badge variant="outline">inativa</Badge>}
+                        {r.enabled === false && <Badge variant="outline">inativa</Badge>}
                         <Badge variant="secondary">{r.channel}</Badge>
                       </span>
                       <span className="block text-xs text-muted-foreground">{r.metric}</span>
