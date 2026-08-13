@@ -78,9 +78,20 @@ const METRIC_LABEL: Record<string, string> = {
   no_sync_days: "Dias sem sincronização",
 };
 
+const EVENTS_PAGE_SIZE = 20;
+const RULES_PAGE_SIZE = 10;
+
 function AlertsPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "acknowledged" | "resolved">("open");
+  const [severityFilter, setSeverityFilter] = useState<"all" | "info" | "warning" | "critical">("all");
+  const [eventSearch, setEventSearch] = useState("");
+  const [eventPage, setEventPage] = useState(0);
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [ruleMetric, setRuleMetric] = useState("all");
+  const [ruleState, setRuleState] = useState<"all" | "enabled" | "disabled">("all");
+  const [rulePage, setRulePage] = useState(0);
+
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["alert-events"],
