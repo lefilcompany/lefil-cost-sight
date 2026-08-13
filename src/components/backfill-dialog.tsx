@@ -87,6 +87,17 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
     },
   });
 
+  const runningJob = useMemo(
+    () =>
+      jobs.find(
+        (j) =>
+          j.status === "running" &&
+          (j.period_start ?? "") <= end &&
+          (j.period_end ?? "") >= start,
+      ) ?? null,
+    [jobs, start, end],
+  );
+
   const applyPreset = (value: string) => {
     setPreset(value);
     const fn = PRESETS[value];
@@ -96,6 +107,7 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
       setEnd(p.end);
     }
   };
+
 
   const run = useMutation({
     mutationFn: () =>
