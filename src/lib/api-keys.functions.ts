@@ -48,3 +48,74 @@ export const getIntegrationApiKeyEvents = createServerFn({ method: "POST" })
     const { listApiKeyEvents } = await import("./api-keys.server");
     return { events: await listApiKeyEvents(context.supabase, data.id) };
   });
+
+const rotationPolicySchema = z.object({
+  id: z.string().uuid(),
+  autoRotate: z.boolean(),
+  rotateBeforeDays: z.number().int().min(1).max(365),
+  rotationIntervalDays: z.number().int().min(1).max(3650).nullable().optional(),
+});
+
+/** Ativa/atualiza a política de rotação automática de uma chave. */
+export const updateIntegrationApiKeyRotation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => rotationPolicySchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { computeNextRotationAt } = await import("./api-keys-rotation.server");
+    const { data: current, error: readError } = await context.supabase
+      .from("integration_api_keys")
+      .select("id, expires_at")
+      .eq("id", data.id)
+      .single();
+    if (readError) throw new Error(readError.message);
+
+    const { data: updated, error } = await context.supabase
+      .from("integration_api_keys")
+      .update({
+        auto_rotate: data.autoRotate,
+        rotate_before_days: data.rotateBeforeDays,
+        rotation_interval_days: data.rotationIntervalDays ?? null,
+        next_rotation_at: data.autoRotate
+          ? computeNextRotationAt(current.expires_at, data.rotateBeforeDays)
+          : null,
+      })
+      .eq("id", data.id)
+      .select("id, auto_rotate, rotate_before_days, rotation_interval_days, next_rotation_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return { key: updated };
+  });
+
+/** Executa a rotação agendada imediatamente (uma chave ou todas as vencidas). */
+export const runIntegrationApiKeyRotation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid().optional(), force: z.boolean().optional() }).parse(data ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { rotateDueApiKeys } = await import("./api-keys-rotation.server");
+    return rotateDueApiKeys({
+      keyId: data.id,
+      force: data.force ?? Boolean(data.id),
+      initiatedBy: context.userId,
+    });
+  });
+
+/** Revela (uma única vez) o segredo gerado pela última rotação automática. */
+export const revealRotatedApiKeySecret = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: secret, error } = await context.supabase.rpc("reveal_api_key_rotation_secret", {
+      _key_id: data.id,
+    });
+    if (error) throw new Error(error.message);
+    if (!secret) throw new Error("Nenhuma chave rotacionada pendente de leitura");
+    return { secret: secret as string };
+  });

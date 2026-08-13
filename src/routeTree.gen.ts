@@ -45,6 +45,7 @@ import { Route as ApiPublicCronValidateDataRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronSyncMonitorNewsRouteImport } from './routes/api/public/cron/sync-monitor-news'
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
+import { Route as ApiPublicCronRotateApiKeysRouteImport } from './routes/api/public/cron/rotate-api-keys'
 import { Route as ApiPublicCronProcessNotificationsRouteImport } from './routes/api/public/cron/process-notifications'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
 import { Route as ApiPublicCronBackfillUsageRouteImport } from './routes/api/public/cron/backfill-usage'
@@ -243,6 +244,12 @@ const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
   path: '/api/public/cron/sync-all',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronRotateApiKeysRoute =
+  ApiPublicCronRotateApiKeysRouteImport.update({
+    id: '/api/public/cron/rotate-api-keys',
+    path: '/api/public/cron/rotate-api-keys',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronProcessNotificationsRoute =
   ApiPublicCronProcessNotificationsRouteImport.update({
     id: '/api/public/cron/process-notifications',
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
+  '/api/public/cron/rotate-api-keys': typeof ApiPublicCronRotateApiKeysRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -335,6 +343,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
+  '/api/public/cron/rotate-api-keys': typeof ApiPublicCronRotateApiKeysRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -377,6 +386,7 @@ export interface FileRoutesById {
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
+  '/api/public/cron/rotate-api-keys': typeof ApiPublicCronRotateApiKeysRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/process-notifications'
+    | '/api/public/cron/rotate-api-keys'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/process-notifications'
+    | '/api/public/cron/rotate-api-keys'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -500,6 +512,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/process-notifications'
+    | '/api/public/cron/rotate-api-keys'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -521,6 +534,7 @@ export interface RootRouteChildren {
   ApiPublicCronBackfillUsageRoute: typeof ApiPublicCronBackfillUsageRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronProcessNotificationsRoute: typeof ApiPublicCronProcessNotificationsRoute
+  ApiPublicCronRotateApiKeysRoute: typeof ApiPublicCronRotateApiKeysRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
   ApiPublicCronSyncMonitorNewsRoute: typeof ApiPublicCronSyncMonitorNewsRoute
@@ -783,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronSyncAllRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/rotate-api-keys': {
+      id: '/api/public/cron/rotate-api-keys'
+      path: '/api/public/cron/rotate-api-keys'
+      fullPath: '/api/public/cron/rotate-api-keys'
+      preLoaderRoute: typeof ApiPublicCronRotateApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/process-notifications': {
       id: '/api/public/cron/process-notifications'
       path: '/api/public/cron/process-notifications'
@@ -882,6 +903,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronProcessNotificationsRoute:
     ApiPublicCronProcessNotificationsRoute,
+  ApiPublicCronRotateApiKeysRoute: ApiPublicCronRotateApiKeysRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
   ApiPublicCronSyncMonitorNewsRoute: ApiPublicCronSyncMonitorNewsRoute,

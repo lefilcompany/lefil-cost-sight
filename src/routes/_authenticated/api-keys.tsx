@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Check, Copy, History, KeyRound, Plus, RefreshCw, ShieldOff } from "lucide-react";
+import { Check, Copy, Eye, History, KeyRound, Plus, RefreshCw, ShieldOff, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -27,9 +27,13 @@ import { fmtDateTime } from "@/lib/format";
 import {
   createIntegrationApiKey,
   getIntegrationApiKeyEvents,
+  revealRotatedApiKeySecret,
   revokeIntegrationApiKey,
   rotateIntegrationApiKey,
+  runIntegrationApiKeyRotation,
+  updateIntegrationApiKeyRotation,
 } from "@/lib/api-keys.functions";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/api-keys")({
   head: () => ({
@@ -71,6 +75,13 @@ type ApiKey = {
   expires_at: string | null;
   last_used_at: string | null;
   created_at: string;
+  auto_rotate: boolean;
+  rotate_before_days: number;
+  rotation_interval_days: number | null;
+  last_rotated_at: string | null;
+  rotation_count: number;
+  next_rotation_at: string | null;
+  pending_secret_at: string | null;
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -78,6 +89,7 @@ const ACTION_LABELS: Record<string, string> = {
   "api_key.rotated": "Chave rotacionada",
   "api_key.revoked": "Chave revogada",
   "api_key.used": "Chave utilizada",
+  "api_key.auto_rotated": "Rotação automática executada",
 };
 
 function isExpired(key: ApiKey) {
@@ -185,6 +197,133 @@ function HistoryDialog({ keyId, onClose }: { keyId: string | null; onClose: () =
   );
 }
 
+function RotationDialog({
+  apiKey,
+  onClose,
+  onSaved,
+}: {
+  apiKey: ApiKey | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [enabled, setEnabled] = useState(false);
+  const [beforeDays, setBeforeDays] = useState("7");
+  const [intervalDays, setIntervalDays] = useState("");
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  if (apiKey && loadedFor !== apiKey.id) {
+    setLoadedFor(apiKey.id);
+    setEnabled(apiKey.auto_rotate);
+    setBeforeDays(String(apiKey.rotate_before_days ?? 7));
+    setIntervalDays(apiKey.rotation_interval_days ? String(apiKey.rotation_interval_days) : "");
+  }
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateIntegrationApiKeyRotation({
+        data: {
+          id: apiKey!.id,
+          autoRotate: enabled,
+          rotateBeforeDays: Math.max(1, Number(beforeDays) || 7),
+          rotationIntervalDays: intervalDays ? Number(intervalDays) : null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(enabled ? "Rotação automática ativada" : "Rotação automática desativada");
+      onSaved();
+    },
+    onError: (error: Error) => toast.error(error.message || "Falha ao salvar política"),
+  });
+
+  const runNow = useMutation({
+    mutationFn: () => runIntegrationApiKeyRotation({ data: { id: apiKey!.id, force: true } }),
+    onSuccess: (result: any) => {
+      if (result?.rotated) {
+        toast.success("Chave rotacionada. Use \u201cRevelar nova chave\u201d para copiar o novo valor.");
+      } else {
+        toast.warning(
+          result?.results?.[0]?.message ??
+            "Nada rotacionado: ative a rotação automática e defina uma data de expiração.",
+        );
+      }
+      onSaved();
+    },
+    onError: (error: Error) => toast.error(error.message || "Falha ao rotacionar agora"),
+  });
+
+  return (
+    <Dialog open={Boolean(apiKey)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col">
+        <DialogHeader>
+          <DialogTitle>Rotação automática</DialogTitle>
+          <DialogDescription>
+            A chave é regenerada automaticamente antes de expirar. O novo valor fica guardado com segurança
+            e pode ser revelado uma única vez por um administrador.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <label className="flex items-start justify-between gap-3 rounded-lg border p-3">
+            <span className="text-sm">
+              <span className="font-medium">Rotacionar automaticamente</span>
+              <span className="block text-xs text-muted-foreground">
+                Requer data de expiração definida na chave.
+              </span>
+            </span>
+            <Switch checked={enabled} onCheckedChange={setEnabled} />
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="rot-before">Antecedência (dias)</Label>
+              <Input
+                id="rot-before"
+                type="number"
+                min={1}
+                value={beforeDays}
+                onChange={(event) => setBeforeDays(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rot-interval">Nova validade (dias)</Label>
+              <Input
+                id="rot-interval"
+                type="number"
+                min={1}
+                value={intervalDays}
+                onChange={(event) => setIntervalDays(event.target.value)}
+                placeholder="Manter validade atual"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+            {apiKey?.expires_at
+              ? `Expira em ${fmtDateTime(apiKey.expires_at)}. ${
+                  apiKey.next_rotation_at
+                    ? `Rotação prevista para ${fmtDateTime(apiKey.next_rotation_at)}.`
+                    : "A rotação prevista será calculada ao salvar."
+                }`
+              : "Esta chave não possui data de expiração — a rotação automática não será executada."}
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={runNow.isPending || !apiKey}
+            onClick={() => runNow.mutate()}
+          >
+            <RefreshCw className="h-4 w-4" /> Rotacionar agora
+          </Button>
+          <Button disabled={save.isPending || !apiKey} onClick={() => save.mutate()}>
+            Salvar política
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ApiKeysPage() {
   const queryClient = useQueryClient();
   const [secret, setSecret] = useState<{ value: string; title: string } | null>(null);
@@ -192,6 +331,7 @@ function ApiKeysPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState<ApiKey | null>(null);
   const [confirmRotate, setConfirmRotate] = useState<ApiKey | null>(null);
+  const [rotationKey, setRotationKey] = useState<ApiKey | null>(null);
 
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState("production");
@@ -204,7 +344,7 @@ function ApiKeysPage() {
       const { data, error } = await supabase
         .from("integration_api_keys")
         .select(
-          "id, name, key_prefix, permissions, environment, status, expires_at, last_used_at, created_at",
+          "id, name, key_prefix, permissions, environment, status, expires_at, last_used_at, created_at, auto_rotate, rotate_before_days, rotation_interval_days, last_rotated_at, rotation_count, next_rotation_at, pending_secret_at",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -224,7 +364,8 @@ function ApiKeysPage() {
         new Date(k.expires_at).getTime() - Date.now() < 30 * 86_400_000 &&
         !isExpired(k),
     ).length;
-    return { total: keys.length, active, revoked, expiring };
+    const autoRotate = keys.filter((k) => k.auto_rotate && k.status === "active").length;
+    return { total: keys.length, active, revoked, expiring, autoRotate };
   }, [keys]);
 
   const invalidate = () => {
@@ -261,6 +402,15 @@ function ApiKeysPage() {
     onError: (error: Error) => toast.error(error.message || "Falha ao rotacionar chave"),
   });
 
+  const reveal = useMutation({
+    mutationFn: (id: string) => revealRotatedApiKeySecret({ data: { id } }),
+    onSuccess: (result) => {
+      setSecret({ value: result.secret, title: "Chave gerada pela rotação automática" });
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message || "Falha ao revelar chave"),
+  });
+
   const revoke = useMutation({
     mutationFn: (id: string) => revokeIntegrationApiKey({ data: { id } }),
     onSuccess: () => {
@@ -290,6 +440,7 @@ function ApiKeysPage() {
           <KpiCard label="Total" value={String(kpis.total)} />
           <KpiCard label="Ativas" value={String(kpis.active)} tone="good" />
           <KpiCard label="Expirando em 30d" value={String(kpis.expiring)} tone={kpis.expiring ? "warn" : "neutral"} />
+          <KpiCard label="Rotação automática" value={String(kpis.autoRotate)} tone={kpis.autoRotate ? "good" : "neutral"} />
           <KpiCard label="Revogadas" value={String(kpis.revoked)} tone={kpis.revoked ? "bad" : "neutral"} />
         </div>
 
@@ -318,6 +469,7 @@ function ApiKeysPage() {
                       <TableHead>Permissões</TableHead>
                       <TableHead>Último uso</TableHead>
                       <TableHead>Expira</TableHead>
+                      <TableHead>Rotação automática</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -345,9 +497,50 @@ function ApiKeysPage() {
                         <TableCell className="text-xs text-muted-foreground">
                           {key.expires_at ? fmtDateTime(key.expires_at) : "Sem expiração"}
                         </TableCell>
+                        <TableCell className="text-xs">
+                          {key.auto_rotate ? (
+                            <div className="space-y-0.5">
+                              <Badge className="bg-primary/10 text-primary">
+                                {key.rotate_before_days}d antes
+                              </Badge>
+                              <div className="text-muted-foreground">
+                                {key.next_rotation_at
+                                  ? `Próxima: ${fmtDateTime(key.next_rotation_at)}`
+                                  : "Sem expiração definida"}
+                              </div>
+                              {key.rotation_count ? (
+                                <div className="text-muted-foreground">
+                                  {key.rotation_count} rotação(ões) · última {key.last_rotated_at ? fmtDateTime(key.last_rotated_at) : "—"}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">Desativada</span>
+                          )}
+                        </TableCell>
                         <TableCell>{statusBadge(key)}</TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
+                            {key.pending_secret_at ? (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="gap-1"
+                                disabled={reveal.isPending}
+                                onClick={() => reveal.mutate(key.id)}
+                              >
+                                <Eye className="h-3.5 w-3.5" /> Revelar nova chave
+                              </Button>
+                            ) : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
+                              disabled={key.status === "revoked"}
+                              onClick={() => setRotationKey(key)}
+                            >
+                              <Timer className="h-3.5 w-3.5" /> Rotação automática
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => setHistoryId(key.id)} className="gap-1">
                               <History className="h-3.5 w-3.5" /> Histórico
                             </Button>
@@ -380,6 +573,15 @@ function ApiKeysPage() {
           </CardContent>
         </Card>
       </div>
+
+      <RotationDialog
+        apiKey={rotationKey}
+        onClose={() => setRotationKey(null)}
+        onSaved={() => {
+          setRotationKey(null);
+          invalidate();
+        }}
+      />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="flex max-h-[90vh] max-w-lg flex-col">
