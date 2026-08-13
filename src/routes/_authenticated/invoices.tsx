@@ -52,8 +52,15 @@ function statusClass(status: string) {
   return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
 }
 
+const PAGE_SIZE = 25;
+
 function InvoicesPage() {
   const [status, setStatus] = useState("all");
+  const [provider, setProvider] = useState("all");
+  const [month, setMonth] = useState("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["invoices-page"],
     queryFn: async () => {
@@ -83,10 +90,58 @@ function InvoicesPage() {
     };
   }, [invoices]);
 
-  const filtered = useMemo(
-    () => (status === "all" ? invoices : invoices.filter((invoice) => invoice.status.toLowerCase() === status)),
-    [invoices, status],
-  );
+  const providerOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of invoices) if (i.providers?.name) set.add(i.providers.name);
+    return Array.from(set).sort();
+  }, [invoices]);
+
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of invoices) {
+      const ref = i.period_start ?? i.issued_at;
+      if (ref) set.add(ref.slice(0, 7));
+    }
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return invoices.filter((invoice) => {
+      if (status !== "all" && invoice.status.toLowerCase() !== status) return false;
+      if (provider !== "all" && invoice.providers?.name !== provider) return false;
+      if (month !== "all") {
+        const ref = invoice.period_start ?? invoice.issued_at;
+        if (!ref || ref.slice(0, 7) !== month) return false;
+      }
+      if (term) {
+        const hay = [
+          invoice.invoice_number,
+          invoice.providers?.name,
+          invoice.platforms?.name,
+          invoice.source,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [invoices, status, provider, month, search]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageRows = filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
+  const filteredTotal = filtered.reduce((sum, i) => sum + Number(i.amount_brl ?? 0), 0);
+
+  function resetPage<T>(setter: (v: T) => void) {
+    return (v: T) => {
+      setter(v);
+      setPage(0);
+    };
+  }
+
 
   return (
     <AppShell
