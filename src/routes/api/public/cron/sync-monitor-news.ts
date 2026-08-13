@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { authorizeCronRequest } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/cron/sync-monitor-news")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const denied = await authorizeCronRequest(request);
+        if (denied) return denied;
+
         try {
           const { syncMonitorNews } = await import("@/lib/monitor-news.server");
           const result = await syncMonitorNews("cron");
