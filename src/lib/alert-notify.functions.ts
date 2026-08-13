@@ -98,7 +98,7 @@ export const sendBulkTestAlertNotifications = createServerFn({ method: "POST" })
         const res = await notifyAlert({
           ruleId: r.id,
           ruleName: r.name,
-          channel: r.channel,
+          channel: data.targets.length > 0 ? data.targets.join("_") : r.channel,
           severity: "info",
           title: `[TESTE] ${r.name}`,
           message: `Envio de teste da regra "${r.name}". ${sample.message}`,
