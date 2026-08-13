@@ -255,6 +255,48 @@ function BillingPage() {
     },
   });
 
+  const INV_PAGE_SIZE = 20;
+  const [invSearch, setInvSearch] = useState("");
+  const [invStatus, setInvStatus] = useState("all");
+  const [invProvider, setInvProvider] = useState("all");
+  const [invMonth, setInvMonth] = useState("all");
+  const [invPage, setInvPage] = useState(0);
+
+  const invStatusOptions = useMemo(
+    () => Array.from(new Set(invoices.map((i) => i.status).filter(Boolean))).sort(),
+    [invoices],
+  );
+  const invMonthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of invoices) {
+      const ref = i.period_start ?? i.issued_at;
+      if (ref) set.add(ref.slice(0, 7));
+    }
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
+  const filteredInvoices = useMemo(() => {
+    const term = invSearch.trim().toLowerCase();
+    return invoices.filter((i) => {
+      if (invStatus !== "all" && i.status !== invStatus) return false;
+      if (invProvider !== "all" && i.provider_id !== invProvider) return false;
+      if (invMonth !== "all") {
+        const ref = i.period_start ?? i.issued_at;
+        if (!ref || ref.slice(0, 7) !== invMonth) return false;
+      }
+      if (term) {
+        const hay = [i.invoice_number, i.providers?.name, i.source, i.notes].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [invoices, invSearch, invStatus, invProvider, invMonth]);
+
+  const invPageCount = Math.max(1, Math.ceil(filteredInvoices.length / INV_PAGE_SIZE));
+  const currentInvPage = Math.min(invPage, invPageCount - 1);
+  const invRows = filteredInvoices.slice(currentInvPage * INV_PAGE_SIZE, currentInvPage * INV_PAGE_SIZE + INV_PAGE_SIZE);
+
+
   const syncOneM = useMutation({
     mutationFn: async (connection_id: string) => syncOne({ data: { connection_id } }),
     onSuccess: (r: any) => {
@@ -452,12 +494,70 @@ function BillingPage() {
         <TabsContent value="invoices">
           <Card className="surface-elevated">
             <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   Faturas dos provedores (importadas via API ou cadastradas manualmente).
                 </p>
                 <ManualInvoiceDialog providers={providers} onSaved={() => qc.invalidateQueries({ queryKey: ["billing-invoices"] })} />
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="Buscar nº, fornecedor, origem..."
+                  value={invSearch}
+                  onChange={(e) => {
+                    setInvSearch(e.target.value);
+                    setInvPage(0);
+                  }}
+                  className="h-8 w-full sm:w-[240px] text-sm"
+                />
+                <Select
+                  value={invProvider}
+                  onValueChange={(v) => {
+                    setInvProvider(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[180px] text-sm"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os fornecedores</SelectItem>
+                    {providers.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={invStatus}
+                  onValueChange={(v) => {
+                    setInvStatus(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    {invStatusOptions.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={invMonth}
+                  onValueChange={(v) => {
+                    setInvMonth(v);
+                    setInvPage(0);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-sm"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os ciclos</SelectItem>
+                    {invMonthOptions.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="ml-auto text-xs text-muted-foreground">{filteredInvoices.length} fatura(s)</span>
+              </div>
+
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <Table>
                   <TableHeader>
@@ -477,10 +577,12 @@ function BillingPage() {
                     {loadingInv && (
                       <TableRow><TableCell colSpan={9} className="p-0"><LoadingState label="Carregando faturas..." /></TableCell></TableRow>
                     )}
-                    {!loadingInv && invoices.length === 0 && (
-                      <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">Nenhuma fatura cadastrada.</TableCell></TableRow>
+                    {!loadingInv && filteredInvoices.length === 0 && (
+                      <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                        {invoices.length === 0 ? "Nenhuma fatura cadastrada." : "Nenhuma fatura para os filtros aplicados."}
+                      </TableCell></TableRow>
                     )}
-                    {invoices.map((i) => (
+                    {invRows.map((i) => (
                       <TableRow key={i.id} className="border-border/50">
                         <TableCell className="whitespace-nowrap text-sm">{i.issued_at ?? "—"}</TableCell>
                         <TableCell className="text-sm">{i.providers?.name ?? "—"}</TableCell>
@@ -502,6 +604,22 @@ function BillingPage() {
                   </TableBody>
                 </Table>
               </div>
+              {invPageCount > 1 && (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="mr-auto text-xs text-muted-foreground">
+                    {currentInvPage * INV_PAGE_SIZE + 1}–
+                    {Math.min((currentInvPage + 1) * INV_PAGE_SIZE, filteredInvoices.length)} de {filteredInvoices.length}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={currentInvPage === 0} onClick={() => setInvPage((p) => Math.max(0, p - 1))}>
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Página {currentInvPage + 1} de {invPageCount}</span>
+                  <Button variant="outline" size="sm" disabled={currentInvPage + 1 >= invPageCount} onClick={() => setInvPage((p) => p + 1)}>
+                    Próxima
+                  </Button>
+                </div>
+              )}
+
             </CardContent>
           </Card>
         </TabsContent>
