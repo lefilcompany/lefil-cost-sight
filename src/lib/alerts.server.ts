@@ -1,5 +1,7 @@
 // Server-only alert evaluation. Uses supabaseAdmin.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { notifyAlert, periodLabelFor } from "@/lib/alert-notify.server";
+
 
 type Alert = {
   id: string;
@@ -152,8 +154,21 @@ export async function evaluateAlerts(): Promise<EvalResult> {
             scope_id: s.id,
             scope_label: s.name,
           });
+          await notifyAlert({
+            ruleId: a.id,
+            ruleName: a.name,
+            channel: a.channel,
+            severity: "warning",
+            title: `${a.name} — ${s.name}`,
+            message: `Plataforma "${s.name}" não sincroniza há ${Math.floor(s.days)} dias.`,
+            metricValue: s.days,
+            threshold: Number(a.threshold),
+            scopeLabel: s.name,
+            periodLabel: periodLabelFor("no_sync_days", { days: s.days }),
+          });
           events.push({ alert_id: a.id, title: s.name, value: s.days });
         }
+
         await supabaseAdmin.from("cost_alerts").update({ last_evaluated_at: new Date().toISOString() }).eq("id", a.id);
         continue;
       }
@@ -176,7 +191,26 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         scope_id: a.scope_id,
         scope_label: scopeLabel,
       });
+
+      const periodStart =
+        a.metric === "daily_cost" ? iso(todayStart) : a.metric === "variance_pct" ? iso(prevStart) : iso(monthStart);
+      const periodEnd = iso(now);
+      await notifyAlert({
+        ruleId: a.id,
+        ruleName: a.name,
+        channel: a.channel,
+        severity,
+        title: `${a.name} — ${scopeLabel}`,
+        message,
+        metricValue: value,
+        threshold: Number(a.threshold),
+        scopeLabel,
+        periodLabel: periodLabelFor(a.metric, { start: periodStart, end: periodEnd }),
+        periodStart,
+        periodEnd,
+      });
       events.push({ alert_id: a.id, title, value });
+
     } catch (err: any) {
       console.error(`[alerts] failed to evaluate ${a.id}:`, err?.message ?? err);
     }

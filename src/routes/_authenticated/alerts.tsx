@@ -14,11 +14,18 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
+  Send,
+  BellRing,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { explainAlert } from "@/lib/gemini-ai.functions";
 import { runDataQualityCheck } from "@/lib/data-quality.functions";
+import {
+  getAlertNotificationSettings,
+  saveAlertNotificationSettings,
+  sendTestAlertNotification,
+} from "@/lib/alert-notify.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,16 +152,26 @@ function AlertsPage() {
   const currentEventPage = Math.min(eventPage, eventPageCount - 1);
   const eventRows = filtered.slice(currentEventPage * EVENTS_PAGE_SIZE, currentEventPage * EVENTS_PAGE_SIZE + EVENTS_PAGE_SIZE);
 
+  // Link vindo da notificação: /alerts?rule=<id> foca a regra correspondente.
+  const [focusRuleId, setFocusRuleId] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("rule");
+    if (id && id !== "teste") setFocusRuleId(id);
+  }, []);
+
   const filteredRules = useMemo(() => {
     const term = ruleSearch.trim().toLowerCase();
     return rules.filter((r) => {
+      if (focusRuleId && r.id !== focusRuleId) return false;
       if (ruleMetric !== "all" && r.metric !== ruleMetric) return false;
       if (ruleState === "enabled" && !r.enabled) return false;
       if (ruleState === "disabled" && r.enabled) return false;
       if (term && !`${r.name} ${r.scope} ${r.metric}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [rules, ruleSearch, ruleMetric, ruleState]);
+  }, [rules, ruleSearch, ruleMetric, ruleState, focusRuleId]);
+
 
   const rulePageCount = Math.max(1, Math.ceil(filteredRules.length / RULES_PAGE_SIZE));
   const currentRulePage = Math.min(rulePage, rulePageCount - 1);
@@ -232,6 +249,7 @@ function AlertsPage() {
           <Button variant="outline" size="sm" onClick={() => evaluateNow.mutate()} disabled={evaluateNow.isPending} className="gap-1.5">
             <Radio className="h-3.5 w-3.5" /> {evaluateNow.isPending ? "Avaliando..." : "Avaliar agora"}
           </Button>
+          <NotificationSettingsDialog />
           <NewRuleDialog />
         </div>
       }
@@ -337,7 +355,16 @@ function AlertsPage() {
               </div>
               <span className="text-xs text-muted-foreground">{filteredRules.length} regra(s)</span>
             </div>
+            {focusRuleId && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs">
+                <span>Exibindo apenas a regra indicada na notificação.</span>
+                <Button size="sm" variant="outline" className="h-7" onClick={() => setFocusRuleId(null)}>
+                  Ver todas
+                </Button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
+
               <Input
                 placeholder="Buscar regra..."
                 value={ruleSearch}
@@ -413,6 +440,14 @@ function AlertsPage() {
   );
 }
 
+const CHANNEL_LABEL: Record<string, string> = {
+  in_app: "No app",
+  slack: "Slack",
+  email: "E-mail",
+  slack_email: "Slack + e-mail",
+  all: "Todos os canais",
+};
+
 function SeverityDot({ severity }: { severity: string }) {
   const cls =
     severity === "critical"
@@ -457,6 +492,9 @@ function RuleRow({ rule }: { rule: AlertRule }) {
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate font-display text-sm font-semibold">{rule.name}</p>
           {!rule.enabled && <Badge variant="outline" className="text-[10px]">Desativada</Badge>}
+          {rule.channel && rule.channel !== "in_app" && (
+            <Badge variant="secondary" className="text-[10px] capitalize">{CHANNEL_LABEL[rule.channel] ?? rule.channel}</Badge>
+          )}
         </div>
         <p className="text-[11px] text-muted-foreground">
           {METRIC_LABEL[rule.metric] ?? rule.metric} · escopo {rule.scope} · {rule.comparison}{" "}
@@ -474,6 +512,85 @@ function RuleRow({ rule }: { rule: AlertRule }) {
   );
 }
 
+function NotificationSettingsDialog() {
+  const [open, setOpen] = useState(false);
+  const [emails, setEmails] = useState("");
+  const loadSettings = useServerFn(getAlertNotificationSettings);
+  const save = useServerFn(saveAlertNotificationSettings);
+  const test = useServerFn(sendTestAlertNotification);
+
+  const settings = useQuery({
+    queryKey: ["alert-notification-settings"],
+    queryFn: async () => (await loadSettings()) as { emails: string[]; slack_configured: boolean },
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (settings.data) setEmails(settings.data.emails.join(", "));
+  }, [settings.data]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => await save({ data: { emails: emails.split(/[,;\n]/) } }),
+    onSuccess: (res: any) => toast.success(`Destinatários salvos (${res?.emails?.length ?? 0})`),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar"),
+  });
+
+  const testMut = useMutation({
+    mutationFn: async () => (await test()) as { slack: string; email: string },
+    onSuccess: (res) =>
+      toast.success(`Teste enviado — Slack: ${res.slack}, e-mail: ${res.email}`),
+    onError: (e: any) => toast.error(e?.message ?? "Falha no envio de teste"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <BellRing className="h-3.5 w-3.5" /> Notificações
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display">Notificações de alertas</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Destinatários de e-mail</label>
+            <textarea
+              className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="financeiro@lefil.com.br, ops@lefil.com.br"
+              value={emails}
+              onChange={(e) => setEmails(e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Separe por vírgula. Cada alerta enviado inclui a regra, o período afetado e o link direto.
+            </p>
+          </div>
+          <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+            Slack:{" "}
+            {settings.data?.slack_configured ? (
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">webhook configurado</span>
+            ) : (
+              <span className="text-muted-foreground">
+                sem webhook — adicione o segredo SLACK_WEBHOOK_URL para ativar o canal Slack.
+              </span>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+              {testMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Enviar teste
+            </Button>
+            <Button size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              {saveMut.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function NewRuleDialog() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -483,6 +600,7 @@ function NewRuleDialog() {
     metric: "monthly_cost" as AlertRule["metric"],
     comparison: ">" as AlertRule["comparison"],
     threshold: 1000,
+    channel: "in_app",
   });
 
   const create = useMutation({
@@ -494,7 +612,7 @@ function NewRuleDialog() {
         metric: form.metric,
         comparison: form.comparison,
         threshold: Number(form.threshold),
-        channel: "in_app",
+        channel: form.channel,
         enabled: true,
       });
       if (error) throw error;
@@ -503,7 +621,7 @@ function NewRuleDialog() {
       toast.success("Regra criada");
       qc.invalidateQueries({ queryKey: ["alert-rules"] });
       setOpen(false);
-      setForm({ name: "", scope: "global", metric: "monthly_cost", comparison: ">", threshold: 1000 });
+      setForm({ name: "", scope: "global", metric: "monthly_cost", comparison: ">", threshold: 1000, channel: "in_app" });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -569,6 +687,22 @@ function NewRuleDialog() {
             <label className="text-xs font-medium text-muted-foreground">Limite</label>
             <Input type="number" step="any" value={form.threshold} onChange={(e) => setForm({ ...form, threshold: Number(e.target.value) })} />
           </div>
+          <div className="col-span-2 space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Notificações</label>
+            <Select value={form.channel} onValueChange={(v) => setForm({ ...form, channel: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_app">Somente no app</SelectItem>
+                <SelectItem value="slack">No app + Slack</SelectItem>
+                <SelectItem value="email">No app + e-mail</SelectItem>
+                <SelectItem value="slack_email">No app + Slack + e-mail</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              A notificação inclui o link da regra e o período afetado. Configure os destinatários em “Notificações”.
+            </p>
+          </div>
+
           <DialogFooter className="col-span-2 mt-2">
             <Button type="submit" disabled={create.isPending}>{create.isPending ? "Criando..." : "Criar regra"}</Button>
           </DialogFooter>
