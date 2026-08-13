@@ -41,7 +41,7 @@ async function writeAudit(input: {
   userId: string;
   action: string;
   entityId: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null | string[]>;
 }) {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -51,7 +51,7 @@ async function writeAudit(input: {
       action: input.action,
       entity_type: "integration_api_key",
       entity_id: input.entityId,
-      metadata: input.metadata,
+      metadata: input.metadata as never,
     });
   } catch {
     // auditoria é best-effort: nunca deve bloquear a operação
