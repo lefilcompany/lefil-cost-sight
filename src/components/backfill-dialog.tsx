@@ -307,9 +307,14 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Fechar
           </Button>
-          <Button onClick={() => run.mutate()} disabled={run.isPending || !start || !end} className="gap-2">
+          <Button
+            onClick={() => run.mutate()}
+            disabled={run.isPending || !start || !end || Boolean(runningJob)}
+            className="gap-2"
+          >
             {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-            Executar backfill
+            {runningJob ? "Backfill em execução" : "Executar backfill"}
+
           </Button>
         </DialogFooter>
       </DialogContent>
