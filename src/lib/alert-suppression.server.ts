@@ -111,6 +111,6 @@ export async function updateRuleSuppression(args: {
   }
   if (args.reason !== undefined) patch["snooze_reason"] = args.reason;
   if (Object.keys(patch).length === 0) return;
-  const { error } = await supabaseAdmin.from("cost_alerts").update(patch).eq("id", args.ruleId);
+  const { error } = await supabaseAdmin.from("cost_alerts").update(patch as any).eq("id", args.ruleId);
   if (error) throw new Error(error.message);
 }
