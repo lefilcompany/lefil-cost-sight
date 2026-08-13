@@ -34,6 +34,17 @@ export type BackfillResult = {
 
 const DAY = 86_400_000;
 
+/** Quantos meses (1-12) a reconciliação precisa cobrir para incluir o período reprocessado. */
+function monthsBetween(periodStart: string, periodEnd: string) {
+  const now = new Date();
+  const [ys, ms] = periodStart.slice(0, 7).split("-").map(Number);
+  const spanFromStart = (now.getUTCFullYear() - (ys ?? now.getUTCFullYear())) * 12 + (now.getUTCMonth() + 1 - (ms ?? 1)) + 1;
+  const [ye, me] = periodEnd.slice(0, 7).split("-").map(Number);
+  const spanFromEnd = (now.getUTCFullYear() - (ye ?? now.getUTCFullYear())) * 12 + (now.getUTCMonth() + 1 - (me ?? 1)) + 1;
+  return Math.min(12, Math.max(1, spanFromStart, spanFromEnd));
+}
+
+
 /** Tempo máximo que um job de backfill pode ficar "running" antes de ser considerado travado. */
 const STALE_BACKFILL_MINUTES = 30;
 
