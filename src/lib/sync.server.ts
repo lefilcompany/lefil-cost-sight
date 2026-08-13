@@ -45,20 +45,25 @@ async function syncFirecrawl(conn: any, rate: number): Promise<SyncOutcome> {
   const [credits, tokens, creditsHist, tokensHist] = await Promise.all([
     fcFetch("/team/credit-usage", key).catch((e) => ({ error: String(e?.message ?? e) })),
     fcFetch("/team/token-usage", key).catch((e) => ({ error: String(e?.message ?? e) })),
-    fcFetch("/team/credit-usage/historical?byApiKey=true", key).catch((e) => ({ error: String(e?.message ?? e) })),
-    fcFetch("/team/token-usage/historical?byApiKey=true", key).catch((e) => ({ error: String(e?.message ?? e) })),
+    fcFetch("/team/credit-usage/historical", key).catch((e) => ({ error: String(e?.message ?? e) })),
+    fcFetch("/team/token-usage/historical", key).catch((e) => ({ error: String(e?.message ?? e) })),
   ]);
 
   const cData = credits?.data ?? {};
   const tData = tokens?.data ?? {};
-  const remainingCredits = Number(cData.remaining_credits ?? cData.remainingCredits ?? 0);
-  const totalCredits = Number(cData.plan_credits ?? cData.planCredits ?? 0);
-  const usedCredits = Math.max(0, totalCredits - remainingCredits);
-  const remainingTokens = Number(tData.remaining_tokens ?? tData.remainingTokens ?? 0);
-  const totalTokens = Number(tData.plan_tokens ?? tData.planTokens ?? 0);
-  const usedTokens = Math.max(0, totalTokens - remainingTokens);
-  const billingPeriodStart = cData.billing_period_start ?? cData.billingPeriodStart ?? null;
-  const billingPeriodEnd = cData.billing_period_end ?? cData.billingPeriodEnd ?? null;
+  // Campos reais da API v2: remainingCredits / planCredits e periods[].creditsUsed.
+  const remainingCredits = Number(cData.remainingCredits ?? cData.remaining_credits ?? 0);
+  const totalCredits = Number(cData.planCredits ?? cData.plan_credits ?? 0);
+  const remainingTokens = Number(tData.remainingTokens ?? tData.remaining_tokens ?? 0);
+  const totalTokens = Number(tData.planTokens ?? tData.plan_tokens ?? 0);
+  const billingPeriodStart = cData.billingPeriodStart ?? cData.billing_period_start ?? null;
+  const billingPeriodEnd = cData.billingPeriodEnd ?? cData.billing_period_end ?? null;
+  // O consumo real vem do histórico (o saldo pode exceder o plano por rollover).
+  const usedCredits =
+    latestPeriodUsage(creditsHist, "creditsUsed") ?? Math.max(0, totalCredits - remainingCredits);
+  const usedTokens =
+    latestPeriodUsage(tokensHist, "tokensUsed") ?? Math.max(0, totalTokens - remainingTokens);
+
 
   const now = new Date();
   const start = billingPeriodStart ? new Date(billingPeriodStart) : new Date(now.getFullYear(), now.getMonth(), 1);
