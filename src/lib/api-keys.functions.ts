@@ -141,3 +141,17 @@ export const revealRotatedApiKeySecret = createServerFn({ method: "POST" })
     if (!secret) throw new Error("Nenhuma chave rotacionada pendente de leitura");
     return { secret: secret as string };
   });
+
+const metricsSchema = z.object({
+  id: z.string().uuid(),
+  days: z.number().int().min(7).max(90).optional(),
+});
+
+/** Métricas de uso da chave: solicitações por dia e custo estimado. */
+export const getIntegrationApiKeyMetrics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => metricsSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { getApiKeyMetrics } = await import("./api-keys-metrics.server");
+    return getApiKeyMetrics(context.supabase, data.id, data.days ?? 30);
+  });
