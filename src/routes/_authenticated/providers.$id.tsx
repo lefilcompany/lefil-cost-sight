@@ -494,7 +494,13 @@ function ProviderDetailPage() {
                       <TableCell className="text-xs text-muted-foreground">{relTime(c.last_sync_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button asChild size="sm" variant="ghost" className="h-8 gap-1" title="Auditar cálculos">
+                            <Link to="/connections/$id" params={{ id: c.id }}>
+                              <BookOpen className="h-3.5 w-3.5" /> Auditar
+                            </Link>
+                          </Button>
                           <Button
+
                             size="sm"
                             variant="ghost"
                             className="h-8 gap-1"
