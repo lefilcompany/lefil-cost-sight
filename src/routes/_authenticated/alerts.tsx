@@ -27,6 +27,14 @@ import {
   sendTestAlertNotification,
 } from "@/lib/alert-notify.functions";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  buildEmailContent,
+  sampleNotification,
+  severityEmoji,
+  fmtBRLNotify,
+} from "@/lib/alert-notify-format";
+
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -515,6 +523,8 @@ function RuleRow({ rule }: { rule: AlertRule }) {
 function NotificationSettingsDialog() {
   const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState("");
+  const [previewMetric, setPreviewMetric] = useState("monthly_cost");
+  const [previewTab, setPreviewTab] = useState("slack");
   const loadSettings = useServerFn(getAlertNotificationSettings);
   const save = useServerFn(saveAlertNotificationSettings);
   const test = useServerFn(sendTestAlertNotification);
@@ -534,6 +544,13 @@ function NotificationSettingsDialog() {
     onSuccess: (res: any) => toast.success(`Destinatários salvos (${res?.emails?.length ?? 0})`),
     onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar"),
   });
+
+  const preview = useMemo(() => {
+    const sample = sampleNotification(previewMetric);
+    const origin = typeof window === "undefined" ? "" : window.location.origin;
+    const ruleUrl = `${origin}/alerts?rule=${encodeURIComponent(sample.ruleId)}`;
+    return { sample, ruleUrl, email: buildEmailContent(sample, ruleUrl) };
+  }, [previewMetric]);
 
   const testMut = useMutation({
     mutationFn: async () => (await test()) as { slack: string; email: string },
@@ -567,6 +584,7 @@ function NotificationSettingsDialog() {
             </p>
           </div>
           <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+
             Slack:{" "}
             {settings.data?.slack_configured ? (
               <span className="font-medium text-emerald-600 dark:text-emerald-400">webhook configurado</span>
@@ -576,6 +594,67 @@ function NotificationSettingsDialog() {
               </span>
             )}
           </div>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Prévia do conteúdo (exemplo)
+              </label>
+              <Select value={previewMetric} onValueChange={setPreviewMetric}>
+                <SelectTrigger className="h-8 w-[220px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly_cost">Custo mensal</SelectItem>
+                  <SelectItem value="daily_cost">Custo diário</SelectItem>
+                  <SelectItem value="variance_pct">Variação %</SelectItem>
+                  <SelectItem value="no_sync_days">Dias sem sync</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Tabs value={previewTab} onValueChange={setPreviewTab}>
+              <TabsList className="h-8">
+                <TabsTrigger value="slack" className="text-xs">Slack</TabsTrigger>
+                <TabsTrigger value="email" className="text-xs">E-mail</TabsTrigger>
+              </TabsList>
+              <TabsContent value="slack" className="mt-2">
+                <div className="space-y-2 rounded-md border border-border/60 bg-background p-3 text-xs">
+                  <div className="font-semibold">
+                    {severityEmoji(preview.sample.severity)} {preview.sample.title}
+                  </div>
+                  <p className="text-muted-foreground">{preview.sample.message}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><span className="font-medium">Regra:</span> {preview.sample.ruleName}</div>
+                    <div><span className="font-medium">Escopo:</span> {preview.sample.scopeLabel}</div>
+                    <div className="col-span-2">
+                      <span className="font-medium">Período afetado:</span> {preview.sample.periodLabel}
+                    </div>
+                    <div><span className="font-medium">Limite:</span> {fmtBRLNotify(preview.sample.threshold)}</div>
+                  </div>
+                  <div className="inline-flex items-center rounded bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground">
+                    Ver regra no Quiwi
+                  </div>
+                  <p className="break-all text-[10px] text-muted-foreground">{preview.ruleUrl}</p>
+                </div>
+              </TabsContent>
+              <TabsContent value="email" className="mt-2">
+                <div className="space-y-2 rounded-md border border-border/60 bg-background p-3 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Assunto: </span>
+                    <span className="font-medium">{preview.email.subject}</span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    Para: {emails.trim() ? emails : "nenhum destinatário configurado"}
+                  </div>
+                  <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded bg-muted/40 p-2 text-[11px] leading-relaxed">
+                    {preview.email.body}
+                  </pre>
+                </div>
+              </TabsContent>
+            </Tabs>
+            <p className="text-[11px] text-muted-foreground">
+              O teste enviado usa este mesmo formato, com o período do mês corrente.
+            </p>
+          </div>
+
           <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
               {testMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
