@@ -13,6 +13,72 @@ export type BillingOutcome = {
 };
 
 import { getUsdBrlRate } from "./usd-rate.server";
+import { latestPeriodUsage, parsePeriods, type FirecrawlPeriod } from "./firecrawl-periods";
+
+/** Custo do ciclo: plano fixo mensal quando definido, senão preço por 1k créditos. */
+function periodCostUsd(period: FirecrawlPeriod, planMonthlyUsd: number, pricePer1k: number): number {
+  if (planMonthlyUsd > 0) return planMonthlyUsd;
+  if (pricePer1k > 0) return (period.used / 1000) * pricePer1k;
+  return 0;
+}
+
+/** Insere/atualiza uma fatura de fornecedor (dedupe por conexão + período + origem). */
+async function upsertProviderInvoice(row: {
+  connection_id: string;
+  provider_id: string;
+  platform_id: string | null;
+  invoice_number: string | null;
+  issued_at: string | null;
+  period_start: string;
+  period_end: string | null;
+  amount_usd: number;
+  exchange_rate: number;
+  status: string;
+  raw?: any;
+}): Promise<boolean> {
+  const payload = {
+    connection_id: row.connection_id,
+    provider_id: row.provider_id,
+    platform_id: row.platform_id,
+    invoice_number: row.invoice_number,
+    issued_at: row.issued_at,
+    period_start: row.period_start,
+    period_end: row.period_end,
+    amount_usd: row.amount_usd,
+    exchange_rate: row.exchange_rate,
+    amount_brl: row.amount_usd * row.exchange_rate,
+    status: row.status,
+    source: "api",
+    raw: row.raw ?? null,
+  };
+
+  const { data: existing } = await supabaseAdmin
+    .from("provider_invoices")
+    .select("id, status")
+    .eq("connection_id", row.connection_id)
+    .eq("period_start", row.period_start)
+    .eq("source", "api")
+    .maybeSingle();
+
+  if (existing?.id) {
+    // Não sobrescreve um status já revisado/pago manualmente.
+    const keepStatus = ["approved", "paid", "review", "cancelled", "canceled"].includes(
+      String(existing.status ?? "").toLowerCase(),
+    );
+    const { error } = await supabaseAdmin
+      .from("provider_invoices")
+      .update(keepStatus ? { ...payload, status: existing.status } : payload)
+      .eq("id", existing.id);
+    return !error;
+  }
+
+  const { error } = await supabaseAdmin.from("provider_invoices").insert(payload);
+  if (error) {
+    console.warn("[billing] upsertProviderInvoice falhou:", error.message);
+    return false;
+  }
+  return true;
+}
 
 async function fetchUsdBrlRate(): Promise<number> {
   const { rate } = await getUsdBrlRate();
