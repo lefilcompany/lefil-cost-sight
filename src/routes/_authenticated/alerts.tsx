@@ -355,7 +355,16 @@ function AlertsPage() {
               </div>
               <span className="text-xs text-muted-foreground">{filteredRules.length} regra(s)</span>
             </div>
+            {focusRuleId && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs">
+                <span>Exibindo apenas a regra indicada na notificação.</span>
+                <Button size="sm" variant="outline" className="h-7" onClick={() => setFocusRuleId(null)}>
+                  Ver todas
+                </Button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
+
               <Input
                 placeholder="Buscar regra..."
                 value={ruleSearch}
