@@ -27,6 +27,14 @@ import {
   sendTestAlertNotification,
 } from "@/lib/alert-notify.functions";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  buildEmailContent,
+  sampleNotification,
+  severityEmoji,
+  fmtBRLNotify,
+} from "@/lib/alert-notify-format";
+
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -515,6 +523,8 @@ function RuleRow({ rule }: { rule: AlertRule }) {
 function NotificationSettingsDialog() {
   const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState("");
+  const [previewMetric, setPreviewMetric] = useState("monthly_cost");
+  const [previewTab, setPreviewTab] = useState("slack");
   const loadSettings = useServerFn(getAlertNotificationSettings);
   const save = useServerFn(saveAlertNotificationSettings);
   const test = useServerFn(sendTestAlertNotification);
@@ -534,6 +544,13 @@ function NotificationSettingsDialog() {
     onSuccess: (res: any) => toast.success(`Destinatários salvos (${res?.emails?.length ?? 0})`),
     onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar"),
   });
+
+  const preview = useMemo(() => {
+    const sample = sampleNotification(previewMetric);
+    const origin = typeof window === "undefined" ? "" : window.location.origin;
+    const ruleUrl = `${origin}/alerts?rule=${encodeURIComponent(sample.ruleId)}`;
+    return { sample, ruleUrl, email: buildEmailContent(sample, ruleUrl) };
+  }, [previewMetric]);
 
   const testMut = useMutation({
     mutationFn: async () => (await test()) as { slack: string; email: string },
@@ -610,7 +627,7 @@ function NotificationSettingsDialog() {
                     <div className="col-span-2">
                       <span className="font-medium">Período afetado:</span> {preview.sample.periodLabel}
                     </div>
-                    <div><span className="font-medium">Limite:</span> {fmtBRL(preview.sample.threshold)}</div>
+                    <div><span className="font-medium">Limite:</span> {fmtBRLNotify(preview.sample.threshold)}</div>
                   </div>
                   <div className="inline-flex items-center rounded bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground">
                     Ver regra no Quiwi
