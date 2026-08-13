@@ -2308,6 +2308,10 @@ export type Database = {
         Args: { _apikey?: string; _url: string }
         Returns: number
       }
+      run_process_notifications_job: {
+        Args: { _apikey: string; _url: string }
+        Returns: number
+      }
       run_sync_billing_job: {
         Args: { _apikey?: string; _url: string }
         Returns: number
