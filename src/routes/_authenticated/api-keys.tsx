@@ -1,7 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Check, Copy, Eye, History, KeyRound, Plus, RefreshCw, ShieldOff, Target, Timer } from "lucide-react";
+import {
+  Activity,
+  Check,
+  Copy,
+  Eye,
+  History,
+  KeyRound,
+  Plus,
+  RefreshCw,
+  ShieldOff,
+  Target,
+  Timer,
+} from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -23,10 +36,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtDateTime } from "@/lib/format";
+import { fmtBRL, fmtDate, fmtDateTime, fmtNumber } from "@/lib/format";
 import {
   createIntegrationApiKey,
   getIntegrationApiKeyEvents,
+  getIntegrationApiKeyMetrics,
   revealRotatedApiKeySecret,
   revokeIntegrationApiKey,
   rotateIntegrationApiKey,
@@ -480,6 +494,140 @@ function ScopeDialog({
   );
 }
 
+function MetricsDialog({ apiKey, onClose }: { apiKey: ApiKey | null; onClose: () => void }) {
+  const [days, setDays] = useState("30");
+
+  const metricsQuery = useQuery({
+    queryKey: ["api-key-metrics", apiKey?.id, days],
+    enabled: Boolean(apiKey),
+    queryFn: () => getIntegrationApiKeyMetrics({ data: { id: apiKey!.id, days: Number(days) } }),
+  });
+
+  const metrics = metricsQuery.data;
+  const chartData = useMemo(
+    () =>
+      (metrics?.daily ?? []).map((item) => ({
+        label: fmtDate(item.day),
+        requests: item.requests,
+        cost: Number(item.estimatedCostBrl.toFixed(2)),
+      })),
+    [metrics],
+  );
+
+  return (
+    <Dialog open={Boolean(apiKey)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col">
+        <DialogHeader>
+          <DialogTitle>Métricas de uso — {apiKey?.name}</DialogTitle>
+          <DialogDescription>
+            Solicitações por dia registradas para esta chave e custo estimado associado quando a
+            integração informa esse valor.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label className="text-xs text-muted-foreground">Período</Label>
+            <Select value={days} onValueChange={setDays}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="90">Últimos 90 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {metricsQuery.isLoading ? (
+            <LoadingState />
+          ) : !metrics ? (
+            <EmptyState title="Sem métricas" description="Não foi possível carregar as métricas." />
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <KpiCard label="Solicitações" value={fmtNumber(metrics.totals.requests)} />
+                <KpiCard label="Média/dia" value={fmtNumber(metrics.totals.avgRequestsPerDay, 1)} />
+                <KpiCard
+                  label="Custo estimado"
+                  value={metrics.hasCostData ? fmtBRL(metrics.totals.estimatedCostBrl) : "—"}
+                  tone={metrics.hasCostData ? "warn" : "neutral"}
+                />
+                <KpiCard
+                  label={metrics.scope.unrestricted ? "Custo total do período" : "Custo do escopo"}
+                  value={fmtBRL(metrics.totals.scopedCostBrl)}
+                />
+              </div>
+
+              <div className="rounded-lg border p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium">Solicitações por dia</span>
+                  <span className="text-xs text-muted-foreground">
+                    {metrics.totals.lastRequestAt
+                      ? `Último uso: ${fmtDateTime(metrics.totals.lastRequestAt)}`
+                      : "Nenhum uso registrado no período"}
+                  </span>
+                </div>
+                {metrics.hasRequestData ? (
+                  <div className="h-56 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={32} />
+                        <Tooltip
+                          formatter={(value: number, name) =>
+                            name === "cost" ? fmtBRL(value) : fmtNumber(value)
+                          }
+                        />
+                        <Bar dataKey="requests" name="Solicitações" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhuma solicitação registrada"
+                    description="As métricas aparecem aqui conforme as integrações consomem a API com esta chave."
+                  />
+                )}
+              </div>
+
+              {metrics.hasRequestData ? (
+                <div className="w-full overflow-x-auto rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Dia</TableHead>
+                        <TableHead className="text-right">Solicitações</TableHead>
+                        <TableHead className="text-right">Custo estimado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {metrics.daily
+                        .filter((item) => item.requests > 0)
+                        .reverse()
+                        .map((item) => (
+                          <TableRow key={item.day}>
+                            <TableCell className="text-xs">{fmtDate(item.day)}</TableCell>
+                            <TableCell className="text-right text-xs">{fmtNumber(item.requests)}</TableCell>
+                            <TableCell className="text-right text-xs">
+                              {item.estimatedCostBrl ? fmtBRL(item.estimatedCostBrl) : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ApiKeysPage() {
   const queryClient = useQueryClient();
   const [secret, setSecret] = useState<{ value: string; title: string } | null>(null);
@@ -489,6 +637,7 @@ function ApiKeysPage() {
   const [confirmRotate, setConfirmRotate] = useState<ApiKey | null>(null);
   const [rotationKey, setRotationKey] = useState<ApiKey | null>(null);
   const [scopeKey, setScopeKey] = useState<ApiKey | null>(null);
+  const [metricsKey, setMetricsKey] = useState<ApiKey | null>(null);
 
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState("production");
@@ -732,6 +881,14 @@ function ApiKeysPage() {
                               variant="ghost"
                               size="sm"
                               className="gap-1"
+                              onClick={() => setMetricsKey(key)}
+                            >
+                              <Activity className="h-3.5 w-3.5" /> Métricas
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
                               disabled={key.status === "revoked"}
                               onClick={() => setScopeKey(key)}
                             >
@@ -778,6 +935,8 @@ function ApiKeysPage() {
           </CardContent>
         </Card>
       </div>
+
+      <MetricsDialog apiKey={metricsKey} onClose={() => setMetricsKey(null)} />
 
       <ScopeDialog
         apiKey={scopeKey}
