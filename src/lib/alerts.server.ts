@@ -1,6 +1,7 @@
 // Server-only alert evaluation. Uses supabaseAdmin.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyAlert, periodLabelFor } from "@/lib/alert-notify.server";
+import { buildCostEntriesReport } from "@/lib/alert-report.server";
 
 
 type Alert = {
@@ -198,6 +199,14 @@ export async function evaluateAlerts(): Promise<EvalResult> {
       const periodStart =
         a.metric === "daily_cost" ? iso(todayStart) : a.metric === "variance_pct" ? iso(prevStart) : iso(monthStart);
       const periodEnd = iso(now);
+      const report = await buildCostEntriesReport({
+        ruleId: a.id,
+        ruleName: a.name,
+        periodStart,
+        periodEnd,
+        scope: { scope: a.scope, scopeId: a.scope_id },
+        organizationId: (insertedEvent as any)?.organization_id ?? null,
+      });
       await notifyAlert({
         ruleId: a.id,
         ruleName: a.name,
@@ -211,6 +220,9 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         periodLabel: periodLabelFor(a.metric, { start: periodStart, end: periodEnd }),
         periodStart,
         periodEnd,
+        reportUrl: report?.url ?? null,
+        reportRows: report?.rows ?? null,
+        reportTotalBrl: report?.totalBrl ?? null,
       }, {
         alertEventId: (insertedEvent as any)?.id ?? null,
         organizationId: (insertedEvent as any)?.organization_id ?? null,

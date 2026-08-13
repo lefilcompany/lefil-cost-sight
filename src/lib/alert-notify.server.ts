@@ -22,6 +22,9 @@ export type AlertNotification = {
   periodLabel: string;
   periodStart?: string;
   periodEnd?: string;
+  reportUrl?: string | null;
+  reportRows?: number | null;
+  reportTotalBrl?: number | null;
 };
 
 function baseUrl(): string {
@@ -111,6 +114,8 @@ export async function attemptEmail(
           ruleName: n.ruleName,
           periodLabel: n.periodLabel,
           ruleUrl: ruleLink(n.ruleId),
+          reportUrl: n.reportUrl ?? null,
+          reportRows: n.reportRows ?? null,
         },
       }),
     });
