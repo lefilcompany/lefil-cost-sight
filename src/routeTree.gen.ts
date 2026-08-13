@@ -30,6 +30,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedProvidersIndexRouteImport } from './routes/_authenticated/providers.index'
 import { Route as AuthenticatedProvidersIdRouteImport } from './routes/_authenticated/providers.$id'
+import { Route as AuthenticatedConnectionsIdRouteImport } from './routes/_authenticated/connections.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -150,6 +151,12 @@ const AuthenticatedProvidersIdRoute =
     path: '/providers/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConnectionsIdRoute =
+  AuthenticatedConnectionsIdRouteImport.update({
+    id: '/connections/$id',
+    path: '/connections/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/connections/$id': typeof AuthenticatedConnectionsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
@@ -269,6 +277,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/connections/$id': typeof AuthenticatedConnectionsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/providers': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
@@ -304,6 +313,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/_authenticated/connections/$id': typeof AuthenticatedConnectionsIdRoute
   '/_authenticated/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/_authenticated/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/clients/$id'
+    | '/connections/$id'
     | '/providers/$id'
     | '/providers/'
     | '/api/public/cron/backfill-usage'
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/clients/$id'
+    | '/connections/$id'
     | '/providers/$id'
     | '/providers'
     | '/api/public/cron/backfill-usage'
@@ -406,6 +418,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/clients/$id'
+    | '/_authenticated/connections/$id'
     | '/_authenticated/providers/$id'
     | '/_authenticated/providers/'
     | '/api/public/cron/backfill-usage'
@@ -587,6 +600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProvidersIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/connections/$id': {
+      id: '/_authenticated/connections/$id'
+      path: '/connections/$id'
+      fullPath: '/connections/$id'
+      preLoaderRoute: typeof AuthenticatedConnectionsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
       path: '/$id'
@@ -691,6 +711,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSyncsRoute: typeof AuthenticatedSyncsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedConnectionsIdRoute: typeof AuthenticatedConnectionsIdRoute
   AuthenticatedProvidersIdRoute: typeof AuthenticatedProvidersIdRoute
   AuthenticatedProvidersIndexRoute: typeof AuthenticatedProvidersIndexRoute
 }
@@ -708,6 +729,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSyncsRoute: AuthenticatedSyncsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedConnectionsIdRoute: AuthenticatedConnectionsIdRoute,
   AuthenticatedProvidersIdRoute: AuthenticatedProvidersIdRoute,
   AuthenticatedProvidersIndexRoute: AuthenticatedProvidersIndexRoute,
 }
