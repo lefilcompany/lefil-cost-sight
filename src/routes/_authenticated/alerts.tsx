@@ -234,10 +234,13 @@ function AlertsPage() {
       const apikey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
       const res = await fetch(url, { method: "POST", headers: { apikey, "Content-Type": "application/json" }, body: "{}" });
       if (!res.ok) throw new Error(`Falha ao avaliar: ${res.status}`);
-      return (await res.json()) as { evaluated: number; triggered: number };
+      return (await res.json()) as { evaluated: number; triggered: number; silenced?: number; deduped?: number };
     },
     onSuccess: (r) => {
-      toast.success(`Avaliadas ${r.evaluated} regras · ${r.triggered} novos alertas`);
+      toast.success(
+        `Avaliadas ${r.evaluated} regras · ${r.triggered} novos alertas` +
+          `${r.deduped ? ` · ${r.deduped} agrupados` : ""}${r.silenced ? ` · ${r.silenced} silenciadas` : ""}`,
+      );
       qc.invalidateQueries({ queryKey: ["alert-events"] });
       qc.invalidateQueries({ queryKey: ["alert-rules"] });
     },
