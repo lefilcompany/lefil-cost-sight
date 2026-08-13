@@ -254,7 +254,7 @@ export async function runReconciliation(
       scope: "provider",
       scope_id: conn?.provider_id ?? null,
       scope_label: r.connection_name,
-      organization_id: r.organization_id,
+      organization_id: r.organization_id ?? undefined,
       metadata: {
         check: "reconciliation",
         connection_id: r.connection_id,
