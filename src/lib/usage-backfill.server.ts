@@ -222,7 +222,7 @@ export async function backfillUsageDailyIncremental(
 /** Roda o backfill incremental para todas as conexões ativas. */
 export async function backfillUsageDailyAll(opts: { full?: boolean } = {}) {
   const { getUsdBrlRate } = await import("./usd-rate.server");
-  const rate = await getUsdBrlRate();
+  const { rate } = await getUsdBrlRate();
   const { data: conns } = await supabaseAdmin
     .from("provider_connections")
     .select("id, name")
