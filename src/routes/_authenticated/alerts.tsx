@@ -569,6 +569,22 @@ function NewRuleDialog() {
             <label className="text-xs font-medium text-muted-foreground">Limite</label>
             <Input type="number" step="any" value={form.threshold} onChange={(e) => setForm({ ...form, threshold: Number(e.target.value) })} />
           </div>
+          <div className="col-span-2 space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Notificações</label>
+            <Select value={form.channel} onValueChange={(v) => setForm({ ...form, channel: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_app">Somente no app</SelectItem>
+                <SelectItem value="slack">No app + Slack</SelectItem>
+                <SelectItem value="email">No app + e-mail</SelectItem>
+                <SelectItem value="slack_email">No app + Slack + e-mail</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              A notificação inclui o link da regra e o período afetado. Configure os destinatários em “Notificações”.
+            </p>
+          </div>
+
           <DialogFooter className="col-span-2 mt-2">
             <Button type="submit" disabled={create.isPending}>{create.isPending ? "Criando..." : "Criar regra"}</Button>
           </DialogFooter>
