@@ -245,20 +245,53 @@ function AlertsPage() {
         </div>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
-            <div>
-              <CardTitle className="font-display text-base">Eventos</CardTitle>
-              <p className="text-xs text-muted-foreground">Reconheça ou resolva conforme forem tratados.</p>
+          <CardHeader className="gap-3 pb-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="font-display text-base">Eventos</CardTitle>
+                <p className="text-xs text-muted-foreground">Reconheça ou resolva conforme forem tratados.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{filtered.length} evento(s)</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <Input
+                placeholder="Buscar por título, mensagem ou escopo..."
+                value={eventSearch}
+                onChange={(e) => {
+                  setEventSearch(e.target.value);
+                  setEventPage(0);
+                }}
+                className="h-8 w-full sm:w-[260px]"
+              />
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v as any);
+                  setEventPage(0);
+                }}
+              >
                 <SelectTrigger className="h-8 w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="open">Abertos</SelectItem>
                   <SelectItem value="acknowledged">Reconhecidos</SelectItem>
                   <SelectItem value="resolved">Resolvidos</SelectItem>
                   <SelectItem value="all">Todos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={severityFilter}
+                onValueChange={(v) => {
+                  setSeverityFilter(v as any);
+                  setEventPage(0);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toda severidade</SelectItem>
+                  <SelectItem value="critical">Crítico</SelectItem>
+                  <SelectItem value="warning">Atenção</SelectItem>
+                  <SelectItem value="info">Informativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -269,28 +302,112 @@ function AlertsPage() {
             ) : filtered.length === 0 ? (
               <EmptyState title="Nenhum evento" description="Nenhum alerta disparado com esse filtro." icon={<BellOff className="h-5 w-5" />} />
             ) : (
-              <div className="divide-y divide-border/60">
-                {filtered.map((ev) => (
-                  <EventRow key={ev.id} ev={ev} onAck={() => ack.mutate(ev.id)} onResolve={() => resolve.mutate(ev.id)} />
-                ))}
-              </div>
+              <>
+                <div className="divide-y divide-border/60">
+                  {eventRows.map((ev) => (
+                    <EventRow key={ev.id} ev={ev} onAck={() => ack.mutate(ev.id)} onResolve={() => resolve.mutate(ev.id)} />
+                  ))}
+                </div>
+                {eventPageCount > 1 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                    <span className="mr-auto text-xs text-muted-foreground">
+                      {currentEventPage * EVENTS_PAGE_SIZE + 1}–
+                      {Math.min((currentEventPage + 1) * EVENTS_PAGE_SIZE, filtered.length)} de {filtered.length}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={currentEventPage === 0} onClick={() => setEventPage((p) => Math.max(0, p - 1))}>
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-muted-foreground">Página {currentEventPage + 1} de {eventPageCount}</span>
+                    <Button variant="outline" size="sm" disabled={currentEventPage + 1 >= eventPageCount} onClick={() => setEventPage((p) => p + 1)}>
+                      Próxima
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-base">Regras</CardTitle>
-            <p className="text-xs text-muted-foreground">Cada regra é avaliada pelo cron ou pelo botão "Avaliar agora".</p>
+          <CardHeader className="gap-3 pb-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="font-display text-base">Regras</CardTitle>
+                <p className="text-xs text-muted-foreground">Cada regra é avaliada pelo cron ou pelo botão "Avaliar agora".</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{filteredRules.length} regra(s)</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="Buscar regra..."
+                value={ruleSearch}
+                onChange={(e) => {
+                  setRuleSearch(e.target.value);
+                  setRulePage(0);
+                }}
+                className="h-8 w-full sm:w-[240px]"
+              />
+              <Select
+                value={ruleMetric}
+                onValueChange={(v) => {
+                  setRuleMetric(v);
+                  setRulePage(0);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[190px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as métricas</SelectItem>
+                  {Object.entries(METRIC_LABEL).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={ruleState}
+                onValueChange={(v) => {
+                  setRuleState(v as any);
+                  setRulePage(0);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Ativas e inativas</SelectItem>
+                  <SelectItem value="enabled">Somente ativas</SelectItem>
+                  <SelectItem value="disabled">Somente inativas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {rules.length === 0 ? (
-              <EmptyState title="Sem regras" description="Crie uma regra para começar a monitorar." icon={<Bell className="h-5 w-5" />} />
+            {filteredRules.length === 0 ? (
+              <EmptyState
+                title={rules.length === 0 ? "Sem regras" : "Nenhuma regra encontrada"}
+                description={rules.length === 0 ? "Crie uma regra para começar a monitorar." : "Ajuste a busca ou os filtros."}
+                icon={<Bell className="h-5 w-5" />}
+              />
             ) : (
-              rules.map((r) => <RuleRow key={r.id} rule={r} />)
+              <>
+                {ruleRows.map((r) => <RuleRow key={r.id} rule={r} />)}
+                {rulePageCount > 1 && (
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                    <span className="mr-auto text-xs text-muted-foreground">
+                      {currentRulePage * RULES_PAGE_SIZE + 1}–
+                      {Math.min((currentRulePage + 1) * RULES_PAGE_SIZE, filteredRules.length)} de {filteredRules.length}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={currentRulePage === 0} onClick={() => setRulePage((p) => Math.max(0, p - 1))}>
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-muted-foreground">Página {currentRulePage + 1} de {rulePageCount}</span>
+                    <Button variant="outline" size="sm" disabled={currentRulePage + 1 >= rulePageCount} onClick={() => setRulePage((p) => p + 1)}>
+                      Próxima
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
+
       </div>
     </AppShell>
   );
