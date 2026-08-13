@@ -127,18 +127,39 @@ function BillingPage() {
     return Array.from(map.values());
   }, [snapshots]);
 
-  const { data: usage = [], isLoading: loadingUsage } = useQuery({
-    queryKey: ["billing-usage"],
+  const USAGE_PAGE_SIZE = 50;
+  const [usagePage, setUsagePage] = useState(0);
+  const [usageProvider, setUsageProvider] = useState<string>("all");
+
+  const {
+    data: usageData,
+    isLoading: loadingUsage,
+    isFetching: fetchingUsage,
+  } = useQuery({
+    queryKey: ["billing-usage", usagePage, usageProvider],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = usagePage * USAGE_PAGE_SIZE;
+      let q = supabase
         .from("provider_usage_daily")
-        .select("*, providers(name)")
+        .select(
+          "id,usage_date,model,endpoint,input_tokens,output_tokens,requests,quantity,unit,cost_usd,cost_brl,providers(name)",
+          { count: "exact" },
+        )
         .order("usage_date", { ascending: false })
-        .limit(500);
+        .order("id", { ascending: false })
+        .range(from, from + USAGE_PAGE_SIZE - 1);
+      if (usageProvider !== "all") q = q.eq("provider_id", usageProvider);
+      const { data, error, count } = await q;
       if (error) throw error;
-      return (data ?? []) as UsageRow[];
+      return { rows: (data ?? []) as unknown as UsageRow[], total: count ?? 0 };
     },
+    placeholderData: (prev) => prev,
   });
+
+  const usage = usageData?.rows ?? [];
+  const usageTotal = usageData?.total ?? 0;
+  const usagePageCount = Math.max(1, Math.ceil(usageTotal / USAGE_PAGE_SIZE));
+
 
   const { data: invoices = [], isLoading: loadingInv } = useQuery({
     queryKey: ["billing-invoices"],
@@ -225,8 +246,37 @@ function BillingPage() {
         {/* USO POR DIA/MODELO */}
         <TabsContent value="usage">
           <Card className="surface-elevated">
-            <CardContent className="pt-6">
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                  <Select
+                    value={usageProvider}
+                    onValueChange={(v) => {
+                      setUsageProvider(v);
+                      setUsagePage(0);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[200px] text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {providers.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {fetchingUsage && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>
+                    {usageTotal > 0
+                      ? `${usagePage * USAGE_PAGE_SIZE + 1}–${Math.min((usagePage + 1) * USAGE_PAGE_SIZE, usageTotal)} de ${fmtNumber(usageTotal)}`
+                      : "0 registros"}
+                  </span>
+                </div>
+              </div>
               <div className="overflow-hidden rounded-lg border border-border/60">
+
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -270,6 +320,28 @@ function BillingPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={usagePage === 0 || fetchingUsage}
+                  onClick={() => setUsagePage((p) => Math.max(0, p - 1))}
+                >
+                  Anterior
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Página {usagePage + 1} de {usagePageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={usagePage + 1 >= usagePageCount || fetchingUsage}
+                  onClick={() => setUsagePage((p) => p + 1)}
+                >
+                  Próxima
+                </Button>
+              </div>
+
             </CardContent>
           </Card>
         </TabsContent>
