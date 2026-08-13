@@ -20,7 +20,9 @@ export type Database = {
           acknowledged_by: string | null
           alert_id: string | null
           created_at: string
+          dedupe_key: string | null
           id: string
+          last_occurred_at: string | null
           message: string | null
           metadata: Json | null
           metric_value: number | null
@@ -32,6 +34,7 @@ export type Database = {
           scope_label: string | null
           severity: string
           status: string
+          suppressed_count: number
           threshold: number | null
           title: string
           updated_at: string
@@ -41,7 +44,9 @@ export type Database = {
           acknowledged_by?: string | null
           alert_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
+          last_occurred_at?: string | null
           message?: string | null
           metadata?: Json | null
           metric_value?: number | null
@@ -53,6 +58,7 @@ export type Database = {
           scope_label?: string | null
           severity?: string
           status?: string
+          suppressed_count?: number
           threshold?: number | null
           title: string
           updated_at?: string
@@ -62,7 +68,9 @@ export type Database = {
           acknowledged_by?: string | null
           alert_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
+          last_occurred_at?: string | null
           message?: string | null
           metadata?: Json | null
           metric_value?: number | null
@@ -74,6 +82,7 @@ export type Database = {
           scope_label?: string | null
           severity?: string
           status?: string
+          suppressed_count?: number
           threshold?: number | null
           title?: string
           updated_at?: string
@@ -455,15 +464,19 @@ export type Database = {
           comparison: string
           created_at: string
           created_by: string | null
+          dedupe_window_minutes: number
           enabled: boolean
           id: string
           last_evaluated_at: string | null
           metric: string
+          muted: boolean
           name: string
           organization_id: string
           owner_user_id: string | null
           scope: string
           scope_id: string | null
+          snooze_reason: string | null
+          snoozed_until: string | null
           threshold: number
           updated_at: string
         }
@@ -472,15 +485,19 @@ export type Database = {
           comparison?: string
           created_at?: string
           created_by?: string | null
+          dedupe_window_minutes?: number
           enabled?: boolean
           id?: string
           last_evaluated_at?: string | null
           metric: string
+          muted?: boolean
           name: string
           organization_id?: string
           owner_user_id?: string | null
           scope: string
           scope_id?: string | null
+          snooze_reason?: string | null
+          snoozed_until?: string | null
           threshold: number
           updated_at?: string
         }
@@ -489,15 +506,19 @@ export type Database = {
           comparison?: string
           created_at?: string
           created_by?: string | null
+          dedupe_window_minutes?: number
           enabled?: boolean
           id?: string
           last_evaluated_at?: string | null
           metric?: string
+          muted?: boolean
           name?: string
           organization_id?: string
           owner_user_id?: string | null
           scope?: string
           scope_id?: string | null
+          snooze_reason?: string | null
+          snoozed_until?: string | null
           threshold?: number
           updated_at?: string
         }
