@@ -89,7 +89,15 @@ async function findRunningBackfill(
  * sync_jobs para auditoria.
  */
 export async function runConnectionBackfill(input: BackfillInput): Promise<BackfillResult> {
-  const { connectionId, periodStart, periodEnd, purge = true, initiatedBy = null } = input;
+  const {
+    connectionId,
+    periodStart,
+    periodEnd,
+    purge = true,
+    reconcile = true,
+    initiatedBy = null,
+  } = input;
+
 
   const { data: conn, error: connErr } = await supabaseAdmin
     .from("provider_connections")
