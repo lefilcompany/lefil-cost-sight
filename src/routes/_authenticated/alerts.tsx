@@ -14,11 +14,18 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
+  Send,
+  BellRing,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { explainAlert } from "@/lib/gemini-ai.functions";
 import { runDataQualityCheck } from "@/lib/data-quality.functions";
+import {
+  getAlertNotificationSettings,
+  saveAlertNotificationSettings,
+  sendTestAlertNotification,
+} from "@/lib/alert-notify.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -232,6 +239,7 @@ function AlertsPage() {
           <Button variant="outline" size="sm" onClick={() => evaluateNow.mutate()} disabled={evaluateNow.isPending} className="gap-1.5">
             <Radio className="h-3.5 w-3.5" /> {evaluateNow.isPending ? "Avaliando..." : "Avaliar agora"}
           </Button>
+          <NotificationSettingsDialog />
           <NewRuleDialog />
         </div>
       }
@@ -482,6 +490,85 @@ function RuleRow({ rule }: { rule: AlertRule }) {
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>
+  );
+}
+
+function NotificationSettingsDialog() {
+  const [open, setOpen] = useState(false);
+  const [emails, setEmails] = useState("");
+  const loadSettings = useServerFn(getAlertNotificationSettings);
+  const save = useServerFn(saveAlertNotificationSettings);
+  const test = useServerFn(sendTestAlertNotification);
+
+  const settings = useQuery({
+    queryKey: ["alert-notification-settings"],
+    queryFn: async () => (await loadSettings()) as { emails: string[]; slack_configured: boolean },
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (settings.data) setEmails(settings.data.emails.join(", "));
+  }, [settings.data]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => await save({ data: { emails: emails.split(/[,;\n]/) } }),
+    onSuccess: (res: any) => toast.success(`Destinatários salvos (${res?.emails?.length ?? 0})`),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar"),
+  });
+
+  const testMut = useMutation({
+    mutationFn: async () => (await test()) as { slack: string; email: string },
+    onSuccess: (res) =>
+      toast.success(`Teste enviado — Slack: ${res.slack}, e-mail: ${res.email}`),
+    onError: (e: any) => toast.error(e?.message ?? "Falha no envio de teste"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <BellRing className="h-3.5 w-3.5" /> Notificações
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display">Notificações de alertas</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Destinatários de e-mail</label>
+            <textarea
+              className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="financeiro@lefil.com.br, ops@lefil.com.br"
+              value={emails}
+              onChange={(e) => setEmails(e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Separe por vírgula. Cada alerta enviado inclui a regra, o período afetado e o link direto.
+            </p>
+          </div>
+          <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+            Slack:{" "}
+            {settings.data?.slack_configured ? (
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">webhook configurado</span>
+            ) : (
+              <span className="text-muted-foreground">
+                sem webhook — adicione o segredo SLACK_WEBHOOK_URL para ativar o canal Slack.
+              </span>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+              {testMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Enviar teste
+            </Button>
+            <Button size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              {saveMut.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
