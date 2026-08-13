@@ -208,6 +208,23 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
             </span>
           </label>
 
+          {runningJob ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+              <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
+              <span>
+                <span className="font-medium">Backfill em execução nesta conexão</span>
+                <span className="block text-xs">
+                  Período {runningJob.period_start ?? "—"} a {runningJob.period_end ?? "—"}
+                  {runningJob.started_at
+                    ? ` · iniciado às ${new Date(runningJob.started_at).toLocaleTimeString("pt-BR")}`
+                    : ""}
+                  . Aguarde a conclusão ou escolha um período que não se sobreponha.
+                </span>
+              </span>
+            </div>
+          ) : null}
+
+
           {run.data ? (
             <div className="space-y-2 rounded-lg border p-3">
               <div className="text-sm font-medium">Última execução</div>
