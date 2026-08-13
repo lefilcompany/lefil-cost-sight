@@ -127,18 +127,39 @@ function BillingPage() {
     return Array.from(map.values());
   }, [snapshots]);
 
-  const { data: usage = [], isLoading: loadingUsage } = useQuery({
-    queryKey: ["billing-usage"],
+  const USAGE_PAGE_SIZE = 50;
+  const [usagePage, setUsagePage] = useState(0);
+  const [usageProvider, setUsageProvider] = useState<string>("all");
+
+  const {
+    data: usageData,
+    isLoading: loadingUsage,
+    isFetching: fetchingUsage,
+  } = useQuery({
+    queryKey: ["billing-usage", usagePage, usageProvider],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = usagePage * USAGE_PAGE_SIZE;
+      let q = supabase
         .from("provider_usage_daily")
-        .select("*, providers(name)")
+        .select(
+          "id,usage_date,model,endpoint,input_tokens,output_tokens,requests,quantity,unit,cost_usd,cost_brl,providers(name)",
+          { count: "exact" },
+        )
         .order("usage_date", { ascending: false })
-        .limit(500);
+        .order("id", { ascending: false })
+        .range(from, from + USAGE_PAGE_SIZE - 1);
+      if (usageProvider !== "all") q = q.eq("provider_id", usageProvider);
+      const { data, error, count } = await q;
       if (error) throw error;
-      return (data ?? []) as UsageRow[];
+      return { rows: (data ?? []) as unknown as UsageRow[], total: count ?? 0 };
     },
+    placeholderData: (prev) => prev,
   });
+
+  const usage = usageData?.rows ?? [];
+  const usageTotal = usageData?.total ?? 0;
+  const usagePageCount = Math.max(1, Math.ceil(usageTotal / USAGE_PAGE_SIZE));
+
 
   const { data: invoices = [], isLoading: loadingInv } = useQuery({
     queryKey: ["billing-invoices"],
