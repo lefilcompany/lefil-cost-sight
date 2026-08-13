@@ -10,6 +10,7 @@ export type SyncOutcome = {
 };
 
 import { getUsdBrlRate } from "./usd-rate.server";
+import { latestPeriodUsage } from "./firecrawl-periods";
 
 async function resolveUsdBrlRate(): Promise<number> {
   const { rate } = await getUsdBrlRate();
