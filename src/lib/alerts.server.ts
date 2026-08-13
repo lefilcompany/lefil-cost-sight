@@ -154,8 +154,21 @@ export async function evaluateAlerts(): Promise<EvalResult> {
             scope_id: s.id,
             scope_label: s.name,
           });
+          await notifyAlert({
+            ruleId: a.id,
+            ruleName: a.name,
+            channel: a.channel,
+            severity: "warning",
+            title: `${a.name} — ${s.name}`,
+            message: `Plataforma "${s.name}" não sincroniza há ${Math.floor(s.days)} dias.`,
+            metricValue: s.days,
+            threshold: Number(a.threshold),
+            scopeLabel: s.name,
+            periodLabel: periodLabelFor("no_sync_days", { days: s.days }),
+          });
           events.push({ alert_id: a.id, title: s.name, value: s.days });
         }
+
         await supabaseAdmin.from("cost_alerts").update({ last_evaluated_at: new Date().toISOString() }).eq("id", a.id);
         continue;
       }
