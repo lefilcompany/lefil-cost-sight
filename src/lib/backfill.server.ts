@@ -171,6 +171,8 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
   let usageRows = 0;
   let snapshots = 0;
   let invoices = 0;
+  let reconciliation: BackfillReconciliationSummary | null = null;
+
 
   const finish = async (status: BackfillResult["status"], errorMessage?: string) => {
     if (!job?.id) return;
