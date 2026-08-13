@@ -10,6 +10,10 @@ export type AlertNotificationContent = {
   threshold: number;
   scopeLabel: string;
   periodLabel: string;
+  /** Resumo CSV dos cost_entries do período afetado (link assinado). */
+  reportUrl?: string | null;
+  reportRows?: number | null;
+  reportTotalBrl?: number | null;
 };
 
 export const fmtBRLNotify = (n: number) =>
@@ -65,6 +69,17 @@ export function buildSlackPayload(n: AlertNotificationContent, ruleUrl: string) 
           { type: "mrkdwn", text: `*Limite:*\n${fmtBRLNotify(n.threshold)}` },
         ],
       },
+      ...(n.reportUrl
+        ? [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `📎 *Resumo em CSV:* <${n.reportUrl}|baixar ${n.reportRows ?? 0} lançamento(s)> — total ${fmtBRLNotify(n.reportTotalBrl ?? 0)} (link válido por 30 dias)`,
+              },
+            },
+          ]
+        : []),
       {
         type: "actions",
         elements: [
@@ -74,6 +89,15 @@ export function buildSlackPayload(n: AlertNotificationContent, ruleUrl: string) 
             url: ruleUrl,
             style: n.severity === "critical" ? "danger" : "primary",
           },
+          ...(n.reportUrl
+            ? [
+                {
+                  type: "button",
+                  text: { type: "plain_text", text: "Baixar CSV do período" },
+                  url: n.reportUrl,
+                },
+              ]
+            : []),
         ],
       },
     ],
@@ -90,6 +114,14 @@ export function buildEmailContent(n: AlertNotificationContent, ruleUrl: string) 
     `Período afetado: ${n.periodLabel}`,
     `Limite configurado: ${fmtBRLNotify(n.threshold)}`,
     "",
+    ...(n.reportUrl
+      ? [
+          `Resumo em CSV do período (${n.reportRows ?? 0} lançamentos, total ${fmtBRLNotify(n.reportTotalBrl ?? 0)}):`,
+          n.reportUrl,
+          "O link de download é válido por 30 dias.",
+          "",
+        ]
+      : []),
     `Ver regra: ${ruleUrl}`,
   ].join("\n");
   return { subject, body };
@@ -112,6 +144,9 @@ export function sampleNotification(metric: string, severity = "warning"): AlertN
     severity,
     scopeLabel: "Global",
     periodLabel: periodLabelFor(metric, range),
+    reportUrl: metric === "no_sync_days" ? null : "https://exemplo.quiwi.app/relatorios/custos.csv",
+    reportRows: metric === "no_sync_days" ? null : 128,
+    reportTotalBrl: metric === "no_sync_days" ? null : 4820,
   };
 
   switch (metric) {
