@@ -950,6 +950,7 @@ export type Database = {
       }
       integration_api_keys: {
         Row: {
+          auto_rotate: boolean
           created_at: string
           created_by: string | null
           environment: string
@@ -957,14 +958,22 @@ export type Database = {
           id: string
           key_hash: string
           key_prefix: string
+          last_rotated_at: string | null
           last_used_at: string | null
           name: string
+          next_rotation_at: string | null
           organization_id: string
+          pending_secret_at: string | null
+          pending_secret_id: string | null
           permissions: string[]
+          rotate_before_days: number
+          rotation_count: number
+          rotation_interval_days: number | null
           status: string
           updated_at: string
         }
         Insert: {
+          auto_rotate?: boolean
           created_at?: string
           created_by?: string | null
           environment?: string
@@ -972,14 +981,22 @@ export type Database = {
           id?: string
           key_hash: string
           key_prefix: string
+          last_rotated_at?: string | null
           last_used_at?: string | null
           name: string
+          next_rotation_at?: string | null
           organization_id: string
+          pending_secret_at?: string | null
+          pending_secret_id?: string | null
           permissions?: string[]
+          rotate_before_days?: number
+          rotation_count?: number
+          rotation_interval_days?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
+          auto_rotate?: boolean
           created_at?: string
           created_by?: string | null
           environment?: string
@@ -987,10 +1004,17 @@ export type Database = {
           id?: string
           key_hash?: string
           key_prefix?: string
+          last_rotated_at?: string | null
           last_used_at?: string | null
           name?: string
+          next_rotation_at?: string | null
           organization_id?: string
+          pending_secret_at?: string | null
+          pending_secret_id?: string | null
           permissions?: string[]
+          rotate_before_days?: number
+          rotation_count?: number
+          rotation_interval_days?: number | null
           status?: string
           updated_at?: string
         }
@@ -2325,6 +2349,10 @@ export type Database = {
         Args: { _org: string; _user?: string }
         Returns: boolean
       }
+      reveal_api_key_rotation_secret: {
+        Args: { _key_id: string }
+        Returns: string
+      }
       run_evaluate_alerts_job: {
         Args: { _apikey?: string; _url: string }
         Returns: number
@@ -2339,6 +2367,10 @@ export type Database = {
       }
       set_connection_api_key: {
         Args: { _api_key: string; _connection_id: string }
+        Returns: undefined
+      }
+      store_api_key_rotation_secret: {
+        Args: { _key_id: string; _secret: string }
         Returns: undefined
       }
     }
