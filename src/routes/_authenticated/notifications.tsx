@@ -189,9 +189,9 @@ function NotificationsPage() {
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Envios" value={String(summary.total)} sub={`${summary.events} evento(s)`} icon={<Send className="h-4 w-4" />} />
-          <KpiCard label="Enviadas" value={String(summary.sent)} tone="positive" icon={<CheckCircle2 className="h-4 w-4" />} />
+          <KpiCard label="Enviadas" value={String(summary.sent)} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} />
           <KpiCard label="Na fila" value={String(summary.pending)} icon={<Clock className="h-4 w-4" />} />
-          <KpiCard label="Falhas" value={String(summary.failed)} tone="negative" icon={<AlertTriangle className="h-4 w-4" />} />
+          <KpiCard label="Falhas" value={String(summary.failed)} tone="bad" icon={<AlertTriangle className="h-4 w-4" />} />
         </div>
 
         <Card>
