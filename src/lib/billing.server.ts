@@ -803,15 +803,16 @@ export async function runBillingSyncForConnection(connectionId: string) {
 
     // Complementa/garante o uso diário a partir do histórico de snapshots
     // (provedores de plano fixo não expõem histórico diário próprio).
+    // Incremental: processa apenas os ciclos tocados por snapshots novos.
     try {
-      const derived = await aggregateUsageDailyFromSnapshots(conn.id, rate);
-      if (derived > 0) {
-        out.usage_rows += derived;
-        out.meta = { ...(out.meta ?? {}), usage_daily_from_snapshots: derived };
-      }
+      const { backfillUsageDailyIncremental } = await import("./usage-backfill.server");
+      const bf = await backfillUsageDailyIncremental(conn.id, rate);
+      if (bf.rows_upserted > 0) out.usage_rows += bf.rows_upserted;
+      out.meta = { ...(out.meta ?? {}), usage_backfill: bf };
     } catch (err: any) {
-      console.warn("[billing] agregação de uso diário falhou:", err?.message);
+      console.warn("[billing] backfill incremental de uso diário falhou:", err?.message);
     }
+
 
     await supabaseAdmin
       .from("sync_logs")
