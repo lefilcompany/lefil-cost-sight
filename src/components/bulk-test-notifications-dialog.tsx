@@ -131,6 +131,32 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
           <span className="text-xs text-muted-foreground">{selected.length} selecionada(s)</span>
         </div>
 
+        <div className="flex flex-wrap items-center gap-4 rounded-md border bg-muted/30 p-3">
+          <span className="text-xs font-medium">Destinos do teste:</span>
+          {([
+            { key: "slack" as const, label: "Slack" },
+            { key: "email" as const, label: "E-mail" },
+          ]).map((t) => (
+            <label key={t.key} className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={targets.includes(t.key)}
+                onCheckedChange={() =>
+                  setTargets((prev) =>
+                    prev.includes(t.key) ? prev.filter((x) => x !== t.key) : [...prev, t.key],
+                  )
+                }
+              />
+              {t.label}
+            </label>
+          ))}
+          <span className="text-xs text-muted-foreground">
+            {targets.length === 0
+              ? "Nenhum selecionado: usa o canal configurado em cada regra."
+              : `Sobrescreve o canal das regras selecionadas (${targets.join(" + ")}).`}
+          </span>
+        </div>
+
+
         <ScrollArea className="min-h-0 flex-1 rounded-md border">
           <div className="divide-y">
             {isLoading ? (
