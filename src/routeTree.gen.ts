@@ -35,6 +35,7 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksUpdateUsdRateRouteImport } from './routes/api/public/hooks/update-usd-rate'
 import { Route as ApiPublicHooksMonitorNewsOauthRouteImport } from './routes/api/public/hooks/monitor-news-oauth'
+import { Route as ApiPublicCronValidateDataRouteImport } from './routes/api/public/cron/validate-data'
 import { Route as ApiPublicCronSyncMonitorNewsRouteImport } from './routes/api/public/cron/sync-monitor-news'
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
@@ -176,6 +177,12 @@ const ApiPublicHooksMonitorNewsOauthRoute =
     path: '/api/public/hooks/monitor-news-oauth',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronValidateDataRoute =
+  ApiPublicCronValidateDataRouteImport.update({
+    id: '/api/public/cron/validate-data',
+    path: '/api/public/cron/validate-data',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronSyncMonitorNewsRoute =
   ApiPublicCronSyncMonitorNewsRouteImport.update({
     id: '/api/public/cron/sync-monitor-news',
@@ -228,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
+  '/api/public/cron/validate-data': typeof ApiPublicCronValidateDataRoute
   '/api/public/hooks/monitor-news-oauth': typeof ApiPublicHooksMonitorNewsOauthRoute
   '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
+  '/api/public/cron/validate-data': typeof ApiPublicCronValidateDataRoute
   '/api/public/hooks/monitor-news-oauth': typeof ApiPublicHooksMonitorNewsOauthRoute
   '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
@@ -292,6 +301,7 @@ export interface FileRoutesById {
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
+  '/api/public/cron/validate-data': typeof ApiPublicCronValidateDataRoute
   '/api/public/hooks/monitor-news-oauth': typeof ApiPublicHooksMonitorNewsOauthRoute
   '/api/public/hooks/update-usd-rate': typeof ApiPublicHooksUpdateUsdRateRoute
 }
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
+    | '/api/public/cron/validate-data'
     | '/api/public/hooks/monitor-news-oauth'
     | '/api/public/hooks/update-usd-rate'
   fileRoutesByTo: FileRoutesByTo
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
+    | '/api/public/cron/validate-data'
     | '/api/public/hooks/monitor-news-oauth'
     | '/api/public/hooks/update-usd-rate'
   id:
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
+    | '/api/public/cron/validate-data'
     | '/api/public/hooks/monitor-news-oauth'
     | '/api/public/hooks/update-usd-rate'
   fileRoutesById: FileRoutesById
@@ -406,6 +419,7 @@ export interface RootRouteChildren {
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
   ApiPublicCronSyncMonitorNewsRoute: typeof ApiPublicCronSyncMonitorNewsRoute
+  ApiPublicCronValidateDataRoute: typeof ApiPublicCronValidateDataRoute
   ApiPublicHooksMonitorNewsOauthRoute: typeof ApiPublicHooksMonitorNewsOauthRoute
   ApiPublicHooksUpdateUsdRateRoute: typeof ApiPublicHooksUpdateUsdRateRoute
 }
@@ -594,6 +608,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMonitorNewsOauthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/validate-data': {
+      id: '/api/public/cron/validate-data'
+      path: '/api/public/cron/validate-data'
+      fullPath: '/api/public/cron/validate-data'
+      preLoaderRoute: typeof ApiPublicCronValidateDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/sync-monitor-news': {
       id: '/api/public/cron/sync-monitor-news'
       path: '/api/public/cron/sync-monitor-news'
@@ -688,6 +709,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
   ApiPublicCronSyncMonitorNewsRoute: ApiPublicCronSyncMonitorNewsRoute,
+  ApiPublicCronValidateDataRoute: ApiPublicCronValidateDataRoute,
   ApiPublicHooksMonitorNewsOauthRoute: ApiPublicHooksMonitorNewsOauthRoute,
   ApiPublicHooksUpdateUsdRateRoute: ApiPublicHooksUpdateUsdRateRoute,
 }

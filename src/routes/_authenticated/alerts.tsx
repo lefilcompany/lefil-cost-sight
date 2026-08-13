@@ -13,10 +13,12 @@ import {
   Filter,
   Sparkles,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { explainAlert } from "@/lib/gemini-ai.functions";
+import { runDataQualityCheck } from "@/lib/data-quality.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,12 +169,27 @@ function AlertsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const validateData = useServerFn(runDataQualityCheck);
+
+  const runValidation = useMutation({
+    mutationFn: async () => (await validateData()) as { checked_connections: number; issues: number; created_events: number },
+    onSuccess: (r) => {
+      if (r.issues === 0) toast.success(`Validação concluída · ${r.checked_connections} conexões sem divergências`);
+      else toast.warning(`${r.issues} inconsistência(s) encontradas · ${r.created_events} novo(s) alerta(s)`);
+      qc.invalidateQueries({ queryKey: ["alert-events"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <AppShell
       eyebrow="Sistema"
       title="Alertas"
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => runValidation.mutate()} disabled={runValidation.isPending} className="gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> {runValidation.isPending ? "Validando..." : "Validar dados"}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => evaluateNow.mutate()} disabled={evaluateNow.isPending} className="gap-1.5">
             <Radio className="h-3.5 w-3.5" /> {evaluateNow.isPending ? "Avaliando..." : "Avaliar agora"}
           </Button>
