@@ -40,6 +40,7 @@ import { Route as ApiPublicCronSyncMonitorNewsRouteImport } from './routes/api/p
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
+import { Route as ApiPublicCronBackfillUsageRouteImport } from './routes/api/public/cron/backfill-usage'
 
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
@@ -206,6 +207,12 @@ const ApiPublicCronEvaluateAlertsRoute =
     path: '/api/public/cron/evaluate-alerts',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronBackfillUsageRoute =
+  ApiPublicCronBackfillUsageRouteImport.update({
+    id: '/api/public/cron/backfill-usage',
+    path: '/api/public/cron/backfill-usage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/providers/': typeof AuthenticatedProvidersIndexRoute
+  '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/providers': typeof AuthenticatedProvidersIndexRoute
+  '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/providers/$id': typeof AuthenticatedProvidersIdRoute
   '/_authenticated/providers/': typeof AuthenticatedProvidersIndexRoute
+  '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/providers/$id'
     | '/providers/'
+    | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/providers/$id'
     | '/providers'
+    | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -396,6 +408,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/_authenticated/providers/$id'
     | '/_authenticated/providers/'
+    | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
@@ -415,6 +428,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicCronBackfillUsageRoute: typeof ApiPublicCronBackfillUsageRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
@@ -643,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronEvaluateAlertsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/backfill-usage': {
+      id: '/api/public/cron/backfill-usage'
+      path: '/api/public/cron/backfill-usage'
+      fullPath: '/api/public/cron/backfill-usage'
+      preLoaderRoute: typeof ApiPublicCronBackfillUsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -705,6 +726,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicCronBackfillUsageRoute: ApiPublicCronBackfillUsageRoute,
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
