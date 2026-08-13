@@ -42,7 +42,9 @@ export function BulkTestNotificationsDialog({ onDone }: { onDone?: () => void })
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [targets, setTargets] = useState<Array<"slack" | "email">>([]);
   const [results, setResults] = useState<BulkResult[] | null>(null);
+
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["cost-alert-rules-for-test"],
