@@ -77,3 +77,17 @@ export const runConnectionBackfillFn = createServerFn({ method: "POST" })
       initiatedBy: context.userId,
     });
   });
+
+// Reprocessa a última sincronização com falha (opcionalmente de um log/conexão
+// específicos) e registra o resultado no histórico de sync_logs.
+export const retryFailedSyncFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { log_id?: string; connection_id?: string } | undefined) => data ?? {})
+  .handler(async ({ data, context }) => {
+    const { retryFailedSync } = await import("./sync-retry.server");
+    return retryFailedSync({
+      logId: data.log_id ?? null,
+      connectionId: data.connection_id ?? null,
+      initiatedBy: context.userId,
+    });
+  });
