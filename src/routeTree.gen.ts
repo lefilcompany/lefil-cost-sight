@@ -40,6 +40,7 @@ import { Route as ApiPublicCronValidateDataRouteImport } from './routes/api/publ
 import { Route as ApiPublicCronSyncMonitorNewsRouteImport } from './routes/api/public/cron/sync-monitor-news'
 import { Route as ApiPublicCronSyncBillingRouteImport } from './routes/api/public/cron/sync-billing'
 import { Route as ApiPublicCronSyncAllRouteImport } from './routes/api/public/cron/sync-all'
+import { Route as ApiPublicCronProcessNotificationsRouteImport } from './routes/api/public/cron/process-notifications'
 import { Route as ApiPublicCronEvaluateAlertsRouteImport } from './routes/api/public/cron/evaluate-alerts'
 import { Route as ApiPublicCronBackfillUsageRouteImport } from './routes/api/public/cron/backfill-usage'
 
@@ -208,6 +209,12 @@ const ApiPublicCronSyncAllRoute = ApiPublicCronSyncAllRouteImport.update({
   path: '/api/public/cron/sync-all',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronProcessNotificationsRoute =
+  ApiPublicCronProcessNotificationsRouteImport.update({
+    id: '/api/public/cron/process-notifications',
+    path: '/api/public/cron/process-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronEvaluateAlertsRoute =
   ApiPublicCronEvaluateAlertsRouteImport.update({
     id: '/api/public/cron/evaluate-alerts',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
+  '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -282,6 +290,7 @@ export interface FileRoutesByTo {
   '/providers': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
+  '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -318,6 +327,7 @@ export interface FileRoutesById {
   '/_authenticated/providers/': typeof AuthenticatedProvidersIndexRoute
   '/api/public/cron/backfill-usage': typeof ApiPublicCronBackfillUsageRoute
   '/api/public/cron/evaluate-alerts': typeof ApiPublicCronEvaluateAlertsRoute
+  '/api/public/cron/process-notifications': typeof ApiPublicCronProcessNotificationsRoute
   '/api/public/cron/sync-all': typeof ApiPublicCronSyncAllRoute
   '/api/public/cron/sync-billing': typeof ApiPublicCronSyncBillingRoute
   '/api/public/cron/sync-monitor-news': typeof ApiPublicCronSyncMonitorNewsRoute
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/providers/'
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
+    | '/api/public/cron/process-notifications'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
+    | '/api/public/cron/process-notifications'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -423,6 +435,7 @@ export interface FileRouteTypes {
     | '/_authenticated/providers/'
     | '/api/public/cron/backfill-usage'
     | '/api/public/cron/evaluate-alerts'
+    | '/api/public/cron/process-notifications'
     | '/api/public/cron/sync-all'
     | '/api/public/cron/sync-billing'
     | '/api/public/cron/sync-monitor-news'
@@ -443,6 +456,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicCronBackfillUsageRoute: typeof ApiPublicCronBackfillUsageRoute
   ApiPublicCronEvaluateAlertsRoute: typeof ApiPublicCronEvaluateAlertsRoute
+  ApiPublicCronProcessNotificationsRoute: typeof ApiPublicCronProcessNotificationsRoute
   ApiPublicCronSyncAllRoute: typeof ApiPublicCronSyncAllRoute
   ApiPublicCronSyncBillingRoute: typeof ApiPublicCronSyncBillingRoute
   ApiPublicCronSyncMonitorNewsRoute: typeof ApiPublicCronSyncMonitorNewsRoute
@@ -670,6 +684,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronSyncAllRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/process-notifications': {
+      id: '/api/public/cron/process-notifications'
+      path: '/api/public/cron/process-notifications'
+      fullPath: '/api/public/cron/process-notifications'
+      preLoaderRoute: typeof ApiPublicCronProcessNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/evaluate-alerts': {
       id: '/api/public/cron/evaluate-alerts'
       path: '/api/public/cron/evaluate-alerts'
@@ -750,6 +771,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicCronBackfillUsageRoute: ApiPublicCronBackfillUsageRoute,
   ApiPublicCronEvaluateAlertsRoute: ApiPublicCronEvaluateAlertsRoute,
+  ApiPublicCronProcessNotificationsRoute:
+    ApiPublicCronProcessNotificationsRoute,
   ApiPublicCronSyncAllRoute: ApiPublicCronSyncAllRoute,
   ApiPublicCronSyncBillingRoute: ApiPublicCronSyncBillingRoute,
   ApiPublicCronSyncMonitorNewsRoute: ApiPublicCronSyncMonitorNewsRoute,

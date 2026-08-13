@@ -26,6 +26,11 @@ import {
   saveAlertNotificationSettings,
   sendTestAlertNotification,
 } from "@/lib/alert-notify.functions";
+import {
+  listAlertDeliveries,
+  retryAlertDelivery,
+  processAlertNotificationQueue,
+} from "@/lib/notification-queue.functions";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -521,7 +526,9 @@ function RuleRow({ rule }: { rule: AlertRule }) {
 }
 
 function NotificationSettingsDialog() {
+  const qcSettings = useQueryClient();
   const [open, setOpen] = useState(false);
+
   const [emails, setEmails] = useState("");
   const [previewMetric, setPreviewMetric] = useState("monthly_cost");
   const [previewTab, setPreviewTab] = useState("slack");
@@ -552,12 +559,29 @@ function NotificationSettingsDialog() {
     return { sample, ruleUrl, email: buildEmailContent(sample, ruleUrl) };
   }, [previewMetric]);
 
+  const processQueue = useServerFn(processAlertNotificationQueue);
+  const queueMut = useMutation({
+    mutationFn: async () =>
+      (await processQueue()) as { processed: number; sent: number; pending: number; failed: number },
+    onSuccess: (res) => {
+      toast.success(
+        `Fila processada — ${res.sent} enviado(s), ${res.pending} aguardando retry, ${res.failed} falha(s)`,
+      );
+      qcSettings.invalidateQueries({ queryKey: ["alert-deliveries"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao processar fila"),
+  });
+
   const testMut = useMutation({
-    mutationFn: async () => (await test()) as { slack: string; email: string },
+    mutationFn: async () =>
+      (await test()) as { queued: number; sent: number; pending: number; failed: number },
     onSuccess: (res) =>
-      toast.success(`Teste enviado — Slack: ${res.slack}, e-mail: ${res.email}`),
+      toast.success(
+        `Teste enfileirado — ${res.sent} enviado(s), ${res.pending} na fila para retry, ${res.failed} falha(s)`,
+      ),
     onError: (e: any) => toast.error(e?.message ?? "Falha no envio de teste"),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -656,10 +680,23 @@ function NotificationSettingsDialog() {
           </div>
 
           <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
-              {testMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Enviar teste
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+                {testMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Enviar teste
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => queueMut.mutate()}
+                disabled={queueMut.isPending}
+              >
+                {queueMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+                Processar fila
+              </Button>
+            </div>
+
             <Button size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
               {saveMut.isPending ? "Salvando..." : "Salvar"}
             </Button>
@@ -849,6 +886,7 @@ function EventRow({ ev, onAck, onResolve }: { ev: AlertEvent; onAck: () => void;
           )}
         </div>
       </div>
+      <DeliveryStatus eventId={ev.id} />
       {open && explanation && (
         <div className="ml-6 mt-2 rounded-lg border border-border/60 bg-muted/40 p-3">
           <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -859,6 +897,87 @@ function EventRow({ ev, onAck, onResolve }: { ev: AlertEvent; onAck: () => void;
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type Delivery = {
+  id: string;
+  channel: string;
+  target: string | null;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  next_attempt_at: string | null;
+  sent_at: string | null;
+};
+
+const deliveryLabel: Record<string, string> = {
+  sent: "enviado",
+  pending: "na fila",
+  failed: "falhou",
+  cancelled: "cancelado",
+};
+
+function DeliveryStatus({ eventId }: { eventId: string }) {
+  const qc = useQueryClient();
+  const list = useServerFn(listAlertDeliveries);
+  const retry = useServerFn(retryAlertDelivery);
+
+  const { data } = useQuery({
+    queryKey: ["alert-deliveries", eventId],
+    queryFn: async () => {
+      const res: any = await list({ data: { event_id: eventId } });
+      return (res.deliveries ?? []) as Delivery[];
+    },
+  });
+
+  const retryMut = useMutation({
+    mutationFn: async (id: string) => retry({ data: { id } }),
+    onSuccess: (res: any) => {
+      toast.success(`Reenvio: ${deliveryLabel[res?.status] ?? res?.status}`);
+      qc.invalidateQueries({ queryKey: ["alert-deliveries", eventId] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao reenviar"),
+  });
+
+  const deliveries = data ?? [];
+  if (deliveries.length === 0) return null;
+
+  return (
+    <div className="ml-6 mt-2 flex flex-wrap items-center gap-2">
+      {deliveries.map((d) => (
+        <div
+          key={d.id}
+          className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1"
+          title={d.last_error ?? undefined}
+        >
+          <Badge
+            variant={d.status === "sent" ? "secondary" : d.status === "failed" ? "destructive" : "outline"}
+            className="text-[10px]"
+          >
+            {d.channel === "slack" ? "Slack" : "E-mail"} · {deliveryLabel[d.status] ?? d.status}
+          </Badge>
+          <span className="max-w-[180px] truncate text-[10px] text-muted-foreground">
+            {d.channel === "email" ? d.target : "webhook"}
+            {d.attempts > 0 && ` · ${d.attempts}/${d.max_attempts} tentativa(s)`}
+            {d.status === "pending" && d.next_attempt_at && ` · próx. ${fmtDateTime(d.next_attempt_at)}`}
+          </span>
+          {d.status !== "sent" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 gap-1 px-1.5 text-[10px]"
+              onClick={() => retryMut.mutate(d.id)}
+              disabled={retryMut.isPending}
+            >
+              {retryMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              Reenviar
+            </Button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

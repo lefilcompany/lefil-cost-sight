@@ -95,6 +95,97 @@ export type Database = {
           },
         ]
       }
+      alert_notification_deliveries: {
+        Row: {
+          alert_event_id: string | null
+          alert_id: string | null
+          attempts: number
+          body: string | null
+          channel: string
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          next_attempt_at: string
+          organization_id: string | null
+          payload: Json
+          period_label: string | null
+          rule_name: string | null
+          sent_at: string | null
+          severity: string | null
+          status: string
+          target: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_event_id?: string | null
+          alert_id?: string | null
+          attempts?: number
+          body?: string | null
+          channel: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          organization_id?: string | null
+          payload?: Json
+          period_label?: string | null
+          rule_name?: string | null
+          sent_at?: string | null
+          severity?: string | null
+          status?: string
+          target?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_event_id?: string | null
+          alert_id?: string | null
+          attempts?: number
+          body?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          organization_id?: string | null
+          payload?: Json
+          period_label?: string | null
+          rule_name?: string | null
+          sent_at?: string | null
+          severity?: string | null
+          status?: string
+          target?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_notification_deliveries_alert_event_id_fkey"
+            columns: ["alert_event_id"]
+            isOneToOne: false
+            referencedRelation: "alert_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_notification_deliveries_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "cost_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_notification_deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -2215,6 +2306,10 @@ export type Database = {
       }
       run_evaluate_alerts_job: {
         Args: { _apikey?: string; _url: string }
+        Returns: number
+      }
+      run_process_notifications_job: {
+        Args: { _apikey: string; _url: string }
         Returns: number
       }
       run_sync_billing_job: {

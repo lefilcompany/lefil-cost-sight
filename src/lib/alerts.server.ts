@@ -143,7 +143,7 @@ export async function evaluateAlerts(): Promise<EvalResult> {
             .neq("status", "resolved")
             .gte("created_at", since);
           if ((count ?? 0) > 0) continue;
-          await supabaseAdmin.from("alert_events").insert({
+          const { data: staleEvent } = await supabaseAdmin.from("alert_events").insert({
             alert_id: a.id,
             severity: "warning",
             title: `Sem sincronização há ${Math.floor(s.days)}d`,
@@ -153,7 +153,7 @@ export async function evaluateAlerts(): Promise<EvalResult> {
             scope: "platform",
             scope_id: s.id,
             scope_label: s.name,
-          });
+          }).select("id, organization_id").maybeSingle();
           await notifyAlert({
             ruleId: a.id,
             ruleName: a.name,
@@ -165,6 +165,9 @@ export async function evaluateAlerts(): Promise<EvalResult> {
             threshold: Number(a.threshold),
             scopeLabel: s.name,
             periodLabel: periodLabelFor("no_sync_days", { days: s.days }),
+          }, {
+            alertEventId: (staleEvent as any)?.id ?? null,
+            organizationId: (staleEvent as any)?.organization_id ?? null,
           });
           events.push({ alert_id: a.id, title: s.name, value: s.days });
         }
@@ -180,7 +183,7 @@ export async function evaluateAlerts(): Promise<EvalResult> {
 
       const scopeLabel = await labelForScope(a.scope, a.scope_id);
       const severity = a.metric === "variance_pct" && value >= Number(a.threshold) * 2 ? "critical" : "warning";
-      await supabaseAdmin.from("alert_events").insert({
+      const { data: insertedEvent } = await supabaseAdmin.from("alert_events").insert({
         alert_id: a.id,
         severity,
         title: `${a.name} — ${scopeLabel}`,
@@ -190,7 +193,7 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         scope: a.scope,
         scope_id: a.scope_id,
         scope_label: scopeLabel,
-      });
+      }).select("id, organization_id").maybeSingle();
 
       const periodStart =
         a.metric === "daily_cost" ? iso(todayStart) : a.metric === "variance_pct" ? iso(prevStart) : iso(monthStart);
@@ -208,6 +211,9 @@ export async function evaluateAlerts(): Promise<EvalResult> {
         periodLabel: periodLabelFor(a.metric, { start: periodStart, end: periodEnd }),
         periodStart,
         periodEnd,
+      }, {
+        alertEventId: (insertedEvent as any)?.id ?? null,
+        organizationId: (insertedEvent as any)?.organization_id ?? null,
       });
       events.push({ alert_id: a.id, title, value });
 
