@@ -5,7 +5,17 @@ export type BackfillInput = {
   periodStart: string; // YYYY-MM-DD
   periodEnd: string; // YYYY-MM-DD
   purge?: boolean;
+  /** Roda a reconciliação estimado x confirmado ao final do backfill. */
+  reconcile?: boolean;
   initiatedBy?: string | null;
+};
+
+export type BackfillReconciliationSummary = {
+  tolerance_pct: number;
+  months: number;
+  checked: number;
+  divergent: number;
+  created_events: number;
 };
 
 export type BackfillResult = {
@@ -18,7 +28,9 @@ export type BackfillResult = {
   invoices: number;
   records_imported: number;
   steps: { step: string; ok: boolean; message?: string; records?: number }[];
+  reconciliation?: BackfillReconciliationSummary | null;
 };
+
 
 const DAY = 86_400_000;
 
