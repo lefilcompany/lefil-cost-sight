@@ -8,6 +8,14 @@ const createSchema = z.object({
   environment: z.enum(["production", "sandbox"]),
   permissions: z.array(z.string().min(1)).min(1).max(20),
   expiresInDays: z.number().int().min(1).max(3650).nullable().optional(),
+  scopeProviderIds: z.array(z.string().uuid()).max(50).optional(),
+  scopePlatformIds: z.array(z.string().uuid()).max(50).optional(),
+});
+
+const scopeSchema = z.object({
+  id: z.string().uuid(),
+  scopeProviderIds: z.array(z.string().uuid()).max(50),
+  scopePlatformIds: z.array(z.string().uuid()).max(50),
 });
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -22,6 +30,20 @@ export const createIntegrationApiKey = createServerFn({ method: "POST" })
       environment: data.environment,
       permissions: data.permissions,
       expiresInDays: data.expiresInDays ?? null,
+      scopeProviderIds: data.scopeProviderIds ?? [],
+      scopePlatformIds: data.scopePlatformIds ?? [],
+    });
+  });
+
+/** Atualiza o escopo (fornecedores/plataformas) que a chave pode acessar. */
+export const updateIntegrationApiKeyScope = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => scopeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { updateApiKeyScope } = await import("./api-keys.server");
+    return updateApiKeyScope(context.supabase, context.userId, data.id, {
+      providerIds: data.scopeProviderIds,
+      platformIds: data.scopePlatformIds,
     });
   });
 

@@ -58,6 +58,69 @@ async function writeAudit(input: {
   }
 }
 
+export type ApiKeyScope = {
+  providerIds: string[];
+  platformIds: string[];
+};
+
+/**
+ * Verifica se um provider/platform está dentro do escopo da chave.
+ * Listas vazias significam acesso irrestrito àquela dimensão.
+ */
+export function isWithinApiKeyScope(
+  scope: { scope_provider_ids?: string[] | null; scope_platform_ids?: string[] | null },
+  target: { providerId?: string | null; platformId?: string | null },
+) {
+  const providers = scope.scope_provider_ids ?? [];
+  const platforms = scope.scope_platform_ids ?? [];
+  if (providers.length && (!target.providerId || !providers.includes(target.providerId))) return false;
+  if (platforms.length && (!target.platformId || !platforms.includes(target.platformId))) return false;
+  return true;
+}
+
+/** Lança erro quando o recurso pedido está fora do escopo da chave. */
+export function assertApiKeyScope(
+  scope: { scope_provider_ids?: string[] | null; scope_platform_ids?: string[] | null },
+  target: { providerId?: string | null; platformId?: string | null },
+) {
+  if (!isWithinApiKeyScope(scope, target)) {
+    throw new Error("api_key_out_of_scope");
+  }
+}
+
+export async function updateApiKeyScope(
+  supabase: Client,
+  userId: string,
+  id: string,
+  scope: ApiKeyScope,
+) {
+  const { data, error } = await supabase
+    .from("integration_api_keys")
+    .update({
+      scope_provider_ids: scope.providerIds,
+      scope_platform_ids: scope.platformIds,
+    })
+    .eq("id", id)
+    .select("id, name, organization_id, scope_provider_ids, scope_platform_ids")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await writeAudit({
+    organizationId: data.organization_id,
+    userId,
+    action: "api_key.scope_updated",
+    entityId: data.id,
+    metadata: {
+      name: data.name,
+      providers: scope.providerIds.length ? scope.providerIds : ["*"],
+      platforms: scope.platformIds.length ? scope.platformIds : ["*"],
+    },
+  });
+
+  return { key: data };
+}
+
 export async function createApiKey(
   supabase: Client,
   userId: string,
@@ -66,6 +129,8 @@ export async function createApiKey(
     environment: ApiKeyEnvironment;
     permissions: string[];
     expiresInDays?: number | null;
+    scopeProviderIds?: string[];
+    scopePlatformIds?: string[];
   },
 ) {
   const organizationId = await resolveOrgId(supabase);
@@ -87,8 +152,12 @@ export async function createApiKey(
       status: "active",
       expires_at: expiresAt,
       created_by: userId,
+      scope_provider_ids: input.scopeProviderIds ?? [],
+      scope_platform_ids: input.scopePlatformIds ?? [],
     })
-    .select("id, name, key_prefix, permissions, environment, status, expires_at, created_at")
+    .select(
+      "id, name, key_prefix, permissions, environment, status, expires_at, created_at, scope_provider_ids, scope_platform_ids",
+    )
     .single();
 
   if (error) throw new Error(error.message);
@@ -98,7 +167,13 @@ export async function createApiKey(
     userId,
     action: "api_key.created",
     entityId: data.id,
-    metadata: { name: input.name, environment: input.environment, permissions: input.permissions },
+    metadata: {
+      name: input.name,
+      environment: input.environment,
+      permissions: input.permissions,
+      providers: input.scopeProviderIds?.length ? input.scopeProviderIds : ["*"],
+      platforms: input.scopePlatformIds?.length ? input.scopePlatformIds : ["*"],
+    },
   });
 
   return { key: data, secret: raw };
