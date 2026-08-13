@@ -36,6 +36,10 @@ export const getMonitorNewsStatus = createServerFn({ method: "GET" })
     const conn = await getActiveConnection();
     return {
       connected: !!conn,
+      status: (conn?.status ?? null) as "active" | "expired" | null,
+      expired: conn?.status === "expired",
+      last_error: conn?.last_error ?? null,
+      expired_at: conn?.expired_at ?? null,
       connected_at: conn?.connected_at ?? null,
       expires_at: conn?.expires_at ?? null,
       scope: conn?.scope ?? null,
