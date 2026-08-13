@@ -553,11 +553,15 @@ function NotificationSettingsDialog() {
   }, [previewMetric]);
 
   const testMut = useMutation({
-    mutationFn: async () => (await test()) as { slack: string; email: string },
+    mutationFn: async () =>
+      (await test()) as { queued: number; sent: number; pending: number; failed: number },
     onSuccess: (res) =>
-      toast.success(`Teste enviado — Slack: ${res.slack}, e-mail: ${res.email}`),
+      toast.success(
+        `Teste enfileirado — ${res.sent} enviado(s), ${res.pending} na fila para retry, ${res.failed} falha(s)`,
+      ),
     onError: (e: any) => toast.error(e?.message ?? "Falha no envio de teste"),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
