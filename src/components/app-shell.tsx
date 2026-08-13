@@ -20,6 +20,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   costs: "Lançamentos",
   billing: "Consumo e planos",
   invoices: "Faturas",
+  reconciliation: "Reconciliação",
   syncs: "Saúde dos dados",
   alerts: "Alertas",
   users: "Equipe e acessos",
