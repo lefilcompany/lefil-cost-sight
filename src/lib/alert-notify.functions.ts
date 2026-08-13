@@ -59,11 +59,15 @@ export const sendTestAlertNotification = createServerFn({ method: "POST" })
 /** Dispara notificações de teste para várias regras selecionadas de uma vez. */
 export const sendBulkTestAlertNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { rule_ids: string[] }) => ({
+  .inputValidator((input: { rule_ids: string[]; targets?: Array<"slack" | "email"> }) => ({
     rule_ids: Array.from(new Set((input?.rule_ids ?? []).map((id) => String(id)).filter(Boolean))).slice(0, 50),
+    targets: Array.from(
+      new Set((input?.targets ?? []).filter((t) => t === "slack" || t === "email")),
+    ) as Array<"slack" | "email">,
   }))
   .handler(async ({ data, context }) => {
     if (data.rule_ids.length === 0) throw new Error("Selecione ao menos uma regra");
+
 
     const { data: rules, error } = await context.supabase
       .from("cost_alerts")
