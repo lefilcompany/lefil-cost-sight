@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, RefreshCw, Trash2, Newspaper } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Newspaper, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,11 @@ export function MonitorNewsCard() {
   const syncMut = useMutation({
     mutationFn: async () => sync({}),
     onSuccess: (r: any) => {
+      if (r?.expired) {
+        toast.error("Conexão do Monitor News expirada. Reconecte para retomar.");
+        qc.invalidateQueries({ queryKey: ["monitor_news_status"] });
+        return;
+      }
       if (r?.ok) {
         toast.success(
           `Monitor News sincronizado: ${r.clients ?? 0} clientes, ${r.usage_rows ?? 0} usos`,
@@ -93,6 +98,17 @@ export function MonitorNewsCard() {
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
           {isLoading ? (
             <span className="text-muted-foreground">Verificando...</span>
+          ) : data?.expired ? (
+            <>
+              <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/20">
+                <AlertTriangle className="mr-1 h-3 w-3" /> Expirada
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                Sincronizações pausadas desde{" "}
+                {data.expired_at ? fmtDateTime(data.expired_at) : "—"}. Reconecte para retomar.
+                {data.last_error ? ` (${data.last_error})` : ""}
+              </span>
+            </>
           ) : data?.connected ? (
             <>
               <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20">Conectado</Badge>
@@ -112,13 +128,29 @@ export function MonitorNewsCard() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {!data?.connected && (
+          {(!data?.connected || data?.expired) && (
             <Button onClick={() => connectMut.mutate()} disabled={connectMut.isPending} className="gap-1.5">
               <Plus className="h-4 w-4" />
-              {connectMut.isPending ? "Abrindo..." : "Conectar Monitor News"}
+              {connectMut.isPending
+                ? "Abrindo..."
+                : data?.expired
+                  ? "Reconectar Monitor News"
+                  : "Conectar Monitor News"}
             </Button>
           )}
-          {data?.connected && (
+          {data?.connected && data?.expired && (
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (confirm("Remover a conexão expirada do Monitor News?")) disconnectMut.mutate();
+              }}
+              disabled={disconnectMut.isPending}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" /> Remover conexão
+            </Button>
+          )}
+          {data?.connected && !data?.expired && (
             <>
               <Button onClick={() => syncMut.mutate()} disabled={syncMut.isPending} className="gap-1.5">
                 <RefreshCw className={`h-4 w-4 ${syncMut.isPending ? "animate-spin" : ""}`} />

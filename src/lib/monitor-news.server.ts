@@ -174,6 +174,9 @@ export async function completeOauthCallback(state: string, code: string) {
     token_type: tok.token_type ?? "Bearer",
     scope: tok.scope ?? DEFAULT_SCOPE,
     expires_at: expiresAt,
+    status: "active",
+    last_error: null,
+    expired_at: null,
     connected_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -186,22 +189,78 @@ export async function completeOauthCallback(state: string, code: string) {
   return { ok: true, user_id: st.user_id };
 }
 
+/**
+ * Sinaliza que as credenciais do Monitor News não são mais válidas.
+ * Quando isso acontece a conexão é marcada como "expirada" e as
+ * sincronizações param de tentar até o admin reconectar.
+ */
+export class MonitorNewsAuthExpiredError extends Error {
+  readonly code = "monitor_news_auth_expired";
+  constructor(message: string) {
+    super(message);
+    this.name = "MonitorNewsAuthExpiredError";
+  }
+}
+
+export async function markConnectionExpired(userId: string | null | undefined, reason: string) {
+  if (!userId) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("monitor_news_connections")
+    .update({
+      status: "expired",
+      last_error: reason.slice(0, 500),
+      expired_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+}
+
 async function refreshIfNeeded(conn: any): Promise<{ access_token: string; conn: any }> {
+  // Conexão já marcada como expirada: não tenta de novo (sem loop de retry).
+  if (conn.status === "expired") {
+    throw new MonitorNewsAuthExpiredError(
+      "A conexão do Monitor News está expirada. Reconecte para retomar as sincronizações.",
+    );
+  }
+
   const nowPlus60 = Date.now() + 60_000;
   const exp = conn.expires_at ? new Date(conn.expires_at).getTime() : 0;
   if (exp && exp > nowPlus60) return { access_token: dec(conn.access_token_ciphertext), conn };
-  if (!conn.refresh_token_ciphertext) return { access_token: dec(conn.access_token_ciphertext), conn };
+
+  if (!conn.refresh_token_ciphertext) {
+    // Token vencido e sem refresh token → precisa reautenticar.
+    if (exp && exp <= Date.now()) {
+      await markConnectionExpired(conn.user_id, "Token expirado e sem refresh token disponível.");
+      throw new MonitorNewsAuthExpiredError(
+        "O token do Monitor News expirou e não há refresh token. Reconecte a integração.",
+      );
+    }
+    return { access_token: dec(conn.access_token_ciphertext), conn };
+  }
 
   const refresh = dec(conn.refresh_token_ciphertext);
-  const tok = await tokenRequest({
-    grant_type: "refresh_token",
-    refresh_token: refresh,
-    client_id: conn.client_id,
-  });
+  let tok: any;
+  try {
+    tok = await tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: refresh,
+      client_id: conn.client_id,
+    });
+  } catch (e: any) {
+    const reason = String(e?.message ?? e);
+    await markConnectionExpired(conn.user_id, `Falha ao renovar token: ${reason}`);
+    throw new MonitorNewsAuthExpiredError(
+      `Não foi possível renovar as credenciais do Monitor News (${reason}). Reconecte a integração.`,
+    );
+  }
   const expiresAt = tok.expires_in
     ? new Date(Date.now() + Number(tok.expires_in) * 1000).toISOString()
     : null;
   const patch: any = {
+    status: "active",
+    last_error: null,
+    expired_at: null,
     access_token_ciphertext: enc(tok.access_token),
     refresh_token_ciphertext: tok.refresh_token ? enc(tok.refresh_token) : conn.refresh_token_ciphertext,
     token_type: tok.token_type ?? conn.token_type,
@@ -276,8 +335,10 @@ class McpClient {
   private sessionId: string | null = null;
   private id = 0;
   private token: string;
-  constructor(token: string) {
+  private userId: string | null;
+  constructor(token: string, userId?: string | null) {
     this.token = token;
+    this.userId = userId ?? null;
   }
   private async post(body: any): Promise<{ res: Response }> {
     const headers: Record<string, string> = {
@@ -294,7 +355,15 @@ class McpClient {
     });
     const sid = res.headers.get("Mcp-Session-Id");
     if (sid) this.sessionId = sid;
-    if (res.status === 401) throw new Error("Monitor News rejeitou o token (401). Reconecte.");
+    if (res.status === 401 || res.status === 403) {
+      await markConnectionExpired(
+        this.userId,
+        `Monitor News rejeitou o token (HTTP ${res.status}).`,
+      );
+      throw new MonitorNewsAuthExpiredError(
+        `Monitor News rejeitou as credenciais (HTTP ${res.status}). Reconecte a integração.`,
+      );
+    }
     if (!res.ok && res.status !== 202) {
       const t = await res.text();
       throw new Error(`MCP HTTP ${res.status}: ${t.slice(0, 300)}`);
@@ -348,7 +417,7 @@ class McpClient {
 export async function connectMcp() {
   const auth = await getBearer();
   if (!auth) throw new Error("Nenhuma conexão Monitor News ativa. Conecte em Configurações.");
-  const client = new McpClient(auth.token);
+  const client = new McpClient(auth.token, auth.conn?.user_id);
   await client.initialize();
   return client;
 }
@@ -554,6 +623,29 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
   const logId = logRow?.id;
 
   const startedMs = Date.now();
+
+  // Curto-circuito: conexão expirada não deve ser tentada em loop.
+  const existing = await getActiveConnection();
+  if (existing?.status === "expired") {
+    if (logId) {
+      await supabaseAdmin
+        .from("sync_logs")
+        .update({
+          finished_at: new Date().toISOString(),
+          duration_ms: 0,
+          status: "skipped",
+          error_message: "Conexão do Monitor News expirada — reconecte para retomar.",
+          metadata: { job: "monitor-news", mode: mode.kind, period, reason: "auth_expired" },
+        })
+        .eq("id", logId);
+    }
+    return {
+      ok: false as const,
+      expired: true as const,
+      message:
+        "A conexão do Monitor News está expirada. Reconecte a integração para retomar as sincronizações.",
+    };
+  }
 
   async function finalize(patch: Record<string, any>) {
     if (!logId) return;
@@ -837,8 +929,15 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
       per_workspace: perWorkspace,
     };
   } catch (err: any) {
-    await finalize({ status: "error", error_message: String(err?.message ?? err) });
-    return { ok: false, message: String(err?.message ?? err) };
+    const expired = err?.code === "monitor_news_auth_expired";
+    await finalize({
+      status: expired ? "skipped" : "error",
+      error_message: String(err?.message ?? err),
+      metadata: expired
+        ? { job: "monitor-news", mode: mode.kind, period, reason: "auth_expired" }
+        : undefined,
+    });
+    return { ok: false, expired, message: String(err?.message ?? err) };
   }
 }
 
