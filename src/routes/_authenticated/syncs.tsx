@@ -15,6 +15,7 @@ import {
   Inbox,
   Zap,
   Play,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -29,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
-import { runProviderSync } from "@/lib/sync.functions";
+import { runProviderSync, retryFailedSyncFn } from "@/lib/sync.functions";
 
 const PERIODS = ["24h", "7d", "30d", "all"] as const;
 const STATUSES = ["success", "error", "running"] as const;
@@ -57,6 +58,7 @@ type Log = {
   duration_ms: number | null;
   records_imported: number | null;
   error_message: string | null;
+  metadata?: any;
   providers?: { name: string } | null;
   provider_connections?: { id: string; name: string; platform_id: string | null } | null;
 };
@@ -87,6 +89,7 @@ function SyncsPage() {
   const navigate = useNavigate({ from: "/syncs" });
   const search = Route.useSearch();
   const sync = useServerFn(runProviderSync);
+  const retryFailedFn = useServerFn(retryFailedSyncFn);
 
   const { data: dims } = useQuery({
     queryKey: ["sync-dims"],
@@ -173,6 +176,30 @@ function SyncsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const lastFailed = useMemo(() => logs.find((l) => l.status === "error" && l.connection_id), [logs]);
+
+  const retryFailed = useMutation({
+    mutationFn: async (logId?: string) =>
+      (await retryFailedFn({ data: logId ? { log_id: logId } : {} })) as {
+        ok: boolean;
+        retried: boolean;
+        message: string;
+        connection_name?: string | null;
+        records?: number;
+      },
+    onSuccess: (r) => {
+      if (!r.retried) toast.info(r.message);
+      else if (r.ok)
+        toast.success(
+          `Reprocessado: ${r.connection_name ?? "conexão"} · ${fmtNumber(r.records ?? 0)} registros`,
+        );
+      else toast.error(`Reprocessamento falhou: ${r.message}`);
+      qc.invalidateQueries({ queryKey: ["sync_logs"] });
+      qc.invalidateQueries({ queryKey: ["sync-connections"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao reprocessar"),
+  });
+
   return (
     <AppShell eyebrow="Análise" title="Sincronizações">
       <div className="space-y-6">
@@ -253,6 +280,26 @@ function SyncsPage() {
                 )}
               </div>
 
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1.5"
+                onClick={() => retryFailed.mutate(undefined)}
+                disabled={retryFailed.isPending || !lastFailed}
+                title={
+                  lastFailed
+                    ? `Reprocessar: ${lastFailed.provider_connections?.name ?? "conexão"} (${fmtDateTime(lastFailed.started_at)})`
+                    : "Nenhuma falha para reprocessar"
+                }
+              >
+                {retryFailed.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
+                )}
+                Reprocessar última falha
+              </Button>
+
               <Select value={search.period} onValueChange={(v) => setSearch({ period: v as any })}>
                 <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -307,7 +354,7 @@ function SyncsPage() {
                     <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Duração</TableHead>
                     <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Registros</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mensagem</TableHead>
-                    <TableHead className="w-28" />
+                    <TableHead className="w-64" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -347,13 +394,38 @@ function SyncsPage() {
                       <TableCell className="font-medium">{l.providers?.name ?? "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{l.provider_connections?.name ?? "—"}</TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">{fmtDateTime(l.started_at)}</TableCell>
-                      <TableCell><StatusBadge status={l.status} /></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <StatusBadge status={l.status} />
+                          {l.metadata?.retry && (
+                            <Badge variant="outline" className="text-[10px]" title={`Reprocessado em ${fmtDateTime(l.metadata.retry.retried_at)} · resultado: ${l.metadata.retry.result_status}`}>
+                              Reprocessado
+                            </Badge>
+                          )}
+                          {l.metadata?.retry_of_log_id && (
+                            <Badge variant="secondary" className="text-[10px]">Reprocessamento</Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right font-numeric text-sm">{l.duration_ms ? `${fmtNumber(l.duration_ms)} ms` : "—"}</TableCell>
                       <TableCell className="text-right font-numeric text-sm">{fmtNumber(l.records_imported ?? 0)}</TableCell>
                       <TableCell className="max-w-md truncate text-xs text-muted-foreground" title={l.error_message ?? ""}>
                         {l.error_message ?? "—"}
                       </TableCell>
                       <TableCell className="text-right">
+                        {l.status === "error" && l.connection_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-1.5 h-8 gap-1.5"
+                            onClick={() => retryFailed.mutate(l.id)}
+                            disabled={retryFailed.isPending}
+                            title="Reprocessar esta falha e registrar o resultado no histórico"
+                          >
+                            <RotateCcw className={`h-3.5 w-3.5 ${retryFailed.isPending && retryFailed.variables === l.id ? "animate-spin" : ""}`} />
+                            Reprocessar
+                          </Button>
+                        )}
                         {l.connection_id && (
                           <Button
                             size="sm"
