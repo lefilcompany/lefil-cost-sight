@@ -176,6 +176,9 @@ function NotificationsPage() {
             <Button variant="outline" size="sm" asChild>
               <Link to="/alerts">Ver alertas</Link>
             </Button>
+            <BulkTestNotificationsDialog
+              onDone={() => queryClient.invalidateQueries({ queryKey: ["notification-deliveries"] })}
+            />
             <Button
               size="sm"
               onClick={() => processQueue.mutate()}
