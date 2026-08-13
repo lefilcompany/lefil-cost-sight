@@ -164,8 +164,8 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
 
     try {
       const { aggregateUsageDailyFromSnapshots } = await import("./billing.server");
-      const { resolveUsdBrlRate } = await import("./sync.server");
-      const rate = await resolveUsdBrlRate();
+      const { getUsdBrlRate } = await import("./usd-rate.server");
+      const rate = (await getUsdBrlRate()).rate;
       const days = Math.max(
         1,
         Math.ceil((Date.now() - new Date(`${periodStart}T00:00:00Z`).getTime()) / DAY) + 1,
