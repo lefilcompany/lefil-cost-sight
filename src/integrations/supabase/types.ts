@@ -897,9 +897,12 @@ export type Database = {
           access_token_ciphertext: string
           client_id: string
           connected_at: string
+          expired_at: string | null
           expires_at: string | null
+          last_error: string | null
           refresh_token_ciphertext: string | null
           scope: string | null
+          status: string
           token_type: string
           updated_at: string
           user_id: string
@@ -908,9 +911,12 @@ export type Database = {
           access_token_ciphertext: string
           client_id: string
           connected_at?: string
+          expired_at?: string | null
           expires_at?: string | null
+          last_error?: string | null
           refresh_token_ciphertext?: string | null
           scope?: string | null
+          status?: string
           token_type?: string
           updated_at?: string
           user_id: string
@@ -919,9 +925,12 @@ export type Database = {
           access_token_ciphertext?: string
           client_id?: string
           connected_at?: string
+          expired_at?: string | null
           expires_at?: string | null
+          last_error?: string | null
           refresh_token_ciphertext?: string | null
           scope?: string | null
+          status?: string
           token_type?: string
           updated_at?: string
           user_id?: string
