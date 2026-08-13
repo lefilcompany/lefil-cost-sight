@@ -102,6 +102,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         description: "Execuções, falhas e atualização das integrações.",
       },
       {
+        title: "Chaves de API",
+        url: "/api-keys",
+        icon: "KeyRound",
+        description: "Credenciais de integração: criação, rotação, revogação e histórico.",
+      },
+      {
         title: "Equipe e acessos",
         url: "/users",
         icon: "ShieldCheck",
