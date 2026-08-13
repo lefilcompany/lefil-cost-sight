@@ -266,6 +266,38 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
       });
     }
 
+    // Reconciliação automática ao final do backfill: compara estimado x confirmado
+    // no período reprocessado e gera alertas quando a divergência excede a tolerância.
+    if (reconcile) {
+      try {
+        const { runReconciliation } = await import("./reconciliation.server");
+        const months = monthsBetween(periodStart, periodEnd);
+        const r = await runReconciliation({ months, connectionIds: [conn.id] });
+        reconciliation = {
+          tolerance_pct: r.tolerance_pct,
+          months: r.months,
+          checked: r.rows.length,
+          divergent: r.divergent,
+          created_events: r.created_events,
+        };
+        steps.push({
+          step: "Reconciliação automática de custos",
+          ok: true,
+          records: r.rows.length,
+          message:
+            r.divergent > 0
+              ? `${r.divergent} mês(es) divergente(s) acima de ${r.tolerance_pct}% · ${r.created_events} alerta(s) gerado(s)`
+              : `Sem divergências acima de ${r.tolerance_pct}%`,
+        });
+      } catch (err: any) {
+        steps.push({
+          step: "Reconciliação automática de custos",
+          ok: false,
+          message: String(err?.message ?? err),
+        });
+      }
+    }
+
     const failed = steps.filter((s) => !s.ok).length;
     const status: BackfillResult["status"] = failed === 0 ? "success" : failed === steps.length ? "error" : "partial";
     await finish(status);
@@ -280,7 +312,9 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
       invoices,
       records_imported: usageRows + snapshots + invoices,
       steps,
+      reconciliation,
     };
+
   } catch (err: any) {
     const message = String(err?.message ?? err);
     await finish("error", message);
