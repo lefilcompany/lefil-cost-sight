@@ -122,12 +122,17 @@ export async function aggregateUsageDailyFromSnapshots(
     const costNow = Number(s.cost_period_usd ?? 0);
     const costPrev = sameCycle ? Number(prev.cost_period_usd ?? 0) : 0;
 
-    // Plano fixo: o custo do ciclo não varia por dia; nesse caso rateia por dia
-    // proporcionalmente ao consumo (quantidade), evitando duplicar o valor.
     let quantity = usedNow - usedPrev;
     if (!Number.isFinite(quantity) || quantity < 0) quantity = 0;
     let costUsd = costNow - costPrev;
     if (!Number.isFinite(costUsd) || costUsd < 0) costUsd = 0;
+    // Plano fixo: o custo do ciclo não varia entre snapshots. Nesse caso o
+    // delta seria 0 (ou o valor cheio no primeiro dia), então rateamos o custo
+    // do ciclo proporcionalmente ao consumo do dia.
+    const fixedPlan = Boolean(sameCycle) && costNow > 0 && costNow === costPrev;
+    if (fixedPlan) {
+      costUsd = usedNow > 0 ? (costNow * quantity) / usedNow : 0;
+    }
 
     prev = s;
     if (quantity <= 0 && costUsd <= 0) continue;
