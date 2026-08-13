@@ -577,10 +577,12 @@ function BillingPage() {
                     {loadingInv && (
                       <TableRow><TableCell colSpan={9} className="p-0"><LoadingState label="Carregando faturas..." /></TableCell></TableRow>
                     )}
-                    {!loadingInv && invoices.length === 0 && (
-                      <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">Nenhuma fatura cadastrada.</TableCell></TableRow>
+                    {!loadingInv && filteredInvoices.length === 0 && (
+                      <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                        {invoices.length === 0 ? "Nenhuma fatura cadastrada." : "Nenhuma fatura para os filtros aplicados."}
+                      </TableCell></TableRow>
                     )}
-                    {invoices.map((i) => (
+                    {invRows.map((i) => (
                       <TableRow key={i.id} className="border-border/50">
                         <TableCell className="whitespace-nowrap text-sm">{i.issued_at ?? "—"}</TableCell>
                         <TableCell className="text-sm">{i.providers?.name ?? "—"}</TableCell>
@@ -602,6 +604,22 @@ function BillingPage() {
                   </TableBody>
                 </Table>
               </div>
+              {invPageCount > 1 && (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="mr-auto text-xs text-muted-foreground">
+                    {currentInvPage * INV_PAGE_SIZE + 1}–
+                    {Math.min((currentInvPage + 1) * INV_PAGE_SIZE, filteredInvoices.length)} de {filteredInvoices.length}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={currentInvPage === 0} onClick={() => setInvPage((p) => Math.max(0, p - 1))}>
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Página {currentInvPage + 1} de {invPageCount}</span>
+                  <Button variant="outline" size="sm" disabled={currentInvPage + 1 >= invPageCount} onClick={() => setInvPage((p) => p + 1)}>
+                    Próxima
+                  </Button>
+                </div>
+              )}
+
             </CardContent>
           </Card>
         </TabsContent>
