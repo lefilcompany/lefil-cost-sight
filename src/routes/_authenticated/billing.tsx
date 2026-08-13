@@ -255,6 +255,48 @@ function BillingPage() {
     },
   });
 
+  const INV_PAGE_SIZE = 20;
+  const [invSearch, setInvSearch] = useState("");
+  const [invStatus, setInvStatus] = useState("all");
+  const [invProvider, setInvProvider] = useState("all");
+  const [invMonth, setInvMonth] = useState("all");
+  const [invPage, setInvPage] = useState(0);
+
+  const invStatusOptions = useMemo(
+    () => Array.from(new Set(invoices.map((i) => i.status).filter(Boolean))).sort(),
+    [invoices],
+  );
+  const invMonthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of invoices) {
+      const ref = i.period_start ?? i.issued_at;
+      if (ref) set.add(ref.slice(0, 7));
+    }
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
+  const filteredInvoices = useMemo(() => {
+    const term = invSearch.trim().toLowerCase();
+    return invoices.filter((i) => {
+      if (invStatus !== "all" && i.status !== invStatus) return false;
+      if (invProvider !== "all" && i.provider_id !== invProvider) return false;
+      if (invMonth !== "all") {
+        const ref = i.period_start ?? i.issued_at;
+        if (!ref || ref.slice(0, 7) !== invMonth) return false;
+      }
+      if (term) {
+        const hay = [i.invoice_number, i.providers?.name, i.source, i.notes].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [invoices, invSearch, invStatus, invProvider, invMonth]);
+
+  const invPageCount = Math.max(1, Math.ceil(filteredInvoices.length / INV_PAGE_SIZE));
+  const currentInvPage = Math.min(invPage, invPageCount - 1);
+  const invRows = filteredInvoices.slice(currentInvPage * INV_PAGE_SIZE, currentInvPage * INV_PAGE_SIZE + INV_PAGE_SIZE);
+
+
   const syncOneM = useMutation({
     mutationFn: async (connection_id: string) => syncOne({ data: { connection_id } }),
     onSuccess: (r: any) => {
