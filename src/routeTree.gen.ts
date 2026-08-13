@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedSyncsRouteImport } from './routes/_authenticated/syncs'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReconciliationRouteImport } from './routes/_authenticated/reconciliation'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -84,6 +85,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReconciliationRoute =
+  AuthenticatedReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlatformsRoute = AuthenticatedPlatformsRouteImport.update({
   id: '/platforms',
   path: '/platforms',
@@ -252,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/reconciliation': typeof AuthenticatedReconciliationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
@@ -288,6 +296,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/reconciliation': typeof AuthenticatedReconciliationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/syncs': typeof AuthenticatedSyncsRoute
   '/users': typeof AuthenticatedUsersRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
+  '/_authenticated/reconciliation': typeof AuthenticatedReconciliationRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/syncs': typeof AuthenticatedSyncsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/overview'
     | '/platforms'
+    | '/reconciliation'
     | '/settings'
     | '/syncs'
     | '/users'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/overview'
     | '/platforms'
+    | '/reconciliation'
     | '/settings'
     | '/syncs'
     | '/users'
@@ -437,6 +449,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/overview'
     | '/_authenticated/platforms'
+    | '/_authenticated/reconciliation'
     | '/_authenticated/settings'
     | '/_authenticated/syncs'
     | '/_authenticated/users'
@@ -534,6 +547,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reconciliation': {
+      id: '/_authenticated/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/reconciliation'
+      preLoaderRoute: typeof AuthenticatedReconciliationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/platforms': {
@@ -750,6 +770,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
+  AuthenticatedReconciliationRoute: typeof AuthenticatedReconciliationRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSyncsRoute: typeof AuthenticatedSyncsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
@@ -769,6 +790,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,
+  AuthenticatedReconciliationRoute: AuthenticatedReconciliationRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSyncsRoute: AuthenticatedSyncsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
