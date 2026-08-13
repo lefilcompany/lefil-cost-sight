@@ -624,6 +624,29 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
 
   const startedMs = Date.now();
 
+  // Curto-circuito: conexão expirada não deve ser tentada em loop.
+  const existing = await getActiveConnection();
+  if (existing?.status === "expired") {
+    if (logId) {
+      await supabaseAdmin
+        .from("sync_logs")
+        .update({
+          finished_at: new Date().toISOString(),
+          duration_ms: 0,
+          status: "skipped",
+          error_message: "Conexão do Monitor News expirada — reconecte para retomar.",
+          metadata: { job: "monitor-news", mode: mode.kind, period, reason: "auth_expired" },
+        })
+        .eq("id", logId);
+    }
+    return {
+      ok: false as const,
+      expired: true as const,
+      message:
+        "A conexão do Monitor News está expirada. Reconecte a integração para retomar as sincronizações.",
+    };
+  }
+
   async function finalize(patch: Record<string, any>) {
     if (!logId) return;
     await supabaseAdmin
@@ -906,8 +929,15 @@ async function syncCore(mode: SyncMode, triggeredByUser?: string, period: Monito
       per_workspace: perWorkspace,
     };
   } catch (err: any) {
-    await finalize({ status: "error", error_message: String(err?.message ?? err) });
-    return { ok: false, message: String(err?.message ?? err) };
+    const expired = err?.code === "monitor_news_auth_expired";
+    await finalize({
+      status: expired ? "skipped" : "error",
+      error_message: String(err?.message ?? err),
+      metadata: expired
+        ? { job: "monitor-news", mode: mode.kind, period, reason: "auth_expired" }
+        : undefined,
+    });
+    return { ok: false, expired, message: String(err?.message ?? err) };
   }
 }
 
