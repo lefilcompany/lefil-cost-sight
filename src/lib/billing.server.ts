@@ -169,71 +169,9 @@ export async function aggregateUsageDailyFromSnapshots(
     .order("captured_at", { ascending: true });
   if (error || !snaps || snaps.length === 0) return 0;
 
-  // último snapshot de cada dia
-  const lastPerDay = new Map<string, any>();
-  for (const s of snaps) {
-    const day = isoDate(new Date(s.captured_at as string));
-    lastPerDay.set(day, s);
-  }
-  const daysSorted = Array.from(lastPerDay.keys()).sort();
+  const { buildUsageDailyRows } = await import("./usage-aggregation");
+  const payload = buildUsageDailyRows(snaps as any[], rate);
 
-  // 1ª passada: consumo (delta) por dia, agrupado por ciclo de cobrança
-  type DayRow = { day: string; snap: any; qty: number; cycle: string };
-  const rows: DayRow[] = [];
-  let prev: any = null;
-  for (const day of daysSorted) {
-    const s = lastPerDay.get(day);
-    const cycle = String(s.cycle_start ?? day.slice(0, 7));
-    const sameCycle = prev && String(prev.cycle_start ?? "") === String(s.cycle_start ?? "");
-    const usedNow = Number(s.used_quantity ?? 0);
-    const usedPrev = sameCycle ? Number(prev.used_quantity ?? 0) : 0;
-    let qty = usedNow - usedPrev;
-    if (!Number.isFinite(qty) || qty < 0) qty = 0;
-    rows.push({ day, snap: s, qty, cycle });
-    prev = s;
-  }
-
-  // 2ª passada: rateia o custo conhecido do ciclo proporcionalmente ao consumo
-  // diário (funciona tanto para plano fixo quanto para pay-as-you-go).
-  const cycleTotals = new Map<string, { cost: number; qty: number }>();
-  for (const r of rows) {
-    const cur = cycleTotals.get(r.cycle) ?? { cost: 0, qty: 0 };
-    cur.cost = Math.max(cur.cost, Number(r.snap.cost_period_usd ?? 0));
-    cur.qty += r.qty;
-    cycleTotals.set(r.cycle, cur);
-  }
-
-  const payload: any[] = [];
-  for (const r of rows) {
-    const totals = cycleTotals.get(r.cycle)!;
-    const costUsd = totals.qty > 0 ? (totals.cost * r.qty) / totals.qty : 0;
-    if (r.qty <= 0 && costUsd <= 0) continue;
-    const s = r.snap;
-    payload.push({
-      connection_id: s.connection_id,
-      provider_id: s.provider_id,
-      platform_id: s.platform_id,
-      usage_date: r.day,
-      model: s.plan_name ? String(s.plan_name) : "plano",
-      endpoint: "billing_snapshot",
-      input_tokens: 0,
-      output_tokens: 0,
-      requests: 0,
-      quantity: r.qty,
-      unit: s.included_unit ?? null,
-      cost_usd: costUsd,
-      exchange_rate: rate,
-      cost_brl: costUsd * rate,
-      raw: {
-        source: "billing_snapshot_delta",
-        cycle_start: s.cycle_start,
-        cycle_end: s.cycle_end,
-        used_cycle_total: Number(s.used_quantity ?? 0),
-        cost_cycle_total: totals.cost,
-      },
-      synced_at: new Date().toISOString(),
-    });
-  }
 
   if (payload.length === 0) return 0;
   const { error: upErr } = await supabaseAdmin
