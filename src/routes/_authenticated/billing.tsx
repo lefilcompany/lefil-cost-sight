@@ -160,6 +160,77 @@ function BillingPage() {
   const usageTotal = usageData?.total ?? 0;
   const usagePageCount = Math.max(1, Math.ceil(usageTotal / USAGE_PAGE_SIZE));
 
+  const [exporting, setExporting] = useState<null | "csv" | "pdf">(null);
+
+  async function fetchAllUsage(): Promise<UsageExportRow[]> {
+    const BATCH = 1000;
+    const MAX = 20000;
+    const out: UsageExportRow[] = [];
+    for (let from = 0; from < MAX; from += BATCH) {
+      let q = supabase
+        .from("provider_usage_daily")
+        .select(
+          "usage_date,model,endpoint,input_tokens,output_tokens,requests,quantity,unit,cost_usd,cost_brl,providers(name)",
+        )
+        .order("usage_date", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, from + BATCH - 1);
+      if (usageProvider !== "all") q = q.eq("provider_id", usageProvider);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as UsageRow[];
+      for (const r of rows) {
+        out.push({
+          usage_date: r.usage_date,
+          provider: r.providers?.name ?? "—",
+          model: r.model || "",
+          endpoint: r.endpoint || "",
+          requests: Number(r.requests ?? 0),
+          input_tokens: Number(r.input_tokens ?? 0),
+          output_tokens: Number(r.output_tokens ?? 0),
+          quantity: Number(r.quantity ?? 0),
+          unit: r.unit ?? null,
+          cost_usd: Number(r.cost_usd ?? 0),
+          cost_brl: Number(r.cost_brl ?? 0),
+        });
+      }
+      if (rows.length < BATCH) break;
+    }
+    return out;
+  }
+
+  async function handleExport(kind: "csv" | "pdf") {
+    setExporting(kind);
+    try {
+      const rows = await fetchAllUsage();
+      if (rows.length === 0) {
+        toast.error("Sem dados de uso para exportar");
+        return;
+      }
+      const providerName =
+        usageProvider === "all"
+          ? "todos"
+          : ((providers as any[]).find((p) => p.id === usageProvider)?.name ?? "fornecedor");
+      const stamp = new Date().toISOString().slice(0, 10);
+      const base = `uso-por-dia-modelo_${providerName.toLowerCase().replace(/\s+/g, "-")}_${stamp}`;
+      if (kind === "csv") {
+        downloadBlob(`${base}.csv`, new Blob([buildUsageCsv(rows)], { type: "text/csv;charset=utf-8" }));
+      } else {
+        await exportUsagePdf(rows, {
+          filename: `${base}.pdf`,
+          subtitle: `Fornecedor: ${providerName} • Gerado em ${fmtDateTime(new Date().toISOString())}`,
+        });
+      }
+      toast.success(`${rows.length} registros exportados`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao exportar");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+
+
 
   const { data: invoices = [], isLoading: loadingInv } = useQuery({
     queryKey: ["billing-invoices"],
