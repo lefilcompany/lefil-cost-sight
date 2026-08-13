@@ -128,10 +128,38 @@ function AlertsPage() {
     };
   }, [qc]);
 
-  const filtered = useMemo(
-    () => (statusFilter === "all" ? events : events.filter((e) => e.status === statusFilter)),
-    [events, statusFilter],
-  );
+  const filtered = useMemo(() => {
+    const term = eventSearch.trim().toLowerCase();
+    return events.filter((e) => {
+      if (statusFilter !== "all" && e.status !== statusFilter) return false;
+      if (severityFilter !== "all" && e.severity !== severityFilter) return false;
+      if (term) {
+        const hay = [e.title, e.message, e.scope, e.scope_label].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [events, statusFilter, severityFilter, eventSearch]);
+
+  const eventPageCount = Math.max(1, Math.ceil(filtered.length / EVENTS_PAGE_SIZE));
+  const currentEventPage = Math.min(eventPage, eventPageCount - 1);
+  const eventRows = filtered.slice(currentEventPage * EVENTS_PAGE_SIZE, currentEventPage * EVENTS_PAGE_SIZE + EVENTS_PAGE_SIZE);
+
+  const filteredRules = useMemo(() => {
+    const term = ruleSearch.trim().toLowerCase();
+    return rules.filter((r) => {
+      if (ruleMetric !== "all" && r.metric !== ruleMetric) return false;
+      if (ruleState === "enabled" && !r.enabled) return false;
+      if (ruleState === "disabled" && r.enabled) return false;
+      if (term && !`${r.name} ${r.scope} ${r.metric}`.toLowerCase().includes(term)) return false;
+      return true;
+    });
+  }, [rules, ruleSearch, ruleMetric, ruleState]);
+
+  const rulePageCount = Math.max(1, Math.ceil(filteredRules.length / RULES_PAGE_SIZE));
+  const currentRulePage = Math.min(rulePage, rulePageCount - 1);
+  const ruleRows = filteredRules.slice(currentRulePage * RULES_PAGE_SIZE, currentRulePage * RULES_PAGE_SIZE + RULES_PAGE_SIZE);
+
 
   const stats = useMemo(() => {
     const open = events.filter((e) => e.status === "open").length;
