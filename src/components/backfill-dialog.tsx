@@ -87,6 +87,17 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
     },
   });
 
+  const runningJob = useMemo(
+    () =>
+      jobs.find(
+        (j) =>
+          j.status === "running" &&
+          (j.period_start ?? "") <= end &&
+          (j.period_end ?? "") >= start,
+      ) ?? null,
+    [jobs, start, end],
+  );
+
   const applyPreset = (value: string) => {
     setPreset(value);
     const fn = PRESETS[value];
@@ -97,9 +108,19 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
     }
   };
 
+
   const run = useMutation({
-    mutationFn: () =>
-      runBackfill({ data: { connection_id: connectionId, period_start: start, period_end: end, purge } }),
+    mutationFn: () => {
+      if (runningJob) {
+        throw new Error(
+          "Já existe um backfill em execução nesta conexão para um período sobreposto. Aguarde a conclusão antes de tentar novamente.",
+        );
+      }
+      return runBackfill({
+        data: { connection_id: connectionId, period_start: start, period_end: end, purge },
+      });
+    },
+
     onSuccess: (res: any) => {
       const failed = (res?.steps ?? []).filter((s: any) => !s.ok).length;
       if (res?.status === "success") {
@@ -187,6 +208,23 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
             </span>
           </label>
 
+          {runningJob ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+              <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
+              <span>
+                <span className="font-medium">Backfill em execução nesta conexão</span>
+                <span className="block text-xs">
+                  Período {runningJob.period_start ?? "—"} a {runningJob.period_end ?? "—"}
+                  {runningJob.started_at
+                    ? ` · iniciado às ${new Date(runningJob.started_at).toLocaleTimeString("pt-BR")}`
+                    : ""}
+                  . Aguarde a conclusão ou escolha um período que não se sobreponha.
+                </span>
+              </span>
+            </div>
+          ) : null}
+
+
           {run.data ? (
             <div className="space-y-2 rounded-lg border p-3">
               <div className="text-sm font-medium">Última execução</div>
@@ -269,9 +307,14 @@ export function BackfillDialog({ connectionId }: { connectionId: string }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Fechar
           </Button>
-          <Button onClick={() => run.mutate()} disabled={run.isPending || !start || !end} className="gap-2">
+          <Button
+            onClick={() => run.mutate()}
+            disabled={run.isPending || !start || !end || Boolean(runningJob)}
+            className="gap-2"
+          >
             {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-            Executar backfill
+            {runningJob ? "Backfill em execução" : "Executar backfill"}
+
           </Button>
         </DialogFooter>
       </DialogContent>

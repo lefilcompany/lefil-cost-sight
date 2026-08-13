@@ -22,6 +22,54 @@ export type BackfillResult = {
 
 const DAY = 86_400_000;
 
+/** Tempo máximo que um job de backfill pode ficar "running" antes de ser considerado travado. */
+const STALE_BACKFILL_MINUTES = 30;
+
+function formatBr(date: string) {
+  const [y, m, d] = date.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** Marca como erro jobs de backfill presos em "running" além do tempo limite, liberando a trava. */
+async function releaseStaleBackfillLocks(connectionId: string) {
+  const cutoff = new Date(Date.now() - STALE_BACKFILL_MINUTES * 60_000).toISOString();
+  await supabaseAdmin
+    .from("sync_jobs")
+    .update({
+      status: "error",
+      finished_at: new Date().toISOString(),
+      error_code: "backfill_timeout",
+      error_message: `Backfill interrompido: sem atualização por mais de ${STALE_BACKFILL_MINUTES} minutos.`,
+    })
+    .eq("provider_connection_id", connectionId)
+    .eq("sync_type", "backfill")
+    .eq("status", "running")
+    .lt("started_at", cutoff);
+}
+
+/** Retorna um backfill em execução na mesma conexão cujo período se sobreponha ao solicitado. */
+async function findRunningBackfill(
+  connectionId: string,
+  periodStart: string,
+  periodEnd: string,
+  excludeJobId?: string,
+) {
+  let query = supabaseAdmin
+    .from("sync_jobs")
+    .select("id, period_start, period_end, started_at")
+    .eq("provider_connection_id", connectionId)
+    .eq("sync_type", "backfill")
+    .eq("status", "running")
+    .lte("period_start", periodEnd)
+    .gte("period_end", periodStart)
+    .order("started_at", { ascending: true })
+    .limit(2);
+  if (excludeJobId) query = query.neq("id", excludeJobId);
+  const { data } = await query;
+  return data?.[0] ?? null;
+}
+
+
 /**
  * Reprocessa custos de uma conexão em um período: opcionalmente limpa os
  * lançamentos vindos de API no intervalo, re-executa o sync de uso e billing e
@@ -42,7 +90,24 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
     throw new Error("A data inicial deve ser anterior à data final");
   }
 
+  await releaseStaleBackfillLocks(conn.id);
+  const running = await findRunningBackfill(conn.id, periodStart, periodEnd);
+  if (running) {
+    const since = running.started_at ? new Date(running.started_at) : null;
+    const minutes = since ? Math.max(1, Math.round((Date.now() - since.getTime()) / 60_000)) : null;
+    const periodo =
+      running.period_start && running.period_end
+        ? ` para o período ${formatBr(running.period_start)} a ${formatBr(running.period_end)}`
+        : "";
+    throw new Error(
+      `Já existe um backfill em execução nesta conexão${periodo}` +
+        (minutes ? `, iniciado há ${minutes} min` : "") +
+        ". Aguarde a conclusão ou escolha um período que não se sobreponha antes de tentar novamente.",
+    );
+  }
+
   const startedAt = new Date();
+
   const { data: job } = await supabaseAdmin
     .from("sync_jobs")
     .insert({
@@ -59,6 +124,26 @@ export async function runConnectionBackfill(input: BackfillInput): Promise<Backf
     })
     .select("id")
     .single();
+
+  // Segunda checagem: se outro job entrou em execução ao mesmo tempo, desiste do nosso.
+  if (job?.id) {
+    const competitor = await findRunningBackfill(conn.id, periodStart, periodEnd, job.id);
+    if (competitor && (competitor.started_at ?? "") <= startedAt.toISOString()) {
+      await supabaseAdmin
+        .from("sync_jobs")
+        .update({
+          status: "cancelled",
+          finished_at: new Date().toISOString(),
+          error_code: "backfill_locked",
+          error_message: "Cancelado: outro backfill já estava em execução para esta conexão e período.",
+        })
+        .eq("id", job.id);
+      throw new Error(
+        "Outro backfill acabou de iniciar para esta conexão e período. Aguarde a conclusão antes de tentar novamente.",
+      );
+    }
+  }
+
 
   const steps: BackfillResult["steps"] = [];
   let deletedUsage = 0;
