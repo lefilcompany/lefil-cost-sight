@@ -413,6 +413,14 @@ function AlertsPage() {
   );
 }
 
+const CHANNEL_LABEL: Record<string, string> = {
+  in_app: "No app",
+  slack: "Slack",
+  email: "E-mail",
+  slack_email: "Slack + e-mail",
+  all: "Todos os canais",
+};
+
 function SeverityDot({ severity }: { severity: string }) {
   const cls =
     severity === "critical"
@@ -457,6 +465,9 @@ function RuleRow({ rule }: { rule: AlertRule }) {
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate font-display text-sm font-semibold">{rule.name}</p>
           {!rule.enabled && <Badge variant="outline" className="text-[10px]">Desativada</Badge>}
+          {rule.channel && rule.channel !== "in_app" && (
+            <Badge variant="secondary" className="text-[10px] capitalize">{CHANNEL_LABEL[rule.channel] ?? rule.channel}</Badge>
+          )}
         </div>
         <p className="text-[11px] text-muted-foreground">
           {METRIC_LABEL[rule.metric] ?? rule.metric} · escopo {rule.scope} · {rule.comparison}{" "}
@@ -483,6 +494,7 @@ function NewRuleDialog() {
     metric: "monthly_cost" as AlertRule["metric"],
     comparison: ">" as AlertRule["comparison"],
     threshold: 1000,
+    channel: "in_app",
   });
 
   const create = useMutation({
@@ -494,7 +506,7 @@ function NewRuleDialog() {
         metric: form.metric,
         comparison: form.comparison,
         threshold: Number(form.threshold),
-        channel: "in_app",
+        channel: form.channel,
         enabled: true,
       });
       if (error) throw error;
@@ -503,7 +515,7 @@ function NewRuleDialog() {
       toast.success("Regra criada");
       qc.invalidateQueries({ queryKey: ["alert-rules"] });
       setOpen(false);
-      setForm({ name: "", scope: "global", metric: "monthly_cost", comparison: ">", threshold: 1000 });
+      setForm({ name: "", scope: "global", metric: "monthly_cost", comparison: ">", threshold: 1000, channel: "in_app" });
     },
     onError: (e: any) => toast.error(e.message),
   });
