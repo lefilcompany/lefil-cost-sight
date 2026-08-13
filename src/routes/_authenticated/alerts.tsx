@@ -152,16 +152,26 @@ function AlertsPage() {
   const currentEventPage = Math.min(eventPage, eventPageCount - 1);
   const eventRows = filtered.slice(currentEventPage * EVENTS_PAGE_SIZE, currentEventPage * EVENTS_PAGE_SIZE + EVENTS_PAGE_SIZE);
 
+  // Link vindo da notificação: /alerts?rule=<id> foca a regra correspondente.
+  const [focusRuleId, setFocusRuleId] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("rule");
+    if (id && id !== "teste") setFocusRuleId(id);
+  }, []);
+
   const filteredRules = useMemo(() => {
     const term = ruleSearch.trim().toLowerCase();
     return rules.filter((r) => {
+      if (focusRuleId && r.id !== focusRuleId) return false;
       if (ruleMetric !== "all" && r.metric !== ruleMetric) return false;
       if (ruleState === "enabled" && !r.enabled) return false;
       if (ruleState === "disabled" && r.enabled) return false;
       if (term && !`${r.name} ${r.scope} ${r.metric}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [rules, ruleSearch, ruleMetric, ruleState]);
+  }, [rules, ruleSearch, ruleMetric, ruleState, focusRuleId]);
+
 
   const rulePageCount = Math.max(1, Math.ceil(filteredRules.length / RULES_PAGE_SIZE));
   const currentRulePage = Math.min(rulePage, rulePageCount - 1);
