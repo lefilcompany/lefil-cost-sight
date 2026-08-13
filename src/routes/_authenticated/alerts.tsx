@@ -13,10 +13,12 @@ import {
   Filter,
   Sparkles,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { explainAlert } from "@/lib/gemini-ai.functions";
+import { runDataQualityCheck } from "@/lib/data-quality.functions";
 
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,6 +168,8 @@ function AlertsPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const validateData = useServerFn(runDataQualityCheck);
 
   const runValidation = useMutation({
     mutationFn: async () => (await validateData()) as { checked_connections: number; issues: number; created_events: number },
