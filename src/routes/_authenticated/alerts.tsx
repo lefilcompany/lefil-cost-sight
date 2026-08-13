@@ -567,7 +567,7 @@ function NotificationSettingsDialog() {
             </p>
           </div>
           <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
-          <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+
             Slack:{" "}
             {settings.data?.slack_configured ? (
               <span className="font-medium text-emerald-600 dark:text-emerald-400">webhook configurado</span>
