@@ -80,6 +80,106 @@ async function upsertUsageDaily(row: {
   );
 }
 
+/**
+ * Deriva uso diário (provider_usage_daily) a partir do histórico de
+ * provider_billing_snapshots. Muitos provedores (ex.: Firecrawl) não expõem
+ * histórico diário confiável, mas os snapshots são acumulativos dentro do
+ * ciclo — então o consumo do dia é a diferença entre o último snapshot do dia
+ * e o do dia anterior no mesmo ciclo.
+ */
+export async function aggregateUsageDailyFromSnapshots(
+  connectionId: string,
+  rate: number,
+  days = 120,
+): Promise<number> {
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const { data: snaps, error } = await supabaseAdmin
+    .from("provider_billing_snapshots")
+    .select(
+      "connection_id, provider_id, platform_id, plan_name, cycle_start, cycle_end, used_quantity, included_unit, cost_period_usd, captured_at",
+    )
+    .eq("connection_id", connectionId)
+    .gte("captured_at", since)
+    .order("captured_at", { ascending: true });
+  if (error || !snaps || snaps.length === 0) return 0;
+
+  // último snapshot de cada dia
+  const lastPerDay = new Map<string, any>();
+  for (const s of snaps) {
+    const day = isoDate(new Date(s.captured_at as string));
+    lastPerDay.set(day, s);
+  }
+  const daysSorted = Array.from(lastPerDay.keys()).sort();
+
+  // 1ª passada: consumo (delta) por dia, agrupado por ciclo de cobrança
+  type DayRow = { day: string; snap: any; qty: number; cycle: string };
+  const rows: DayRow[] = [];
+  let prev: any = null;
+  for (const day of daysSorted) {
+    const s = lastPerDay.get(day);
+    const cycle = String(s.cycle_start ?? day.slice(0, 7));
+    const sameCycle = prev && String(prev.cycle_start ?? "") === String(s.cycle_start ?? "");
+    const usedNow = Number(s.used_quantity ?? 0);
+    const usedPrev = sameCycle ? Number(prev.used_quantity ?? 0) : 0;
+    let qty = usedNow - usedPrev;
+    if (!Number.isFinite(qty) || qty < 0) qty = 0;
+    rows.push({ day, snap: s, qty, cycle });
+    prev = s;
+  }
+
+  // 2ª passada: rateia o custo conhecido do ciclo proporcionalmente ao consumo
+  // diário (funciona tanto para plano fixo quanto para pay-as-you-go).
+  const cycleTotals = new Map<string, { cost: number; qty: number }>();
+  for (const r of rows) {
+    const cur = cycleTotals.get(r.cycle) ?? { cost: 0, qty: 0 };
+    cur.cost = Math.max(cur.cost, Number(r.snap.cost_period_usd ?? 0));
+    cur.qty += r.qty;
+    cycleTotals.set(r.cycle, cur);
+  }
+
+  const payload: any[] = [];
+  for (const r of rows) {
+    const totals = cycleTotals.get(r.cycle)!;
+    const costUsd = totals.qty > 0 ? (totals.cost * r.qty) / totals.qty : 0;
+    if (r.qty <= 0 && costUsd <= 0) continue;
+    const s = r.snap;
+    payload.push({
+      connection_id: s.connection_id,
+      provider_id: s.provider_id,
+      platform_id: s.platform_id,
+      usage_date: r.day,
+      model: s.plan_name ? String(s.plan_name) : "plano",
+      endpoint: "billing_snapshot",
+      input_tokens: 0,
+      output_tokens: 0,
+      requests: 0,
+      quantity: r.qty,
+      unit: s.included_unit ?? null,
+      cost_usd: costUsd,
+      exchange_rate: rate,
+      cost_brl: costUsd * rate,
+      raw: {
+        source: "billing_snapshot_delta",
+        cycle_start: s.cycle_start,
+        cycle_end: s.cycle_end,
+        used_cycle_total: Number(s.used_quantity ?? 0),
+        cost_cycle_total: totals.cost,
+      },
+      synced_at: new Date().toISOString(),
+    });
+  }
+
+  if (payload.length === 0) return 0;
+  const { error: upErr } = await supabaseAdmin
+    .from("provider_usage_daily")
+    .upsert(payload, { onConflict: "connection_id,usage_date,model,endpoint" });
+  if (upErr) {
+    console.warn("[billing] aggregateUsageDailyFromSnapshots upsert falhou:", upErr.message);
+    return 0;
+  }
+  return payload.length;
+}
+
 // ---------- Firecrawl ----------
 async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOutcome> {
   const key = await getConnectionKey(conn.id, "FIRECRAWL_API_KEY");
@@ -127,7 +227,7 @@ async function syncFirecrawlBilling(conn: any, rate: number): Promise<BillingOut
   let usageRows = 0;
   try {
     const histRes = await fetch(
-      "https://api.firecrawl.dev/v2/team/credit-usage-historical?byApiKey=false",
+      "https://api.firecrawl.dev/v2/team/credit-usage/historical?byApiKey=false",
       { headers },
     );
     if (histRes.ok) {
@@ -603,6 +703,18 @@ export async function runBillingSyncForConnection(connectionId: string) {
       };
     } else {
       out = await handler(conn, rate);
+    }
+
+    // Complementa/garante o uso diário a partir do histórico de snapshots
+    // (provedores de plano fixo não expõem histórico diário próprio).
+    try {
+      const derived = await aggregateUsageDailyFromSnapshots(conn.id, rate);
+      if (derived > 0) {
+        out.usage_rows += derived;
+        out.meta = { ...(out.meta ?? {}), usage_daily_from_snapshots: derived };
+      }
+    } catch (err: any) {
+      console.warn("[billing] agregação de uso diário falhou:", err?.message);
     }
 
     await supabaseAdmin
