@@ -1,0 +1,204 @@
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+export type BackfillInput = {
+  connectionId: string;
+  periodStart: string; // YYYY-MM-DD
+  periodEnd: string; // YYYY-MM-DD
+  purge?: boolean;
+  initiatedBy?: string | null;
+};
+
+export type BackfillResult = {
+  job_id: string | null;
+  status: "success" | "partial" | "error";
+  deleted_usage_rows: number;
+  deleted_cost_entries: number;
+  usage_rows: number;
+  snapshots: number;
+  invoices: number;
+  records_imported: number;
+  steps: { step: string; ok: boolean; message?: string; records?: number }[];
+};
+
+const DAY = 86_400_000;
+
+/**
+ * Reprocessa custos de uma conexão em um período: opcionalmente limpa os
+ * lançamentos vindos de API no intervalo, re-executa o sync de uso e billing e
+ * reconstrói o uso diário a partir dos snapshots. Todo o andamento é gravado em
+ * sync_jobs para auditoria.
+ */
+export async function runConnectionBackfill(input: BackfillInput): Promise<BackfillResult> {
+  const { connectionId, periodStart, periodEnd, purge = true, initiatedBy = null } = input;
+
+  const { data: conn, error: connErr } = await supabaseAdmin
+    .from("provider_connections")
+    .select("id, name, organization_id, provider_id, providers(name)")
+    .eq("id", connectionId)
+    .single();
+  if (connErr || !conn) throw new Error("Conexão não encontrada");
+
+  if (new Date(`${periodStart}T00:00:00Z`) > new Date(`${periodEnd}T00:00:00Z`)) {
+    throw new Error("A data inicial deve ser anterior à data final");
+  }
+
+  const startedAt = new Date();
+  const { data: job } = await supabaseAdmin
+    .from("sync_jobs")
+    .insert({
+      organization_id: conn.organization_id,
+      provider_connection_id: conn.id,
+      sync_type: "backfill",
+      trigger_type: "manual",
+      status: "running",
+      period_start: periodStart,
+      period_end: periodEnd,
+      started_at: startedAt.toISOString(),
+      initiated_by: initiatedBy,
+      metadata: { purge, provider: (conn as any).providers?.name ?? null },
+    })
+    .select("id")
+    .single();
+
+  const steps: BackfillResult["steps"] = [];
+  let deletedUsage = 0;
+  let deletedEntries = 0;
+  let usageRows = 0;
+  let snapshots = 0;
+  let invoices = 0;
+
+  const finish = async (status: BackfillResult["status"], errorMessage?: string) => {
+    if (!job?.id) return;
+    await supabaseAdmin
+      .from("sync_jobs")
+      .update({
+        status,
+        finished_at: new Date().toISOString(),
+        records_read: usageRows + snapshots + invoices,
+        records_inserted: usageRows + invoices,
+        records_updated: snapshots,
+        records_skipped: deletedUsage + deletedEntries,
+        error_count: steps.filter((s) => !s.ok).length,
+        error_message: errorMessage ?? steps.find((s) => !s.ok)?.message ?? null,
+        metadata: {
+          purge,
+          provider: (conn as any).providers?.name ?? null,
+          deleted_usage_rows: deletedUsage,
+          deleted_cost_entries: deletedEntries,
+          steps,
+        },
+      })
+      .eq("id", job.id);
+  };
+
+  try {
+    if (purge) {
+      const { data: removedUsage, error: usageErr } = await supabaseAdmin
+        .from("provider_usage_daily")
+        .delete()
+        .eq("connection_id", conn.id)
+        .gte("usage_date", periodStart)
+        .lte("usage_date", periodEnd)
+        .select("id");
+      deletedUsage = removedUsage?.length ?? 0;
+      steps.push({
+        step: "Limpeza do uso diário",
+        ok: !usageErr,
+        message: usageErr?.message,
+        records: deletedUsage,
+      });
+
+      const { data: removedEntries, error: entriesErr } = await supabaseAdmin
+        .from("cost_entries")
+        .delete()
+        .eq("origin", "api")
+        .contains("metadata", { connection_id: conn.id })
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd)
+        .select("id");
+      deletedEntries = removedEntries?.length ?? 0;
+      steps.push({
+        step: "Limpeza de lançamentos de API",
+        ok: !entriesErr,
+        message: entriesErr?.message,
+        records: deletedEntries,
+      });
+    }
+
+    try {
+      const { resetUsageBackfillWatermark } = await import("./usage-backfill.server");
+      await resetUsageBackfillWatermark(conn.id);
+      steps.push({ step: "Marcador de reprocessamento reiniciado", ok: true });
+    } catch (err: any) {
+      steps.push({ step: "Marcador de reprocessamento reiniciado", ok: false, message: String(err?.message ?? err) });
+    }
+
+    try {
+      const { runSyncForConnection } = await import("./sync.server");
+      const r: any = await runSyncForConnection(conn.id);
+      steps.push({
+        step: "Sincronização de uso e custos",
+        ok: r?.ok !== false,
+        message: r?.message,
+        records: r?.records ?? 0,
+      });
+    } catch (err: any) {
+      steps.push({ step: "Sincronização de uso e custos", ok: false, message: String(err?.message ?? err) });
+    }
+
+    try {
+      const { runBillingSyncForConnection } = await import("./billing.server");
+      const r: any = await runBillingSyncForConnection(conn.id);
+      snapshots += r?.snapshots ?? 0;
+      usageRows += r?.usage_rows ?? 0;
+      invoices += r?.invoices ?? 0;
+      steps.push({
+        step: "Sincronização de billing e faturas",
+        ok: r?.ok !== false,
+        message: r?.message,
+        records: (r?.snapshots ?? 0) + (r?.usage_rows ?? 0) + (r?.invoices ?? 0),
+      });
+    } catch (err: any) {
+      steps.push({ step: "Sincronização de billing e faturas", ok: false, message: String(err?.message ?? err) });
+    }
+
+    try {
+      const { aggregateUsageDailyFromSnapshots } = await import("./billing.server");
+      const { resolveUsdBrlRate } = await import("./sync.server");
+      const rate = await resolveUsdBrlRate();
+      const days = Math.max(
+        1,
+        Math.ceil((Date.now() - new Date(`${periodStart}T00:00:00Z`).getTime()) / DAY) + 1,
+      );
+      const rows = await aggregateUsageDailyFromSnapshots(conn.id, rate, days);
+      usageRows += rows;
+      steps.push({ step: "Reconstrução do uso diário por snapshots", ok: true, records: rows });
+    } catch (err: any) {
+      steps.push({
+        step: "Reconstrução do uso diário por snapshots",
+        ok: false,
+        message: String(err?.message ?? err),
+      });
+    }
+
+    const failed = steps.filter((s) => !s.ok).length;
+    const status: BackfillResult["status"] = failed === 0 ? "success" : failed === steps.length ? "error" : "partial";
+    await finish(status);
+
+    return {
+      job_id: job?.id ?? null,
+      status,
+      deleted_usage_rows: deletedUsage,
+      deleted_cost_entries: deletedEntries,
+      usage_rows: usageRows,
+      snapshots,
+      invoices,
+      records_imported: usageRows + snapshots + invoices,
+      steps,
+    };
+  } catch (err: any) {
+    const message = String(err?.message ?? err);
+    await finish("error", message);
+    throw new Error(message);
+  }
+}
