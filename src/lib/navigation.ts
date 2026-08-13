@@ -49,6 +49,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         icon: "Bell",
         description: "Desvios, limites e eventos que exigem atenção.",
       },
+      {
+        title: "Notificações",
+        url: "/notifications",
+        icon: "Send",
+        description: "Histórico de envios por regra e evento, com status e erros.",
+      },
     ],
   },
   {
