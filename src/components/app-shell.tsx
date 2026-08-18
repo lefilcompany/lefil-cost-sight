@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, ChevronRight, LogOut, Moon, Search, Sun } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Moon, Sun } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,27 +10,9 @@ import { getNavigationLabel } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { GeminiAssistant } from "@/components/gemini-assistant";
 
-const SEGMENT_LABELS: Record<string, string> = {
-  overview: "Visão geral",
-  dashboard: "Visão geral",
-  financial: "Visão geral",
-  platforms: "Centros de custo",
-  providers: "Fornecedores e integrações",
-  clients: "Clientes",
-  costs: "Lançamentos",
-  billing: "Consumo e planos",
-  invoices: "Faturas",
-  reconciliation: "Reconciliação",
-  syncs: "Saúde dos dados",
-  alerts: "Alertas",
-  users: "Equipe e acessos",
-  settings: "Configurações",
-};
-
 export function AppShell({
   children,
   title,
-  eyebrow,
   actions,
 }: {
   children: ReactNode;
@@ -69,7 +51,6 @@ export function AppShell({
     };
   }, []);
 
-  const segments = pathname.split("/").filter(Boolean);
   const currentNavigationLabel = getNavigationLabel(pathname);
 
   return (
