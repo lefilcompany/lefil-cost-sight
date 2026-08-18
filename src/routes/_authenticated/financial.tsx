@@ -280,7 +280,6 @@ function FinancialDashboard() {
 
   return (
     <AppShell
-      eyebrow={`Financeiro · ${range.label}`}
       title="Dashboard financeiro"
       actions={
         <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1.5 text-[11px] text-muted-foreground sm:flex">

@@ -319,7 +319,6 @@ function BillingPage() {
 
   return (
     <AppShell
-      eyebrow="Financeiro"
       title="Billing"
       actions={
         <div className="flex flex-wrap items-center gap-2">
