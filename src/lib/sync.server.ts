@@ -647,16 +647,55 @@ async function syncGoogleCloud(conn: any, rate: number): Promise<SyncOutcome> {
 
 
 async function syncGemini(conn: any, rate: number): Promise<SyncOutcome> {
-  // Detecta modo: API Key do AI Studio (AIza...) vs Service Account JSON (legado).
+  // Dois modos:
+  //  1) BigQuery Billing Export (custo oficial do Google Cloud) — credencial é o
+  //     JSON da service account e config.gcp tem bq_project/bq_dataset/billing_account_id.
+  //  2) API Key do AI Studio (AIza...) — valida a chave e agrega gemini_usage_events.
   const cfg = (conn.config ?? {}) as any;
-  const hasGcpConfig = !!(cfg.gcp?.bq_project || cfg.gcp?.billing_account_id);
-  if (hasGcpConfig) {
+  const gcp = cfg.gcp ?? {};
+  const hasGcpConfig = !!(gcp.bq_project && gcp.bq_dataset && gcp.billing_account_id);
+
+  const cred = await getConnectionKey(conn.id, "GEMINI_API_KEY");
+  let credIsServiceAccount = false;
+  if (cred && cred.trim().startsWith("{")) {
+    try {
+      const j = JSON.parse(cred);
+      credIsServiceAccount = j?.type === "service_account" && !!j?.private_key && !!j?.client_email;
+    } catch {
+      credIsServiceAccount = false;
+    }
+  }
+
+  if (credIsServiceAccount) {
+    if (!hasGcpConfig) {
+      const missing = [
+        ...(!gcp.bq_project ? ["BigQuery Project ID"] : []),
+        ...(!gcp.bq_dataset ? ["BigQuery Dataset"] : []),
+        ...(!gcp.billing_account_id ? ["Billing Account ID"] : []),
+      ];
+      return {
+        status: "skipped",
+        records: 0,
+        message: `Service account detectada, mas falta configurar: ${missing.join(", ")}. Edite a conexão do Gemini.`,
+      };
+    }
     const { syncGeminiBilling } = await import("./gcp-billing.server");
     return syncGeminiBilling(conn, rate);
   }
+
+  if (hasGcpConfig) {
+    return {
+      status: "skipped",
+      records: 0,
+      message:
+        "BigQuery Billing Export configurado, mas a credencial salva não é uma service account. Edite a conexão e cole o JSON da service account.",
+    };
+  }
+
   const { syncGeminiApiKey } = await import("./gemini-apikey.server");
   return syncGeminiApiKey(conn, rate);
 }
+
 
 
 
