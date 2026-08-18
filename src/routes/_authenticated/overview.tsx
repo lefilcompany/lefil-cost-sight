@@ -11,13 +11,11 @@ import {
   YAxis,
 } from "recharts";
 import {
-  AlertTriangle,
   ArrowRight,
   Bell,
   CircleDollarSign,
   FileWarning,
   Layers,
-  Receipt,
   RefreshCw,
   TrendingDown,
   TrendingUp,
@@ -29,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
+import { CollapsibleSection, EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import {
   entriesForMonth,
@@ -39,7 +37,7 @@ import {
   projectMonthEnd,
   sumCostBrl,
 } from "@/lib/financial-metrics";
-import { fmtBRL, fmtDate, fmtDateTime } from "@/lib/format";
+import { fmtBRL, fmtDate } from "@/lib/format";
 import { useAutoSync } from "@/hooks/use-auto-sync";
 
 export const Route = createFileRoute("/_authenticated/overview")({
@@ -214,7 +212,7 @@ function OverviewPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Visão geral" eyebrow="Controle financeiro">
+      <AppShell title="Visão geral">
         <LoadingState label="Consolidando custos, faturas e alertas..." />
       </AppShell>
     );
