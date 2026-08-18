@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
+  ChevronDown,
   FileText,
   Gauge,
   HeartPulse,
@@ -15,7 +17,6 @@ import {
   Send,
   Settings,
   ShieldCheck,
-  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -23,7 +24,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -88,7 +88,7 @@ export function AppSidebar() {
             <span>{label}</span>
           )}
         </SidebarGroupLabel>
-        {(open || collapsedByDefault === undefined) && (
+        {open && (
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {items.map((item) => {
