@@ -213,7 +213,6 @@ function SettingsPage() {
 
   return (
     <AppShell
-      eyebrow="Sistema"
       title="Configurações"
       actions={
         <Dialog open={open} onOpenChange={setOpen}>

@@ -129,7 +129,6 @@ function ClientDetail() {
 
   return (
     <AppShell
-      eyebrow="Contato"
       title={client.name}
       actions={
         <div className="flex items-center gap-2">

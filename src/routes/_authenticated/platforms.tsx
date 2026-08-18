@@ -304,7 +304,6 @@ function PlatformsPage() {
 
   return (
     <AppShell
-      eyebrow="Cadastros"
       title="Plataformas"
       actions={
         <Dialog open={open} onOpenChange={setOpen}>

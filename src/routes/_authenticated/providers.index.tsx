@@ -656,7 +656,6 @@ function ProvidersPage() {
 
   return (
     <AppShell
-      eyebrow="Cadastros"
       title="Fornecedores"
       actions={
         <Button onClick={() => setPickerOpen(true)} className="gap-1.5">

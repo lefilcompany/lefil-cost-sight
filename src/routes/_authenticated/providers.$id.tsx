@@ -410,7 +410,6 @@ function ProviderDetailPage() {
 
   return (
     <AppShell
-      eyebrow="Fornecedor"
       title={provider.name}
       actions={
         <Link to="/providers">
