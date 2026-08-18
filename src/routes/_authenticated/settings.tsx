@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { KpiCard as Kpi, LoadingState, CollapsibleSection } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import { getUsdRate } from "@/lib/sync.functions";
 
@@ -422,8 +422,8 @@ function SettingsPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );
