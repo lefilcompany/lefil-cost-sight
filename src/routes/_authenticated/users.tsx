@@ -101,7 +101,7 @@ function UsersPage() {
 
   if (isAdminQuery.isLoading) {
     return (
-      <AppShell title="Usuários" eyebrow="Sistema">
+      <AppShell title="Usuários">
         <div className="p-8 text-sm text-muted-foreground">Carregando…</div>
       </AppShell>
     );
@@ -109,7 +109,7 @@ function UsersPage() {
 
   if (!isAdminQuery.data) {
     return (
-      <AppShell title="Usuários" eyebrow="Sistema">
+      <AppShell title="Usuários">
         <div className="mx-auto max-w-md space-y-3 p-12 text-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
             <ShieldCheck className="h-5 w-5" />
@@ -126,7 +126,6 @@ function UsersPage() {
   return (
     <AppShell
       title="Usuários"
-      eyebrow="Sistema"
       actions={
         <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground sm:flex">
           <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -135,10 +134,6 @@ function UsersPage() {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          Aprove novos acessos e gerencie quem pode entrar no painel.
-        </p>
-
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Pendentes" value={counts.pending} tone="pending" />
           <StatCard label="Ativos" value={counts.active} tone="active" />

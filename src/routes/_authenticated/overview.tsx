@@ -11,13 +11,11 @@ import {
   YAxis,
 } from "recharts";
 import {
-  AlertTriangle,
   ArrowRight,
   Bell,
   CircleDollarSign,
   FileWarning,
   Layers,
-  Receipt,
   RefreshCw,
   TrendingDown,
   TrendingUp,
@@ -29,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
+import { CollapsibleSection, EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import {
   entriesForMonth,
@@ -39,7 +37,7 @@ import {
   projectMonthEnd,
   sumCostBrl,
 } from "@/lib/financial-metrics";
-import { fmtBRL, fmtDate, fmtDateTime } from "@/lib/format";
+import { fmtBRL, fmtDate } from "@/lib/format";
 import { useAutoSync } from "@/hooks/use-auto-sync";
 
 export const Route = createFileRoute("/_authenticated/overview")({
@@ -214,7 +212,7 @@ function OverviewPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Visão geral" eyebrow="Controle financeiro">
+      <AppShell title="Visão geral">
         <LoadingState label="Consolidando custos, faturas e alertas..." />
       </AppShell>
     );
@@ -255,20 +253,21 @@ function OverviewPage() {
     },
   ];
 
+  const pending = actions.filter((action) => action.value > 0);
+
   return (
     <AppShell
-      eyebrow="Controle financeiro"
       title="Visão geral"
       actions={
         <Link to="/costs">
-          <Button size="sm" className="gap-1.5">
-            Ver lançamentos <ArrowRight className="h-3.5 w-3.5" />
+          <Button size="sm" variant="outline" className="gap-1.5">
+            Lançamentos <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </Link>
       }
     >
-      <div className="space-y-6">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
           <KpiCard
             label="Gasto no mês"
             value={fmtBRL(metrics.currentCost)}
@@ -277,170 +276,124 @@ function OverviewPage() {
             tone={metrics.change > 15 ? "bad" : metrics.change < -5 ? "good" : "neutral"}
           />
           <KpiCard
-            label="Projeção de fechamento"
+            label="Projeção do mês"
             value={fmtBRL(metrics.projectedCost)}
-            sub="Projeção pelo ritmo de consumo atual"
             icon={<CircleDollarSign className="h-4 w-4" />}
             tone={metrics.projectedCost > metrics.currentCost * 1.25 ? "warn" : "neutral"}
           />
           <KpiCard
             label="Faturas pendentes"
             value={fmtBRL(metrics.pendingInvoiceValue)}
-            sub={`${metrics.pendingInvoices.length} documento(s) no mês`}
+            sub={`${metrics.pendingInvoices.length} documento(s)`}
             icon={<WalletCards className="h-4 w-4" />}
             tone={metrics.pendingInvoices.length > 0 ? "warn" : "good"}
           />
-          <KpiCard
-            label="Pendências críticas"
-            value={String(metrics.criticalAlerts.length + metrics.failedSyncs.length)}
-            sub={`${metrics.criticalAlerts.length} alertas · ${metrics.failedSyncs.length} integrações`}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            tone={metrics.criticalAlerts.length + metrics.failedSyncs.length > 0 ? "bad" : "good"}
-          />
         </div>
 
-        <Card className="surface-elevated">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">O que precisa de atenção</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Pendências priorizadas para manter o fechamento financeiro confiável.
-            </p>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {actions.map((action) => (
+        {pending.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {pending.map((action) => (
               <Link
                 key={action.title}
                 to={action.url}
-                className="group rounded-lg border border-border/60 bg-muted/20 p-4 transition hover:border-primary/40 hover:bg-muted/40"
+                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs transition hover:border-primary/40"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-background shadow-sm">
-                    <action.icon className="h-4 w-4" />
-                  </div>
-                  <Badge
-                    variant={action.tone === "bad" ? "destructive" : "secondary"}
-                    className={action.tone === "ok" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : ""}
-                  >
-                    {action.value}
-                  </Badge>
-                </div>
-                <p className="mt-4 text-sm font-semibold">{action.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{action.description}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-                  Revisar <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
-                </span>
+                <action.icon className={`h-3.5 w-3.5 ${action.tone === "bad" ? "text-rose-500" : "text-amber-500"}`} />
+                <span className="font-medium">{action.title}</span>
+                <span className="font-numeric text-muted-foreground">{action.value}</span>
               </Link>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
-        <div className="grid gap-4 xl:grid-cols-3">
-          <Card className="surface-elevated xl:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Gasto por fornecedor</CardTitle>
-              <p className="text-xs text-muted-foreground">Distribuição dos lançamentos no mês atual.</p>
-            </CardHeader>
-            <CardContent>
-              {metrics.byProvider.length === 0 ? (
-                <EmptyState title="Sem custos no mês" description="Sincronize uma integração ou registre um lançamento." />
-              ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={metrics.byProvider.slice(0, 8)} layout="vertical" margin={{ left: 18, right: 12 }}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--color-border)" horizontal={false} />
-                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis type="category" dataKey="name" width={110} stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      formatter={(value: number) => fmtBRL(value)}
-                      contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }}
-                    />
-                    <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 6, 6, 0]} maxBarSize={26} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="surface-elevated">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Centros de custo</CardTitle>
-              <p className="text-xs text-muted-foreground">Onde o gasto do mês está concentrado.</p>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {metrics.byCenter.length === 0 ? (
-                <EmptyState title="Sem alocações" />
-              ) : (
-                metrics.byCenter.slice(0, 7).map((center) => {
-                  const share = metrics.currentCost > 0 ? (center.value / metrics.currentCost) * 100 : 0;
-                  return (
-                    <div key={center.name} className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: center.color ?? "var(--color-primary)" }} />
-                          <span className="truncate">{center.name}</span>
-                        </span>
-                        <span className="font-numeric text-xs">{fmtBRL(center.value)}</span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, share)}%` }} />
-                      </div>
-                      <p className="mt-1 text-right text-[10px] text-muted-foreground">{share.toFixed(1)}% do total</p>
-                    </div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="surface-elevated overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Receipt className="h-4 w-4" /> Lançamentos recentes
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Últimas movimentações consolidadas no ledger de custos.</p>
-            </div>
-            <Link to="/costs" className="text-xs font-medium text-primary hover:underline">Ver todos</Link>
+        <Card className="surface-elevated">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Gasto por fornecedor</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            {metrics.monthEntries.length === 0 ? (
-              <div className="p-6"><EmptyState title="Nenhum lançamento no mês" /></div>
+          <CardContent>
+            {metrics.byProvider.length === 0 ? (
+              <EmptyState title="Sem custos no mês" description="Sincronize uma integração ou registre um lançamento." />
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Fornecedor</TableHead>
-                      <TableHead>Centro de custo</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {metrics.monthEntries.slice(0, 8).map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="whitespace-nowrap text-xs">{fmtDate(entry.entry_date)}</TableCell>
-                        <TableCell className="text-xs">{entry.providers?.name ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{entry.platforms?.name ?? <Badge variant="outline">Sem alocação</Badge>}</TableCell>
-                        <TableCell className="text-xs">{entry.clients?.name ?? "—"}</TableCell>
-                        <TableCell className="max-w-[260px] truncate text-xs text-muted-foreground">{entry.description ?? "—"}</TableCell>
-                        <TableCell className="text-right font-numeric text-sm">{fmtBRL(entry.cost_brl)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={metrics.byProvider.slice(0, 6)} layout="vertical" margin={{ left: 18, right: 12 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--color-border)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" width={110} stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    formatter={(value: number) => fmtBRL(value)}
+                    contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 6, 6, 0]} maxBarSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
-          <span>{metrics.monthEntries.length} lançamento(s) considerados no mês atual.</span>
-          <span>Dados consolidados em {fmtDateTime(new Date().toISOString())}.</span>
-        </div>
+        <CollapsibleSection title="Centros de custo" description="Onde o gasto do mês está concentrado">
+          <div className="space-y-2 p-4">
+            {metrics.byCenter.length === 0 ? (
+              <EmptyState title="Sem alocações" />
+            ) : (
+              metrics.byCenter.slice(0, 7).map((center) => {
+                const share = metrics.currentCost > 0 ? (center.value / metrics.currentCost) * 100 : 0;
+                return (
+                  <div key={center.name}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-2 text-sm">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: center.color ?? "var(--color-primary)" }} />
+                        <span className="truncate">{center.name}</span>
+                      </span>
+                      <span className="font-numeric text-xs">{fmtBRL(center.value)}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, share)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Lançamentos recentes"
+          description={`${metrics.monthEntries.length} no mês`}
+          actions={
+            <Link to="/costs" className="text-xs font-medium text-primary hover:underline">
+              Ver todos
+            </Link>
+          }
+        >
+          {metrics.monthEntries.length === 0 ? (
+            <div className="p-4"><EmptyState title="Nenhum lançamento no mês" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Centro de custo</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {metrics.monthEntries.slice(0, 8).map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="whitespace-nowrap text-xs">{fmtDate(entry.entry_date)}</TableCell>
+                      <TableCell className="text-xs">{entry.providers?.name ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{entry.platforms?.name ?? <Badge variant="outline">Sem alocação</Badge>}</TableCell>
+                      <TableCell className="text-right font-numeric text-sm">{fmtBRL(entry.cost_brl)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CollapsibleSection>
       </div>
     </AppShell>
   );
 }
+

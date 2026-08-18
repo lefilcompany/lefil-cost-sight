@@ -315,7 +315,6 @@ function CostsPage() {
 
   return (
     <AppShell
-      eyebrow="Financeiro"
       title="Custos"
       actions={
         <div className="flex items-center gap-2">

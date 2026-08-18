@@ -288,7 +288,6 @@ function ClientsPage() {
 
   return (
     <AppShell
-      eyebrow="Cadastros"
       title="Clientes"
       actions={
         <div className="flex flex-wrap items-center gap-2">

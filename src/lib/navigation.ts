@@ -8,6 +8,8 @@ export type NavigationItem = {
 export type NavigationSection = {
   label: string;
   items: NavigationItem[];
+  /** Grupos secundários ficam recolhidos por padrão para reduzir ruído visual. */
+  collapsedByDefault?: boolean;
 };
 
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
@@ -82,6 +84,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   },
   {
     label: "Administração",
+    collapsedByDefault: true,
     items: [
       {
         title: "Reconciliação",

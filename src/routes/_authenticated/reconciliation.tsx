@@ -206,7 +206,7 @@ function ReconciliationPage() {
 
         <Card>
           <CardHeader className="gap-3">
-            <CardTitle className="text-base">Limite de divergência</CardTitle>
+            <CardTitle className="text-sm font-medium">Limite de divergência</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 className="w-32"
@@ -235,7 +235,7 @@ function ReconciliationPage() {
 
         <Card>
           <CardHeader className="gap-3">
-            <CardTitle className="text-base">Períodos reconciliados</CardTitle>
+            <CardTitle className="text-sm font-medium">Períodos reconciliados</CardTitle>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <Input
                 placeholder="Buscar fornecedor, mês ou explicação"

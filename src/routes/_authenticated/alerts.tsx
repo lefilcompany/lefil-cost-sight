@@ -261,7 +261,6 @@ function AlertsPage() {
 
   return (
     <AppShell
-      eyebrow="Sistema"
       title="Alertas"
       actions={
         <div className="flex items-center gap-2">
@@ -288,7 +287,7 @@ function AlertsPage() {
           <CardHeader className="gap-3 pb-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="font-display text-base">Eventos</CardTitle>
+                <CardTitle className="text-sm font-medium">Eventos</CardTitle>
                 <p className="text-xs text-muted-foreground">Reconheça ou resolva conforme forem tratados.</p>
               </div>
               <span className="text-xs text-muted-foreground">{filtered.length} evento(s)</span>
@@ -372,7 +371,7 @@ function AlertsPage() {
           <CardHeader className="gap-3 pb-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="font-display text-base">Regras</CardTitle>
+                <CardTitle className="text-sm font-medium">Regras</CardTitle>
                 <p className="text-xs text-muted-foreground">Cada regra é avaliada pelo cron ou pelo botão "Avaliar agora".</p>
               </div>
               <span className="text-xs text-muted-foreground">{filteredRules.length} regra(s)</span>

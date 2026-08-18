@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
+import { CollapsibleSection, EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import {
   credentialAuditFn,
@@ -237,7 +237,6 @@ function CredentialsPage() {
   return (
     <AppShell
       title="Credenciais das integrações"
-      eyebrow="Status de cada token/API key, validade e ações de renovar, revogar e testar conexão."
       actions={
         <Button
           variant="outline"
@@ -250,17 +249,16 @@ function CredentialsPage() {
       }
     >
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Credenciais saudáveis" value={String(kpis.healthy)} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} />
           <KpiCard label="Precisam de atenção" value={String(kpis.attention)} tone="warn" icon={<Timer className="h-4 w-4" />} />
           <KpiCard label="Expiradas ou com erro" value={String(kpis.broken)} tone="bad" icon={<AlertTriangle className="h-4 w-4" />} />
           <KpiCard label="Sem credencial" value={String(kpis.missing)} icon={<KeyRound className="h-4 w-4" />} />
-
         </div>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <CardTitle className="text-base">Conexões de fornecedor</CardTitle>
+            <CardTitle className="text-sm font-medium">Conexões de fornecedor</CardTitle>
             <Link to="/api-keys" className="text-xs text-muted-foreground underline">
               Chaves de API internas: {data?.api_keys.active ?? 0} ativas · {data?.api_keys.expiring ?? 0} a vencer
             </Link>
@@ -362,11 +360,8 @@ function CredentialsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Monitor News (OAuth)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <CollapsibleSection title="Monitor News (OAuth)">
+          <div className="space-y-2 p-4 text-sm">
             {data?.monitor_news.connected ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
@@ -400,14 +395,11 @@ function CredentialsPage() {
                 .
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Histórico de credenciais</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+        <CollapsibleSection title="Histórico de credenciais">
+          <div className="p-0">
             {(audit ?? []).length === 0 ? (
               <div className="p-6">
                 <EmptyState title="Sem eventos" description="Renovações, revogações e testes aparecem aqui." />
@@ -438,8 +430,8 @@ function CredentialsPage() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
 
       <RenewDialog item={renewTarget} onClose={() => setRenewTarget(null)} />

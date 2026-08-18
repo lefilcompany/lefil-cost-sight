@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { CollapsibleSection, EmptyState, KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtDateTime } from "@/lib/format";
 
@@ -265,7 +265,7 @@ function IntegrationsHealthPage() {
 
         <Card>
           <CardHeader className="gap-3">
-            <CardTitle className="text-base">Conexões</CardTitle>
+            <CardTitle className="text-sm font-medium">Conexões</CardTitle>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <Input
                 placeholder="Buscar conexão, fornecedor ou erro"
@@ -382,12 +382,12 @@ function IntegrationsHealthPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Credenciais e tokens</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 sm:px-6">
-            {expiring.length === 0 ? (
+        <CollapsibleSection
+          title="Credenciais e tokens"
+          description={`${atRisk} a vencer em 7 dias`}
+        >
+          <div className="p-4">
+          {expiring.length === 0 ? (
               <EmptyState
                 icon={<KeyRound className="h-5 w-5" />}
                 title="Nenhuma credencial com validade definida"
@@ -447,8 +447,8 @@ function IntegrationsHealthPage() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );

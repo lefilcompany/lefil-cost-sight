@@ -201,7 +201,7 @@ function SyncsPage() {
   });
 
   return (
-    <AppShell eyebrow="Análise" title="Sincronizações">
+    <AppShell title="Sincronizações">
       <div className="space-y-6">
         {/* KPIs */}
         <div className="grid gap-3 md:grid-cols-4">

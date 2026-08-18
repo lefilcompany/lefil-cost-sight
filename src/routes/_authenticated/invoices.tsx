@@ -147,7 +147,6 @@ function InvoicesPage() {
 
   return (
     <AppShell
-      eyebrow="Controle financeiro"
       title="Faturas"
       actions={
         <Link to="/billing">
@@ -169,7 +168,7 @@ function InvoicesPage() {
           <CardHeader className="gap-3 pb-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-base font-semibold">Documentos dos fornecedores</CardTitle>
+                <CardTitle className="text-sm font-medium">Documentos dos fornecedores</CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">Valores recebidos por API ou cadastrados manualmente na área de billing.</p>
               </div>
               <div className="text-xs text-muted-foreground">

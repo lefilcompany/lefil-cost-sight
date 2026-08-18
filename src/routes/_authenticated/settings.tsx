@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { KpiCard as Kpi, LoadingState, CollapsibleSection } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import { getUsdRate } from "@/lib/sync.functions";
 
@@ -213,7 +213,6 @@ function SettingsPage() {
 
   return (
     <AppShell
-      eyebrow="Sistema"
       title="Configurações"
       actions={
         <Dialog open={open} onOpenChange={setOpen}>
@@ -289,42 +288,26 @@ function SettingsPage() {
 
           <Card className="surface-elevated">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-base">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Info className="h-4 w-4" />
                 Sobre
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Quiwi Cost Center · versão MVP</p>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>
-                Centro de inteligência de custos das plataformas Quiwi. Consolida consumo de IA, infraestrutura
-                e serviços em um único painel executivo.
-              </p>
-              <p>
-                Configurações abaixo controlam parâmetros globais consumidos por jobs de sincronização,
-                cálculos de rateio e alertas.
-              </p>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>Quiwi Cost Center · versão MVP.</p>
               <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs">
                 Total de configurações: <span className="font-numeric font-semibold text-foreground">{settings.length}</span>
-        </div>
-
-
-
-
-
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Generic settings list */}
-        <Card className="surface-elevated">
-          <CardHeader>
-            <CardTitle className="font-display text-base">Todas as configurações</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Entradas <code className="rounded bg-muted px-1 font-numeric text-[10px]">system_settings</code> em JSON.
-            </p>
-          </CardHeader>
-          <CardContent className="pt-2">
+        <CollapsibleSection
+          title="Todas as configurações"
+          description={`Entradas system_settings em JSON (${settings.length})`}
+        >
+          <div className="p-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <div className="mr-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <Filter className="h-3.5 w-3.5" /> Filtros
@@ -423,8 +406,8 @@ function SettingsPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );

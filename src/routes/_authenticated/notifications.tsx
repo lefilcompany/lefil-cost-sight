@@ -200,7 +200,7 @@ function NotificationsPage() {
 
         <Card>
           <CardHeader className="gap-3">
-            <CardTitle className="text-base">Entregas</CardTitle>
+            <CardTitle className="text-sm font-medium">Entregas</CardTitle>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <Input
                 placeholder="Buscar regra, evento, destino ou erro"
