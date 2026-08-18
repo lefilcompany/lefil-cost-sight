@@ -81,26 +81,15 @@ export function AppShell({
             <SidebarTrigger className="h-8 w-8" />
             <nav className="hidden items-center gap-1.5 text-[12px] text-muted-foreground md:flex">
               <Link to="/overview" className="hover:text-foreground">Quiwi</Link>
-              {segments.map((segment, index) => {
-                const isLast = index === segments.length - 1;
-                const label = isLast && currentNavigationLabel
-                  ? currentNavigationLabel
-                  : SEGMENT_LABELS[segment] ?? segment;
-                return (
-                  <span key={`${segment}-${index}`} className="flex items-center gap-1.5">
-                    <ChevronRight className="h-3 w-3 opacity-50" />
-                    <span className={isLast ? "font-medium text-foreground" : ""}>{label}</span>
-                  </span>
-                );
-              })}
+              {currentNavigationLabel && pathname !== "/overview" && (
+                <span className="flex items-center gap-1.5">
+                  <ChevronRight className="h-3 w-3 opacity-50" />
+                  <span className="font-medium text-foreground">{currentNavigationLabel}</span>
+                </span>
+              )}
             </nav>
 
-            <div className="ml-auto flex items-center gap-2">
-              <div className="hidden items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground md:flex">
-                <Search className="h-3.5 w-3.5" />
-                <span>Buscar</span>
-                <kbd className="ml-2 rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
-              </div>
+            <div className="ml-auto flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggle} aria-label="Alternar tema">
                 {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
@@ -116,11 +105,11 @@ export function AppShell({
                   </span>
                 )}
               </Link>
-              <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-muted/40 py-0.5 pl-0.5 pr-3 sm:flex">
-                <div className="grid h-6 w-6 place-items-center rounded-full gradient-emerald text-[10px] font-semibold text-[color:var(--color-gold)]">
-                  {(email[0] ?? "L").toUpperCase()}
-                </div>
-                <span className="max-w-[140px] truncate text-[11px] text-muted-foreground">{email || "usuário"}</span>
+              <div
+                title={email || "usuário"}
+                className="grid h-7 w-7 place-items-center rounded-full gradient-emerald text-[10px] font-semibold text-[color:var(--color-gold)]"
+              >
+                {(email[0] ?? "L").toUpperCase()}
               </div>
               <Button
                 variant="ghost"
@@ -135,26 +124,19 @@ export function AppShell({
           </header>
 
           <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
-            {(title || actions || eyebrow) && (
-              <div className="mx-auto mb-8 flex max-w-[1400px] flex-wrap items-end justify-between gap-4">
-                <div className="min-w-0">
-                  {eyebrow && (
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-gold)]" />
-                      {eyebrow}
-                    </div>
-                  )}
-                  {title && (
-                    <h1 className="font-display text-[28px] font-semibold leading-tight tracking-tight md:text-[32px]">
-                      {title}
-                    </h1>
-                  )}
-                </div>
+            {(title || actions) && (
+              <div className="mx-auto mb-6 flex max-w-[1400px] flex-wrap items-center justify-between gap-3">
+                {title && (
+                  <h1 className="font-display text-[24px] font-semibold leading-tight tracking-tight md:text-[26px]">
+                    {title}
+                  </h1>
+                )}
                 {actions && <div className="flex items-center gap-2">{actions}</div>}
               </div>
             )}
             <div className="mx-auto max-w-[1400px]">{children}</div>
           </main>
+
         </div>
       </div>
       <GeminiAssistant />
