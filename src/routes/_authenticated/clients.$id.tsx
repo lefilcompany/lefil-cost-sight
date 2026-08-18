@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { KpiCard, EmptyState, LoadingState } from "@/components/ui-kit";
+import { KpiCard, EmptyState, LoadingState, CollapsibleSection } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate, fmtDateTime, fmtNumber } from "@/lib/format";
 
@@ -235,13 +235,8 @@ function ClientDetail() {
         </Card>
 
         {/* Últimas sincronizações */}
-        <Card className="surface-elevated">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <RefreshCw className="h-4 w-4" /> Sincronizações recentes das plataformas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleSection title="Sincronizações recentes das plataformas" description={`${relatedSyncs.length} registros`}>
+          <div className="p-4">
             {relatedSyncs.length === 0 ? (
               <EmptyState title="Sem sincronizações" description="As plataformas deste contato ainda não foram sincronizadas." />
             ) : (
@@ -272,18 +267,20 @@ function ClientDetail() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
 
         {/* Histórico de custos */}
-        <Card className="surface-elevated">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold">Histórico de custos</CardTitle>
-            <Link to="/costs" search={{ client: client.id, period: "all" } as any}>
+        <CollapsibleSection
+          title="Histórico de custos"
+          description={`${costs.length} lançamentos`}
+          actions={
+            <Link to="/costs" search={{ client: client.id, period: "all" } as any} onClick={(e) => e.stopPropagation()}>
               <Button size="sm" variant="ghost" className="h-7 text-xs">Ver tudo</Button>
             </Link>
-          </CardHeader>
-          <CardContent>
+          }
+        >
+          <div className="p-4">
             {costs.length === 0 ? (
               <EmptyState title="Sem custos" />
             ) : (
@@ -317,8 +314,8 @@ function ClientDetail() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );

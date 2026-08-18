@@ -46,7 +46,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { runProviderSync } from "@/lib/sync.functions";
 import { getFirecrawlUsage } from "@/lib/firecrawl-usage.functions";
 import { fmtBRL, fmtNumber } from "@/lib/format";
-import { KpiCard as Kpi, LoadingState } from "@/components/ui-kit";
+import { KpiCard as Kpi, LoadingState, CollapsibleSection } from "@/components/ui-kit";
 import { Progress } from "@/components/ui/progress";
 
 import firecrawlLogo from "@/assets/providers/firecrawl-wordmark.png.asset.json";
@@ -444,7 +444,7 @@ function ProviderDetailPage() {
 
         <Card className="surface-elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="font-display text-base">Chaves / conexões</CardTitle>
+            <CardTitle className="text-sm font-medium">Chaves / conexões</CardTitle>
             <Link to="/providers">
               <Button size="sm" variant="outline" className="gap-1.5">
                 <Plug className="h-3.5 w-3.5" /> Nova conexão
@@ -565,13 +565,8 @@ function ProviderDetailPage() {
         </Card>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="surface-elevated">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-display text-base">
-                <Activity className="h-4 w-4" /> Histórico de sincronizações
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+          <CollapsibleSection title="Histórico de sincronizações" description={`${logs.length} registros`}>
+            <div className="p-0">
               {logs.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma sincronização registrada.</p>
               ) : (
@@ -622,16 +617,11 @@ function ProviderDetailPage() {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
 
-          <Card className="surface-elevated">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-display text-base">
-                <Wallet className="h-4 w-4" /> Últimos custos importados
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+          <CollapsibleSection title="Últimos custos importados" description={`${entries.length} lançamentos`}>
+            <div className="p-0">
               {entries.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">
                   Nenhum custo importado ainda. Rode um sync ou aguarde o agendamento (a cada hora).
@@ -662,8 +652,8 @@ function ProviderDetailPage() {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CollapsibleSection>
         </div>
       </div>
 
