@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Inbox, Loader2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown, Inbox, Loader2 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
  * Goals:
  * - Consistent KPI card visuals across dashboard / costs / syncs / CRUD.
  * - Single empty & loading state so filters, first-run and errors read the same.
+ * - CollapsibleSection keeps secondary detail available without visual noise.
  */
 
 // ---------- KpiCard ---------------------------------------------------------
@@ -37,25 +38,72 @@ export function KpiCard({
 }) {
   return (
     <Card className="surface-elevated">
-      <CardContent className="pt-5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <CardContent className="px-5 py-5">
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
-          {icon && (
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border/60 bg-muted/40 text-muted-foreground">
-              {icon}
-            </div>
-          )}
+          {icon && <span className="ml-auto text-muted-foreground/70">{icon}</span>}
         </div>
         <p
-          className={`mt-2 font-numeric text-2xl font-semibold tracking-tight ${TONE_CLS[tone]}`}
+          className={`mt-3 font-numeric text-[28px] font-semibold leading-none tracking-tight ${TONE_CLS[tone]}`}
         >
           {value}
         </p>
-        {sub && <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>}
+        {sub && <p className="mt-2 text-[11px] text-muted-foreground">{sub}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+// ---------- CollapsibleSection ---------------------------------------------
+
+/**
+ * Secondary content wrapper: collapsed by default so pages stay calm,
+ * expandable when the user actually wants the detail.
+ */
+export function CollapsibleSection({
+  title,
+  description,
+  defaultOpen = false,
+  actions,
+  children,
+  className,
+}: {
+  title: string;
+  description?: string;
+  defaultOpen?: boolean;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section
+      className={`overflow-hidden rounded-xl border border-border/60 bg-card/50 ${className ?? ""}`}
+    >
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`}
+          />
+          <span className="truncate text-sm font-medium">{title}</span>
+          {description && (
+            <span className="hidden truncate text-xs text-muted-foreground md:inline">
+              {description}
+            </span>
+          )}
+        </button>
+        {actions}
+      </div>
+      {open && <div className="border-t border-border/60">{children}</div>}
+    </section>
   );
 }
 
@@ -75,10 +123,10 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={`py-16 text-center ${className ?? ""}`}>
+    <div className={`py-14 text-center ${className ?? ""}`}>
       <div className="mx-auto max-w-sm space-y-3">
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-          {icon ?? <Inbox className="h-5 w-5" />}
+        <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-muted text-muted-foreground">
+          {icon ?? <Inbox className="h-4 w-4" />}
         </div>
         <p className="font-display text-sm font-medium">{title}</p>
         {description && (
