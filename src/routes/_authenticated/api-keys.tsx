@@ -757,13 +757,12 @@ function ApiKeysPage() {
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Total" value={String(kpis.total)} />
-          <KpiCard label="Ativas" value={String(kpis.active)} tone="good" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <KpiCard label="Ativas" value={String(kpis.active)} sub={`${kpis.total} no total`} tone="good" />
           <KpiCard label="Expirando em 30d" value={String(kpis.expiring)} tone={kpis.expiring ? "warn" : "neutral"} />
-          <KpiCard label="Rotação automática" value={String(kpis.autoRotate)} tone={kpis.autoRotate ? "good" : "neutral"} />
-          <KpiCard label="Revogadas" value={String(kpis.revoked)} tone={kpis.revoked ? "bad" : "neutral"} />
+          <KpiCard label="Revogadas" value={String(kpis.revoked)} sub={`${kpis.autoRotate} com rotação automática`} tone={kpis.revoked ? "bad" : "neutral"} />
         </div>
+
 
         <Card>
           <CardHeader>
