@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
+import { CollapsibleSection, EmptyState, KpiCard, LoadingState } from "@/components/ui-kit";
 import { fmtDateTime } from "@/lib/format";
 import {
   credentialAuditFn,
@@ -361,11 +361,8 @@ function CredentialsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Monitor News (OAuth)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <CollapsibleSection title="Monitor News (OAuth)">
+          <div className="space-y-2 p-4 text-sm">
             {data?.monitor_news.connected ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
@@ -399,14 +396,11 @@ function CredentialsPage() {
                 .
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Histórico de credenciais</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+        <CollapsibleSection title="Histórico de credenciais">
+          <div className="p-0">
             {(audit ?? []).length === 0 ? (
               <div className="p-6">
                 <EmptyState title="Sem eventos" description="Renovações, revogações e testes aparecem aqui." />
@@ -437,8 +431,8 @@ function CredentialsPage() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
 
       <RenewDialog item={renewTarget} onClose={() => setRenewTarget(null)} />
