@@ -237,7 +237,6 @@ function CredentialsPage() {
   return (
     <AppShell
       title="Credenciais das integrações"
-      eyebrow="Status de cada token/API key, validade e ações de renovar, revogar e testar conexão."
       actions={
         <Button
           variant="outline"

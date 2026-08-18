@@ -46,7 +46,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { KpiCard, EmptyState, LoadingState } from "@/components/ui-kit";
+import { KpiCard, EmptyState, LoadingState, CollapsibleSection } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtDate, fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
@@ -496,12 +496,11 @@ function FinancialDashboard() {
         )}
 
         {/* Consumo detalhado */}
-        <Card className="surface-elevated">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold">Consumo detalhado</CardTitle>
-            <span className="text-[11px] text-muted-foreground">{inRange.length} lançamento(s)</span>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleSection
+          title="Consumo detalhado"
+          description={`${inRange.length} lançamento(s)`}
+        >
+          <div className="p-4">
             {isLoading ? (
               <LoadingState />
             ) : inRange.length === 0 ? (
@@ -539,8 +538,8 @@ function FinancialDashboard() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );
