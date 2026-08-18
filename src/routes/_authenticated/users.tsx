@@ -134,10 +134,6 @@ function UsersPage() {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          Aprove novos acessos e gerencie quem pode entrar no painel.
-        </p>
-
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Pendentes" value={counts.pending} tone="pending" />
           <StatCard label="Ativos" value={counts.active} tone="active" />

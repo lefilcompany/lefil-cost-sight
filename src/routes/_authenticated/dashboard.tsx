@@ -21,6 +21,7 @@ import {
 import { TrendingUp, TrendingDown, Crown, Truck, Users, ArrowUpRight, Zap, Filter, X } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
+import { CollapsibleSection } from "@/components/ui-kit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -453,101 +454,92 @@ function Dashboard() {
 
         {/* Model & type breakdown (OpenAI/Gemini/…) */}
         {modelBreakdown.length > 0 && (
-          <Card className="surface-elevated overflow-hidden">
-            <CardHeader className="border-b border-border/60 py-4">
-              <CardTitle className="font-display text-base">Custos por modelo e tipo</CardTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">Detalhamento das APIs no período — top 12</p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Modelo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Custo USD</TableHead>
-                    <TableHead className="text-right">Custo BRL</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {modelBreakdown.slice(0, 12).map((r) => (
-                    <TableRow key={`${r.provider}-${r.model}-${r.type}`} className="border-border/50">
-                      <TableCell className="text-sm">{r.provider}</TableCell>
-                      <TableCell className="text-xs font-medium">{r.model}</TableCell>
-                      <TableCell><Badge variant="outline" className="font-normal">{r.type}</Badge></TableCell>
-                      <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
-                      <TableCell className="text-right font-numeric text-sm">{fmtBRL(r.costBrl)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Recent */}
-        <Card className="surface-elevated overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 py-4">
-            <div>
-              <CardTitle className="font-display text-base">Últimos lançamentos</CardTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">Filtrados pelo período e recortes selecionados</p>
-            </div>
-            <a href="/costs" className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-gold)] hover:underline">
-              Ver tudo <ArrowUpRight className="h-3 w-3" />
-            </a>
-          </CardHeader>
-          <CardContent className="p-0">
+          <CollapsibleSection title="Custos por modelo e tipo" description="Detalhamento das APIs no período — top 12">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Data</TableHead>
-                  <TableHead>Plataforma</TableHead>
                   <TableHead>Fornecedor</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Modelo</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Custo USD</TableHead>
+                  <TableHead className="text-right">Custo BRL</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Carregando...</TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && inRange.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-16 text-center">
-                      <div className="mx-auto max-w-sm space-y-2">
-                        <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-muted text-muted-foreground">
-                          <Zap className="h-4 w-4" />
-                        </div>
-                        <p className="font-display text-sm font-medium">Sem lançamentos no período</p>
-                        <p className="text-xs text-muted-foreground">Ajuste os filtros ou registre um novo custo.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {inRange.slice(0, 10).map((e) => (
-                  <TableRow key={e.id} className="border-border/50">
-                    <TableCell className="text-xs text-muted-foreground">{fmtDate(e.entry_date)}</TableCell>
-                    <TableCell>
-                      {e.platforms?.name ? (
-                        <Badge variant="outline" className="gap-1.5 border-border/60 font-normal">
-                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: e.platforms.color || "var(--color-primary)" }} />
-                          {e.platforms.name}
-                        </Badge>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell className="text-sm">{e.providers?.name ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{e.clients?.name ?? "—"}</TableCell>
-                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{e.description ?? "—"}</TableCell>
-                    <TableCell className="text-right font-numeric text-sm">{fmtBRL(e.cost_brl)}</TableCell>
+                {modelBreakdown.slice(0, 12).map((r) => (
+                  <TableRow key={`${r.provider}-${r.model}-${r.type}`} className="border-border/50">
+                    <TableCell className="text-sm">{r.provider}</TableCell>
+                    <TableCell className="text-xs font-medium">{r.model}</TableCell>
+                    <TableCell><Badge variant="outline" className="font-normal">{r.type}</Badge></TableCell>
+                    <TableCell className="text-right font-numeric text-xs">{r.costUsd.toFixed(4)}</TableCell>
+                    <TableCell className="text-right font-numeric text-sm">{fmtBRL(r.costBrl)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </CollapsibleSection>
+        )}
+
+        {/* Recent */}
+        <CollapsibleSection
+          title="Últimos lançamentos"
+          description="Filtrados pelo período e recortes selecionados"
+          actions={
+            <a href="/costs" className="mr-1 inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-gold)] hover:underline">
+              Ver tudo <ArrowUpRight className="h-3 w-3" />
+            </a>
+          }
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Data</TableHead>
+                <TableHead>Plataforma</TableHead>
+                <TableHead>Fornecedor</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Carregando...</TableCell>
+                </TableRow>
+              )}
+              {!isLoading && inRange.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-16 text-center">
+                    <div className="mx-auto max-w-sm space-y-2">
+                      <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-muted text-muted-foreground">
+                        <Zap className="h-4 w-4" />
+                      </div>
+                      <p className="font-display text-sm font-medium">Sem lançamentos no período</p>
+                      <p className="text-xs text-muted-foreground">Ajuste os filtros ou registre um novo custo.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {inRange.slice(0, 10).map((e) => (
+                <TableRow key={e.id} className="border-border/50">
+                  <TableCell className="text-xs text-muted-foreground">{fmtDate(e.entry_date)}</TableCell>
+                  <TableCell>
+                    {e.platforms?.name ? (
+                      <Badge variant="outline" className="gap-1.5 border-border/60 font-normal">
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: e.platforms.color || "var(--color-primary)" }} />
+                        {e.platforms.name}
+                      </Badge>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{e.providers?.name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{e.clients?.name ?? "—"}</TableCell>
+                  <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{e.description ?? "—"}</TableCell>
+                  <TableCell className="text-right font-numeric text-sm">{fmtBRL(e.cost_brl)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CollapsibleSection>
       </div>
     </AppShell>
   );
