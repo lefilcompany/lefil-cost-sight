@@ -249,17 +249,16 @@ function CredentialsPage() {
       }
     >
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Credenciais saudáveis" value={String(kpis.healthy)} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} />
           <KpiCard label="Precisam de atenção" value={String(kpis.attention)} tone="warn" icon={<Timer className="h-4 w-4" />} />
           <KpiCard label="Expiradas ou com erro" value={String(kpis.broken)} tone="bad" icon={<AlertTriangle className="h-4 w-4" />} />
           <KpiCard label="Sem credencial" value={String(kpis.missing)} icon={<KeyRound className="h-4 w-4" />} />
-
         </div>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <CardTitle className="text-base">Conexões de fornecedor</CardTitle>
+            <CardTitle className="text-sm font-medium">Conexões de fornecedor</CardTitle>
             <Link to="/api-keys" className="text-xs text-muted-foreground underline">
               Chaves de API internas: {data?.api_keys.active ?? 0} ativas · {data?.api_keys.expiring ?? 0} a vencer
             </Link>

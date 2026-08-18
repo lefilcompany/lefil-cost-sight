@@ -265,7 +265,7 @@ function IntegrationsHealthPage() {
 
         <Card>
           <CardHeader className="gap-3">
-            <CardTitle className="text-base">Conexões</CardTitle>
+            <CardTitle className="text-sm font-medium">Conexões</CardTitle>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <Input
                 placeholder="Buscar conexão, fornecedor ou erro"
